@@ -1,3 +1,9 @@
+# user specific
+.qtc_clangd/
+.PowerDiagram.*
+test.nivc.mk
+commentaires.rst
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
