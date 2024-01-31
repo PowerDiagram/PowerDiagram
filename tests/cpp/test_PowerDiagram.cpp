@@ -5,8 +5,8 @@ TEST_CASE( "PowerDiagram", "" ) {
     List<Point> points{ { 0, 0 }, { 1, 0 } };
     Vector weights{ 0, 0 };
 
-    P( weights );
-    P( points );
+    PowerDiagram pd( points, weights );
+
     // const int dim = 2;
     // const int nb_points = 10;
     // Vector v = Vector::randu( dim * nb_points, 0.0, 1.0 );

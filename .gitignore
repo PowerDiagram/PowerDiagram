@@ -1,4 +1,5 @@
 # user specific
+.vfs_symbol_cache/
 .qtc_clangd/
 .PowerDiagram.*
 test.nivc.mk
