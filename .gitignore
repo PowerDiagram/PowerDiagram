@@ -4,6 +4,7 @@
 .PowerDiagram.*
 test.nivc.mk
 commentaires.rst
+*.vtk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

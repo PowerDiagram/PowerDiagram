@@ -2,10 +2,13 @@
 #include "catch_main.h"
 
 TEST_CASE( "PowerDiagram", "" ) {
-    List<Point> points{ { 0, 0 }, { 1, 0 } };
+    List<Point> positions{ { 0, 0 }, { 1, 0 } };
     Vector weights{ 0, 0 };
 
-    PowerDiagram pd( points, weights );
+    WeightedPointSet wps = make_WeightedPointSet_AABB( positions, weights );
+    P( wps );
+
+    // PowerDiagram pd( points, weights );
 
     // const int dim = 2;
     // const int nb_points = 10;

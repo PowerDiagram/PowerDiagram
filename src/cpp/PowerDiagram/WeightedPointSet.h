@@ -5,8 +5,10 @@
 #include <vfs/List.h>
 
 
-///
-class WeightedPointSet {
+/// wrapper around WeightedPointSet specializations
+class WeightedPointSet { VFS_TD_ATTRIBUTES( WeightedPointSet, "PowerDiagram" );
 public:
-    /**/ WeightedPointSet(  );
 };
+
+/// axis aligned bounding boxes
+WeightedPointSet make_WeightedPointSet_AABB( const List<Point> &positions, const Vector &weights );

@@ -10,7 +10,7 @@ class PowerDiagram {
 public:
     /***/ PowerDiagram       ();
 
-    void  set_pos_and_weights( const List<Point> &pos, const Vector &weights );
+    void  set_pos_and_weights( const List<Point> &positions, const Vector &weights );
 
 
 
