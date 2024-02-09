@@ -1,6 +1,13 @@
 #include <PowerDiagram/PowerDiagram.h>
 #include "catch_main.h"
 
+// template<typename compilation_flags> void f() {
+//     compilation_flags::for_each_string( []( auto s ) { P( s ); } );
+// }
+// template<CtStringList compilation_flags> void f() {
+//     compilation_flags.for_each_string( []( auto s ) { P( s ); } );
+// }
+
 TEST_CASE( "PowerDiagram", "" ) {
     List<Point> positions{ { 0, 0 }, { 1, 0 } };
     Vector weights{ 0, 0 };

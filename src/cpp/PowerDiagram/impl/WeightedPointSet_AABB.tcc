@@ -6,13 +6,13 @@
 #define UTP WeightedPointSet_AABB<Scalar,Point,Weight,nb_dims>
 
 DTP void UTP::for_each_template_arg( auto &&f ) {
-    f( Vfs::CtType<Scalar>() );
-    f( Vfs::CtType<Point>() );
-    f( Vfs::CtType<Weight>() );
-    f( Vfs::CtInt<nb_dims>() );
+    f( CtType<Scalar>() );
+    f( CtType<Point>() );
+    f( CtType<Weight>() );
+    f( CtInt<nb_dims>() );
 }
 
-DTP void UTP::get_compilation_flags( Vfs::CompilationFlags &cn ) {
+DTP void UTP::get_compilation_flags( CompilationFlags &cn ) {
     cn.add_inc_file( "sdot/WeightedPointSet_AABB.h" );
 }
 
@@ -22,7 +22,7 @@ DTP auto UTP::template_type_name() {
 
 DTP void UTP::set_points_and_weights( const auto &points, const auto &weights ) {
     nb_points = points.size();
-    auto indices = Vfs::VecImpl<PI>::range( nb_points );
+    auto indices = Vec<PI>::range( nb_points );
     root = make_box_rec( points, weights, { indices.data(), indices.size() }, nullptr );
     root->sibling = root;
 }
@@ -83,7 +83,7 @@ DTP UTP::Box *UTP::make_box_rec( const auto &points, const auto &weights, std::s
 }
 
 
-DTP auto *UTP::display( Vfs::Displayer &ds ) const {
+DTP auto *UTP::display( Displayer &ds ) const {
     return DS_OBJECT( WeightedPointSet_AABB, nb_points, root );
 }
 
