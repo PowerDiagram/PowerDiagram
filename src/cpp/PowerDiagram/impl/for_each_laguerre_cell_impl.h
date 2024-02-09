@@ -1,29 +1,28 @@
 #pragma once
 
-// #include "BoxForWeightedPointSet_AABB.h"
-#include <vfs/containers/VecImpl.h>
 #include <vfs/support/ThreadPool.h>
-#include "LaguerreCell.h"
+#include "CellImpl.h"
+#include "../Cell.h"
 
-///
+/// b_dirs, b_offs => boundaries
+/// beg_index_... => beg of cut indices for each category (power_diagram, regular boundary, infinite boundary)
 template<class WeightedPointSet>
-void for_each_laguerre_cell( const WeightedPointSet &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func, Vfs::PI beg_index_wps, Vfs::PI beg_index_bnd, Vfs::PI beg_index_inf ) {
+void for_each_laguerre_cell_impl( const WeightedPointSet &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func, PI beg_index_wps, PI beg_index_bnd, PI beg_index_inf ) {
     constexpr auto nb_dims = WeightedPointSet::nb_dims;
     using Scalar = WeightedPointSet::Scalar;
     using Weight = WeightedPointSet::Weight;
     using Point = WeightedPointSet::Point;
     using Box = WeightedPointSet::Box;
-    using Lc = LaguerreCell<Scalar,Point,Weight,nb_dims>;
-    using PI = Vfs::PI;
+    using Lc = CellImpl<Scalar,Point,Weight,nb_dims>;
 
-    Vfs::thread_pool.execute( weighted_point_set.leaves.size(), [&]( Vfs::PI nb_threads, const auto &cb ) {
-        std::vector<std::vector<Box *>> init_boxes_to_tests( nb_threads );
-        std::vector<std::vector<Box *>> boxes_to_tests( nb_threads );
-        std::vector<Lc> lcs( nb_threads );
-        func( nb_threads, [&]( const std::function<void( Lc &lc, PI num_thread )> &f ) {
+    thread_pool.execute( weighted_point_set.leaves.size(), [&]( PI nb_threads, const auto &cb ) {
+        Vec<Vec<Box *>> init_boxes_to_tests( nb_threads );
+        Vec<Vec<Box *>> boxes_to_tests( nb_threads );
+        Vec<Lc> lcs( nb_threads );
+        func( nb_threads, [&]( const std::function<void( Cell &lc, PI num_thread )> &f ) {
             cb( [&]( PI num_leaf, PI num_thread ) {
-                std::vector<Box *> &init_boxes_to_test = init_boxes_to_tests[ num_thread ];
-                std::vector<Box *> &boxes_to_test = boxes_to_tests[ num_thread ];
+                Vec<Box *> &init_boxes_to_test = init_boxes_to_tests[ num_thread ];
+                Vec<Box *> &boxes_to_test = boxes_to_tests[ num_thread ];
                 Lc &lc = lcs[ num_thread ];
                 Box *leaf = weighted_point_set.leaves[ num_leaf ];
 
@@ -83,7 +82,7 @@ void for_each_laguerre_cell( const WeightedPointSet &weighted_point_set, const a
                     }
 
                     // boundaries
-                    for( Vfs::PI i = 0; i < b_dirs.size(); ++i )
+                    for( PI i = 0; i < b_dirs.size(); ++i )
                         lc.cut( beg_index_bnd + i, b_dirs[ i ], b_offs[ i ] );
 
                     // call
@@ -94,8 +93,7 @@ void for_each_laguerre_cell( const WeightedPointSet &weighted_point_set, const a
     } );
 }
 
-template<class WeightedPointSet>
-void for_each_laguerre_cell( const WeightedPointSet &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func ) {
-    Vfs::PI ws = weighted_point_set.size();
+void for_each_laguerre_cell_impl( const auto &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func ) {
+    PI ws = weighted_point_set.size();
     for_each_laguerre_cell( weighted_point_set, b_dirs, b_offs, func, 0, ws, ws + b_dirs.size() );
 }

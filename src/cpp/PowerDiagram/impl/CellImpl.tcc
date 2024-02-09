@@ -1,10 +1,10 @@
 #pragma once
 
 #include <eigen3/Eigen/LU>
-#include "LaguerreCell.h"
+#include "CellImpl.h"
 
 #define DTP template<class Scalar,class Point,class Weight,int nb_dims>
-#define UTP LaguerreCell<Scalar,Point,Weight,nb_dims>
+#define UTP CellImpl<Scalar,Point,Weight,nb_dims>
 
 DTP void UTP::init( PI orig_index, PI beg_inf_index, const Point &center, Scalar radius ) {
     make_the_initial_simplex( beg_inf_index, center, radius );
@@ -26,13 +26,13 @@ DTP void UTP::make_the_initial_simplex( PI beg_inf_index, const Point &center, S
 
     // cuts
     for( int d = 0; d < nb_dims; ++d ) {
-        Point dir( Vfs::FromItemValue(), 0 );
+        Point dir( FromItemValue(), 0 );
         dir[ d ] = -1;
         cuts.emplace_back( beg_inf_index++, dir, radius - center[ d ] );
     }
 
-    Point dir( Vfs::FromItemValue(), 1 );
-    Point vrd( Vfs::FromItemValue(), radius );
+    Point dir( FromItemValue(), 1 );
+    Point vrd( FromItemValue(), radius );
     cuts.emplace_back( beg_inf_index++, dir, sp( center + vrd, dir ) );
 
     // vertices
@@ -168,11 +168,11 @@ DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
     };
 
     auto add_item = [&]( int vtk_id, std::span<const Vertex *> vertices ) {
-        Vfs::VecImpl<VtkOutput::Pt> points;
+        Vec<VtkOutput::Pt> points;
         VtkOutput::VTF convex_function;
         VtkOutput::VTF is_outside;
         for( const Vertex *vertex : vertices ) {
-            convex_function << Vfs::sp( vertex->pos, *orig_point ) - ( Vfs::norm_2_p2( *orig_point ) - *orig_weight ) / 2;
+            convex_function << sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
             is_outside << vertex_has_cut( *vertex, outside_cut );
             points << to_vtk( vertex->pos );
         }
@@ -195,7 +195,7 @@ DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
     }
 }
 
-DTP Vfs::DisplayItem *UTP::display( Vfs::Displayer &ds ) const {
+DTP DisplayItem *UTP::display( Displayer &ds ) const {
     return DS_OBJECT( LaguerreCell, vertices, edges, cuts );
 }
 
@@ -247,7 +247,7 @@ DTP void UTP::cut( PI n_index, const Point &dir, Scalar off ) {
     // check dir and off are new. TODO: something more robust
     for( const Cut &cut : cuts ) {
         using namespace std;
-        if ( Vfs::norm_2_p2( cut.dir - dir ) < 1e-10 && abs( cut.sp - off ) < 1e-10 )
+        if ( norm_2_p2( cut.dir - dir ) < 1e-10 && abs( cut.sp - off ) < 1e-10 )
             return;
     }
 
@@ -333,11 +333,11 @@ DTP void UTP::cut( PI n_index, const Point &dir, Scalar off ) {
     apply_corr( edges, edge_corr );
 }
 
-DTP Vfs::DisplayItem *UTP::Edge::display( Vfs::Displayer &ds ) const {
+DTP DisplayItem *UTP::Edge::display( Displayer &ds ) const {
     return DS_OBJECT( Edge, num_cuts, vertices );
 }
 
-DTP Vfs::DisplayItem *UTP::Cut::display( Vfs::Displayer &ds ) const {
+DTP DisplayItem *UTP::Cut::display( Displayer &ds ) const {
     return DS_OBJECT( Cut, n_index, dir, sp );
 }
 

@@ -1,17 +1,17 @@
 #pragma once
 
 #include "BoxForWeightedPointSet_AABB.h"
-#include <vfs/containers/Vec.h>
+#include "../WeightedPointSet.h"
 #include <span>
 
 ///
-template<class Scalar_,class Point_,class Weight_,int nb_dims_>
+template<class Scalar_,class Weight_,int nb_dims_>
 class WeightedPointSet_AABB {
 public:
     static constexpr int nb_dims               = nb_dims_;
     using                Scalar                = Scalar_;
     using                Weight                = Weight_;
-    using                Point                 = Point_;
+    using                Point                 = Vec<Scalar,nb_dims>;
 
     using                Box                   = BoxForWeightedPointSet_AABB<Scalar,Point,Weight,nb_dims>;
 
@@ -36,17 +36,13 @@ public:
     Box*                 root;
 };
 
-auto make_weighted_point_set_aabb( const auto &points, const auto &weights, auto nb_dims ) {
-    using namespace std;
-    using Scalar = decltype( exact_div( points[ 0 ][ 0 ] * weights[ 0 ], 1 + points[ 0 ][ 1 ] ) ); // TODO: use of exact_div
-    using Weight = DECAYED_TYPE_OF( weights[ 0 ] );
-    using TP = DECAYED_TYPE_OF( points[ 0 ][ 0 ] );
-    constexpr int dim = GET_DT_VALUE( nb_dims );
-    using Point = Vec<TP,dim>;
+WeightedPointSet make_WeightedPointSet_AABB_impl( const auto &points, const auto &weights ) {
+    using ScalarType = decltype( exact_div( points[ 0 ][ 0 ] * weights[ 0 ], 1 + points[ 0 ][ 1 ] ) );
+    constexpr int dim = ct_sizes_of( CT_DECAYED_TYPE_OF( points[ 0 ] ) ).template get<0>();
 
-    WeightedPointSet_AABB<Scalar,Point,Weight,dim> res;
+    WeightedPointSet_AABB<ScalarType,DECAYED_TYPE_OF( weights[ 0 ] ),dim> res;
     res.set_points_and_weights( points, weights );
-    return res;
+    return { FromValue(), std::move( res ) };
 }
 
 #include "WeightedPointSet_AABB.tcc" // IWYU pragma: export

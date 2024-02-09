@@ -2,18 +2,17 @@
 
 #include "WeightedPointSet_AABB.h"
 
-#define DTP template<class Scalar,class Point,class Weight,int nb_dims>
-#define UTP WeightedPointSet_AABB<Scalar,Point,Weight,nb_dims>
+#define DTP template<class Scalar,class Weight,int nb_dims>
+#define UTP WeightedPointSet_AABB<Scalar,Weight,nb_dims>
 
 DTP void UTP::for_each_template_arg( auto &&f ) {
     f( CtType<Scalar>() );
-    f( CtType<Point>() );
     f( CtType<Weight>() );
     f( CtInt<nb_dims>() );
 }
 
 DTP void UTP::get_compilation_flags( CompilationFlags &cn ) {
-    cn.add_inc_file( "sdot/WeightedPointSet_AABB.h" );
+    cn.add_inc_file( "PowerDiagram/impl/WeightedPointSet_AABB.h" );
 }
 
 DTP auto UTP::template_type_name() {

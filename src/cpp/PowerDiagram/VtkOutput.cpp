@@ -111,7 +111,7 @@ void VtkOutput::add_item( const Pt *pts_data, PI pts_size, PI vtk_type, const st
     for( const auto &data : point_data ) {
         auto iter = point_fields.find( data.first );
         if ( iter == point_fields.end() )
-            iter = point_fields.insert( iter, { data.first, VTF( Vfs::FromSizeAndItemValue(), old_point_size, TF( 0 ) ) } );
+            iter = point_fields.insert( iter, { data.first, VTF( FromSizeAndItemValue(), old_point_size, TF( 0 ) ) } );
         for( const auto &v : data.second )
             iter->second << v;
     }
@@ -121,7 +121,7 @@ void VtkOutput::add_item( const Pt *pts_data, PI pts_size, PI vtk_type, const st
     for( const auto &data : cell_data ) {
         auto iter = cell_fields.find( data.first );
         if ( iter == cell_fields.end() )
-            iter = cell_fields.insert( iter, { data.first, VTF( Vfs::FromSizeAndItemValue(), old_cell_type_size, TF( 0 ) ) } );
+            iter = cell_fields.insert( iter, { data.first, VTF( FromSizeAndItemValue(), old_cell_type_size, TF( 0 ) ) } );
         iter->second << data.second;
     }
     for( auto &field : cell_fields )

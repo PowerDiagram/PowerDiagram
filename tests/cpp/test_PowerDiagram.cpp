@@ -1,4 +1,5 @@
 #include <PowerDiagram/PowerDiagram.h>
+#include <PowerDiagram/VtkOutput.h>
 #include "catch_main.h"
 
 // template<typename compilation_flags> void f() {
@@ -9,13 +10,21 @@
 // }
 
 TEST_CASE( "PowerDiagram", "" ) {
-    List<Point> positions{ { 0, 0 }, { 1, 0 } };
+    List<Point> positions{ { 0.0, 0.0 }, { 1.0, 0.0 } };
     Vector weights{ 0, 0 };
 
     WeightedPointSet wps = make_WeightedPointSet_AABB( positions, weights );
-    P( wps );
+    PowerDiagram pd( std::move( wps ) );
 
-    // PowerDiagram pd( points, weights );
+    VtkOutput vo;
+    pd.for_each_cell( [&]( int nb_threads, const auto &f ) {
+        f( [&]( const Cell &cell, int num_thread ) {
+            //cell.display_vtk( vo );
+            P( cell );
+        });
+    } );
+    vo.save( "test.vtk" );
+
 
     // const int dim = 2;
     // const int nb_points = 10;
@@ -26,13 +35,6 @@ TEST_CASE( "PowerDiagram", "" ) {
     // WeightedPointSet wps = make_WeightedPointSet_PolytopRec( points, weights );
     // PowerDiagram pd( &wps );
 
-    // VtkOutput vo;
-    // pd.for_each_cell_full( [&]( int nb_threads, const auto &f ) {
-    //     f( [&]( const LaguerreCell &cell, int ) {
-    //         cell.display_vtk( vo );
-    //     });
-    // } );
-    // vo.save( "test.vtk" );
 
     // P( pd.volumes() );
 }

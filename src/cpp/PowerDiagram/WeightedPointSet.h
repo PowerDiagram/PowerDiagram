@@ -12,3 +12,6 @@ public:
 
 /// axis aligned bounding boxes
 WeightedPointSet make_WeightedPointSet_AABB( const List<Point> &positions, const Vector &weights );
+
+///
+WeightedPointSet make_WeightedPointSet_Empty();

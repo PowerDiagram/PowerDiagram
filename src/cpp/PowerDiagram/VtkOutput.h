@@ -1,6 +1,8 @@
 #pragma once
 
-#include <vfs/containers/VecImpl.h>
+#include <vfs/support/CompilationFlags.h>
+#include <vfs/containers/Vec.h>
+#include <span>
 #include <map>
 
 /***/
@@ -18,9 +20,8 @@ public:
     enum {          VtkQuad              = 9   };
 
     using           TF                   = double;
-    using           PI                   = Vfs::PI;
-    using           Pt                   = Vfs::VecImpl<TF,3>;
-    using           VTF                  = Vfs::VecImpl<TF>;
+    using           Pt                   = Vec<TF,3>;
+    using           VTF                  = Vec<TF>;
     using           FieldMap             = std::map<std::string,VTF>;
 
     /**/            VtkOutput            ();
@@ -43,10 +44,10 @@ public:
     void            add_line             ( std::span<Pt> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
 
     // generic
-    void            add_item             ( const Pt *pts_data, Vfs::PI pts_size, Vfs::PI vtk_type, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data );
+    void            add_item             ( const Pt *pts_data, PI pts_size, PI vtk_type, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data );
 
     // type info
-    static void     get_compilation_flags( Vfs::CompilationFlags &cn ) { cn.add_inc_file( "sdot/VtkOutput.h" ); }
+    static void     get_compilation_flags( CompilationFlags &cn ) { cn.add_inc_file( "sdot/VtkOutput.h" ); }
     static auto     type_name            () { return "VtkOutput"; }
 
     FieldMap        point_fields;        ///<
