@@ -5,3 +5,6 @@ Rq: qd on fait les librairies dans les répertoires .vf_symbol_cache, on relance
   Ou de passer des arguments par le C++ qui fait l'appel
     => il faudrait ajouter les flags utilisés dans les symboles.
     
+
+Pb: quand on fait le destroy, on a  
+

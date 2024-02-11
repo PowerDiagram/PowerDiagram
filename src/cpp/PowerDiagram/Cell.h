@@ -5,7 +5,7 @@
 #include <vfs/List.h>
 
 
-/// wrapper around WeightedPointSet specializations
+/// wrapper around CellImpl
 class Cell { VFS_TD_ATTRIBUTES( Cell, "PowerDiagram" );
 public:
 };

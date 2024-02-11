@@ -17,8 +17,8 @@ TEST_CASE( "PowerDiagram", "" ) {
     PowerDiagram pd( std::move( wps ) );
 
     VtkOutput vo;
-    pd.for_each_cell( [&]( int nb_threads, const auto &f ) {
-        f( [&]( const Cell &cell, int num_thread ) {
+    pd.for_each_cell( [&]( const Int &nb_threads, const auto &f ) {
+        f( [&]( const Cell &cell, const Int &num_thread ) {
             //cell.display_vtk( vo );
             P( cell );
         });

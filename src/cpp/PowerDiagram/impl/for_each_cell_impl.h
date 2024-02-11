@@ -7,7 +7,7 @@
 /// b_dirs, b_offs => boundaries
 /// beg_index_... => beg of cut indices for each category (power_diagram, regular boundary, infinite boundary)
 template<class WeightedPointSet>
-void for_each_laguerre_cell_impl( const WeightedPointSet &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func, PI beg_index_wps, PI beg_index_bnd, PI beg_index_inf ) {
+void for_each_cell_impl( const WeightedPointSet &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func, PI beg_index_wps, PI beg_index_bnd, PI beg_index_inf ) {
     constexpr auto nb_dims = WeightedPointSet::nb_dims;
     using Scalar = WeightedPointSet::Scalar;
     using Weight = WeightedPointSet::Weight;
@@ -16,15 +16,17 @@ void for_each_laguerre_cell_impl( const WeightedPointSet &weighted_point_set, co
     using Lc = CellImpl<Scalar,Point,Weight,nb_dims>;
 
     thread_pool.execute( weighted_point_set.leaves.size(), [&]( PI nb_threads, const auto &cb ) {
-        Vec<Vec<Box *>> init_boxes_to_tests( nb_threads );
-        Vec<Vec<Box *>> boxes_to_tests( nb_threads );
-        Vec<Lc> lcs( nb_threads );
+        Vec<Vec<Box *>> init_boxes_to_tests( FromSize(), nb_threads );
+        Vec<Vec<Box *>> boxes_to_tests( FromSize(), nb_threads );
+        Vec<Lc> lcs( FromSize(), nb_threads );
         func( nb_threads, [&]( const std::function<void( Cell &lc, PI num_thread )> &f ) {
             cb( [&]( PI num_leaf, PI num_thread ) {
                 Vec<Box *> &init_boxes_to_test = init_boxes_to_tests[ num_thread ];
                 Vec<Box *> &boxes_to_test = boxes_to_tests[ num_thread ];
-                Lc &lc = lcs[ num_thread ];
                 Box *leaf = weighted_point_set.leaves[ num_leaf ];
+
+                Lc &lc = lcs[ num_thread ];
+                Cell cell{ FromPointer(), &lc };
 
                 // init_boxes_to_test
                 init_boxes_to_test.clear();
@@ -58,8 +60,7 @@ void for_each_laguerre_cell_impl( const WeightedPointSet &weighted_point_set, co
                     // test the neighbor boxes
                     boxes_to_test = init_boxes_to_test;
                     while ( boxes_to_test.size() ) {
-                        Box *box = boxes_to_test.back();
-                        boxes_to_test.pop_back();
+                        Box *box = boxes_to_test.pop_back_val();
 
                         // exit if no potential intersection
 
@@ -82,18 +83,19 @@ void for_each_laguerre_cell_impl( const WeightedPointSet &weighted_point_set, co
                     }
 
                     // boundaries
-                    for( PI i = 0; i < b_dirs.size(); ++i )
-                        lc.cut( beg_index_bnd + i, b_dirs[ i ], b_offs[ i ] );
+                    if constexpr ( ! std::is_same_v< decltype( b_dirs.size() ), CtInt<0>> )
+                        for( PI i = 0; i < b_dirs.size(); ++i )
+                            lc.cut( beg_index_bnd + i, b_dirs[ i ], b_offs[ i ] );
 
                     // call
-                    f( lc, num_thread );
+                    f( cell, num_thread );
                 } );
             } );
         } );
     } );
 }
 
-void for_each_laguerre_cell_impl( const auto &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func ) {
+void for_each_cell_impl( const auto &weighted_point_set, const auto &b_dirs, const auto &b_offs, auto &&func ) {
     PI ws = weighted_point_set.size();
-    for_each_laguerre_cell( weighted_point_set, b_dirs, b_offs, func, 0, ws, ws + b_dirs.size() );
+    for_each_cell_impl( weighted_point_set, b_dirs, b_offs, func, 0, ws, ws + b_dirs.size() );
 }

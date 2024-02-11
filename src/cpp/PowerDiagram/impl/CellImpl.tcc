@@ -196,7 +196,8 @@ DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
 }
 
 DTP DisplayItem *UTP::display( Displayer &ds ) const {
-    return DS_OBJECT( LaguerreCell, vertices, edges, cuts );
+    P( (PI)this );
+    return DS_OBJECT( CellImpl, vertices, edges, cuts );
 }
 
 DTP bool UTP::is_ext( const Point &pos, const Point &dir, Scalar off ) {
