@@ -26,7 +26,7 @@ void for_each_cell_impl( const WeightedPointSet &weighted_point_set, const auto 
                 Box *leaf = weighted_point_set.leaves[ num_leaf ];
 
                 Lc &lc = lcs[ num_thread ];
-                Cell cell{ FromPointer(), &lc };
+                Cell cell{ FromPointerOnBorrowed(), &lc };
 
                 // init_boxes_to_test
                 init_boxes_to_test.clear();

@@ -19,8 +19,7 @@ TEST_CASE( "PowerDiagram", "" ) {
     VtkOutput vo;
     pd.for_each_cell( [&]( const Int &nb_threads, const auto &f ) {
         f( [&]( const Cell &cell, const Int &num_thread ) {
-            //cell.display_vtk( vo );
-            P( cell );
+            cell.display_vtk( vo );
         });
     } );
     vo.save( "test.vtk" );

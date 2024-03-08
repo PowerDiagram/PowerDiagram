@@ -6,8 +6,11 @@
 
 
 /// wrapper around WeightedPointSet specializations
-class WeightedPointSet { VFS_TD_ATTRIBUTES( WeightedPointSet, "PowerDiagram" );
+class WeightedPointSet {
 public:
+    VfsDtObject_STD_METHODS( WeightedPointSet, "PowerDiagram", 3 * sizeof( void * ), alignof( void * ) );
+
+    Int size() const;
 };
 
 /// axis aligned bounding boxes

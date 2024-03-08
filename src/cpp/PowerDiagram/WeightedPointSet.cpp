@@ -7,3 +7,7 @@ WeightedPointSet make_WeightedPointSet_AABB( const List<Point> &positions, const
 WeightedPointSet make_WeightedPointSet_Empty() {
     return VFS_CALL( make_WeightedPointSet_Empty, CtStringList<"inc_file:PowerDiagram/impl/WeightedPointSet_Empty.h">, WeightedPointSet );
 }
+
+Int WeightedPointSet::size() const {
+    return VFS_CALL_METHOD( size, Int, *this );
+}

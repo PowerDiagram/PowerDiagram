@@ -157,7 +157,7 @@ DTP bool UTP::vertex_has_cut( const Vertex &vertex, const auto &cut_func ) const
     return false;
 }
 
-DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
+DTP void UTP::display_vtk( VtkOutput &vo ) const { // , const auto &outside_cut
     auto to_vtk = [&]( const auto &pos ) {
         VtkOutput::Pt res;
         for( PI i = 0; i < min( PI( pos.size() ), res.size() ); ++i )
@@ -173,10 +173,10 @@ DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
         VtkOutput::VTF is_outside;
         for( const Vertex *vertex : vertices ) {
             convex_function << sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
-            is_outside << vertex_has_cut( *vertex, outside_cut );
+            // is_outside << vertex_has_cut( *vertex, outside_cut );
             points << to_vtk( vertex->pos );
-        }
-        vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } );
+        } // , { "is_outside", is_outside }
+        vo.add_polygon( points, { { "convex_function", convex_function } } );
     };
 
     // edges
@@ -196,7 +196,6 @@ DTP void UTP::display_vtk( VtkOutput &vo, const auto &outside_cut ) const {
 }
 
 DTP DisplayItem *UTP::display( Displayer &ds ) const {
-    P( (PI)this );
     return DS_OBJECT( CellImpl, vertices, edges, cuts );
 }
 

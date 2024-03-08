@@ -24,7 +24,7 @@ public:
     void                 for_each_vertex         ( const std::function<void( const Vertex &v )> &f ) const;
     void                 for_each_face           ( const std::function<void( std::array<PI,nb_dims-2> num_cuts, std::span<const Vertex *> vertices )> &f ) const;
     void                 for_each_edge           ( const std::function<void( std::array<PI,nb_dims-1> num_cuts, const Vertex *v0, const Vertex *v1 )> &f ) const;
-    void                 display_vtk             ( VtkOutput &vo, const auto &outside_cut ) const;
+    void                 display_vtk             ( VtkOutput &vo ) const; // , const auto &outside_cut
     Scalar               measure                 () const { return orig_index; }
     DisplayItem*         display                 ( Displayer &ds ) const;
 

@@ -47,8 +47,8 @@ public:
     void            add_item             ( const Pt *pts_data, PI pts_size, PI vtk_type, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data );
 
     // type info
-    static void     get_compilation_flags( CompilationFlags &cn ) { cn.add_inc_file( "sdot/VtkOutput.h" ); }
-    static auto     type_name            () { return "VtkOutput"; }
+    static void     get_compilation_flags( CompilationFlags &cn );
+    static Str      type_name            ();
 
     FieldMap        point_fields;        ///<
     FieldMap        cell_fields;         ///<
