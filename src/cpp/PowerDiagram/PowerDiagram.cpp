@@ -1,4 +1,5 @@
 #include "PowerDiagram.h"
+#include <mutex>
 
 PowerDiagram::PowerDiagram( WeightedPointSet &&wps ) : wps( std::move( wps ) ) {
 }
@@ -16,5 +17,17 @@ void PowerDiagram::for_each_cell( const std::function<void( const Cell & )> &f )
         cb( [&]( const Cell &cell, const Int & ) {
             f( cell );
         } );
+    } );
+}
+
+void PowerDiagram::display_vtk( const String &filename ) {
+    for_each_cell( [&]( const Int &nb_threads, const auto &f ) {
+        VtkOutput vo;
+        std::mutex m;
+        f( [&]( const Cell &cell, const Int &num_thread ) {
+            const std::lock_guard<std::mutex> lock( m );
+            cell.display_vtk( vo );
+        });
+        vo.save( filename );
     } );
 }
