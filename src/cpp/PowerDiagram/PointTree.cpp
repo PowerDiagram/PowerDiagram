@@ -10,6 +10,10 @@ PointTree *PointTree::New( const PointTreeCtorParms &cp, Span<Point> points, Spa
     return new PointTree_AABB( cp, points, weights, indices, parent );
 }
 
+bool PointTree::leaf() const {
+    return children.empty();
+}
+
 Str PointTree::type_name() {
     return "PointTree";
 }

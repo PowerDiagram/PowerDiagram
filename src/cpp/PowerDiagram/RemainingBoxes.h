@@ -10,5 +10,11 @@
  */
 class RemainingBoxes { STD_METIL_TYPE_INFO( RemainingBoxes, "", remaining_boxes )
 public:
-    Vec<PointTree *> remaining_boxes;
+    static RemainingBoxes for_first_leaf_of( PointTree *point_tree );
+
+    void                  go_to_next_leaf  ( const std::function<bool( PointTree *point_tree )> &go_inside );
+    operator              bool             () const;
+
+    Vec<PointTree *>      remaining_boxes;
+    PointTree*            leaf;
 };
