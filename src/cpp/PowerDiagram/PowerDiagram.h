@@ -15,7 +15,7 @@ public:
     /**/         PowerDiagram ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights );
     /**/        ~PowerDiagram ();
 
-    void         foe_each_cell( const std::function<void( const Cell &cell )> &f );
+    void         for_each_cell( const std::function<void( const Cell &cell )> &f );
     DisplayItem *display      ( DisplayItemFactory &df ) const;
 
 private:

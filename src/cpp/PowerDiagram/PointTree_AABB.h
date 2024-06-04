@@ -12,18 +12,13 @@
 */
 class PointTree_AABB : public PointTree {
 public:
-    using                PtPtr         = UniquePtr<PointTree>;
-
-    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights );
+    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
 
     void                 init_children ( const PointTreeCtorParms &cp );
     void                 init_bounds   ( const PointTreeCtorParms &cp );
     static Str           type_name     ();
-    virtual DisplayItem* display       ( DisplayItemFactory &df ) const;
 
-    Vec<PtPtr>           children;
-    Span<Scalar>         weights;
-    Span<Point>          points;
+    virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
 
     Scalar               min_offset_weights;
     Scalar               max_offset_weights;

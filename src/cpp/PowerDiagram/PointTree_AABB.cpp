@@ -1,6 +1,6 @@
 #include "PointTree_AABB.h"
 
-PointTree_AABB::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights ) : weights( weights ), points( points ) {
+PointTree_AABB::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent ) : PointTree( points, weights, indices, parent ) {
     init_bounds( cp );
     init_children( cp );
 }
