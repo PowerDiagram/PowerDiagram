@@ -13,8 +13,7 @@
  */
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
-    /**/          Cell              ();
-    /**/         ~Cell              ();
+    void          init              ( const Point *orig_point, const Scalar *orig_weight, PI orig_index );
 
     DisplayItem*  display           ( DisplayItemFactory &df ) const;
 

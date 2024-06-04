@@ -19,7 +19,7 @@ RemainingBoxes RemainingBoxes::for_first_leaf_of( PointTree *point_tree ) {
     return res;
 }
 
-void RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point_tree )> &go_inside ) {
+RemainingBoxes &RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point_tree )> &go_inside ) {
     // we're looking for an leaf (validated by `go_inside`)
     while ( remaining_boxes.size() ) {
         // test if we have to go inside into the last remaining box
@@ -30,7 +30,7 @@ void RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point
         // if it's a leaf, it's done
         if ( point_tree->children.empty() ) {
             leaf = point_tree;
-            return;
+            return *this;
         }
 
         // else, push children in remaining boxes
@@ -46,10 +46,11 @@ void RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point
 
     // not found
     leaf = nullptr;
+    return *this;
 }
 
-void RemainingBoxes::go_to_next_leaf() {
-    go_to_next_leaf( []( PointTree * ) { return true; } );
+RemainingBoxes &RemainingBoxes::go_to_next_leaf() {
+    return go_to_next_leaf( []( PointTree * ) { return true; } );
 }
 
 RemainingBoxes::operator bool() const {
