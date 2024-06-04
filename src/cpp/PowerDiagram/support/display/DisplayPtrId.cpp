@@ -2,9 +2,6 @@
 
 BEG_METIL_NAMESPACE
 
-DisplayPtrId::DisplayPtrId( const void *ptr ) : id( ptr ? std::to_string( std::size_t( ptr ) ) : "" ) {
-}
-
 DisplayPtrId::operator bool() const {
     return ! id.empty();
 }

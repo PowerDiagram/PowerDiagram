@@ -1,7 +1,9 @@
 #pragma once
 
-#include "support/UniquePtr.h"
+#include "PointTreeCtorParms.h"
 #include "PointTree.h"
+
+#include "support/UniquePtr.h"
 
 #define PowerDiagram CC_DT( PowerDiagram )
 
@@ -11,14 +13,13 @@
  */
 class PowerDiagram {
 public:
-    using        PtPtr       = UniquePtr<PointTree>;
-
-    /**/         PowerDiagram( PtPtr &&point_tree );
+    /**/         PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights );
     /**/        ~PowerDiagram();
 
     DisplayItem *display     ( DisplayItemFactory &df ) const;
 
+private:
+    using        PtPtr       = UniquePtr<PointTree>;
 
-private:    
     PtPtr        point_tree; ///<
 };

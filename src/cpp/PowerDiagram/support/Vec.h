@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common_ctor_selectors.h"
+#include "WithDefaultOperators.h"
 #include "common_concepts.h"
 #include "common_types.h"
 #include "CtType.h"
@@ -15,45 +16,47 @@ BEG_METIL_NAMESPACE
 ///
 /// This specialization is for static vectors
 template<class Item,int static_size=-1>
-class Vec {
+class Vec : public WithDefaultOperators {
 public:
-    // static auto      with_item_type( auto item_type ) { return CtType< Vec<typename VALUE_IN_DECAYED_TYPE_OF(item_type),static_size> >{}; }
+    // static auto      with_item_type        ( auto item_type ) { return CtType< Vec<typename VALUE_IN_DECAYED_TYPE_OF(item_type),static_size> >{}; }
 
-    // Tis              Vec           ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
-    /**/                Vec           ( FromItemValues, auto &&...values );
-    /**/                Vec           ( FromItemValue, auto &&...ctor_args );
-    /**/                Vec           ( FromIterator, auto iter );
-    TT                  Vec           ( const std::initializer_list<T> &lst );
-    /**/                Vec           ( const HasSizeAndAccess auto &l );
-    /**/                Vec           ( const Vec &that );
-    /**/                Vec           ( Vec && );
-    /**/                Vec           ();
-    /**/               ~Vec           ();
+    // Tis              Vec                   ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
+    /**/                Vec                   ( FromItemValues, auto &&...values );
+    /**/                Vec                   ( FromItemValue, auto &&...ctor_args );
+    /**/                Vec                   ( FromIterator, auto iter );
+    TT                  Vec                   ( const std::initializer_list<T> &lst );
+    /**/                Vec                   ( const HasSizeAndAccess auto &l );
+    /**/                Vec                   ( const Vec &that );
+    /**/                Vec                   ( Vec && );
+    /**/                Vec                   ();
+    /**/               ~Vec                   ();
 
-    Vec&                operator=     ( const Vec & );
-    Vec&                operator=     ( Vec && );
+    Vec&                operator=             ( const Vec & );
+    Vec&                operator=             ( Vec && );
 
-    const Item&         operator[]    ( PI index ) const;
-    Item&               operator[]    ( PI index );
-    const Item&         operator()    ( PI index ) const;
-    Item&               operator()    ( PI index );
-    PI                  size_tot      () const { return size(); }
-    const Item*         begin         () const { return data(); }
-    Item*               begin         () { return data(); }
-    const Item*         data          ( PI index ) const;
-    Item*               data          ( PI index );
-    const Item*         data          () const;
-    Item*               data          ();
-    const Item&         back          () const { return operator[]( size() - 1 ); }
-    Item&               back          () { return operator[]( size() - 1 ); }
-    const Item*         end           () const { return begin() + size(); }
-    Item*               end           () { return begin() + size(); }
+    operator            Span<Item,static_size>() { return { data() }; }
 
-    CtInt<static_size>  size          ( PI d ) const { return {}; }
-    CtInt<static_size>  size          () const { return {}; }
+    const Item&         operator[]            ( PI index ) const;
+    Item&               operator[]            ( PI index );
+    const Item&         operator()            ( PI index ) const;
+    Item&               operator()            ( PI index );
+    PI                  size_tot              () const { return size(); }
+    const Item*         begin                 () const { return data(); }
+    Item*               begin                 () { return data(); }
+    const Item*         data                  ( PI index ) const;
+    Item*               data                  ( PI index );
+    const Item*         data                  () const;
+    Item*               data                  ();
+    const Item&         back                  () const { return operator[]( size() - 1 ); }
+    Item&               back                  () { return operator[]( size() - 1 ); }
+    const Item*         end                   () const { return begin() + size(); }
+    Item*               end                   () { return begin() + size(); }
 
-    static constexpr PI nbch          = static_size * sizeof( Item );
-    char                data_         [ nbch ]; ///<
+    CtInt<static_size>  size                  ( PI d ) const { return {}; }
+    CtInt<static_size>  size                  () const { return {}; }
+
+    static constexpr PI nbch                  = static_size * sizeof( Item );
+    char                data_                 [ nbch ]; ///<
 };
 
 // dynamic size, items fully on the heap
@@ -78,6 +81,8 @@ public:
 
     Vec&                operator=       ( const Vec &that );
     Vec&                operator=       ( Vec &&that );
+
+    operator            Span<Item>      () { return { data(), size() }; }
 
     Vec&                operator<<      ( auto &&value ) { push_back( FORWARD( value) ); return *this; }
 
@@ -129,6 +134,7 @@ public:
 
     static Item*        allocate        ( PI nb_items );
 
+private:
     Item*               data_;          ///<
     PI                  size_;          ///<
     PI                  capa_;          ///<

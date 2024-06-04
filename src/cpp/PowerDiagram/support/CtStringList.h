@@ -2,7 +2,7 @@
 
 #include "CtString.h" // IWYU pragma: export
 
-BEG_VFS_NAMESPACE
+BEG_METIL_NAMESPACE
 
 ///
 template<CtStringValue... values>
@@ -16,4 +16,4 @@ struct CtStringList {
 template<CtStringValue... values>
 auto as_ct( CtStringList<values...> v ) { return v; }
 
-END_VFS_NAMESPACE
+END_METIL_NAMESPACE

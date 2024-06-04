@@ -1,6 +1,7 @@
 #include "PowerDiagram.h"
 
-PowerDiagram::PowerDiagram( PtPtr &&point_tree ) : point_tree( std::move( point_tree ) ) {
+PowerDiagram::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights ) {
+    point_tree = PtPtr{ PointTree::New( cp, points, weights ) };
 }
 
 PowerDiagram::~PowerDiagram() {

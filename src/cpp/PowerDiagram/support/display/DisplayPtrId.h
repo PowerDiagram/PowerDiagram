@@ -7,7 +7,8 @@ BEG_METIL_NAMESPACE
 /***/
 class DisplayPtrId {
 public:
-    /**/        DisplayPtrId  ( const void *ptr );
+    /**/        DisplayPtrId  ( const auto &ptr ) : DisplayPtrId( ptr ? std::to_string( std::size_t( &*ptr ) ) : Str{} ) {}
+    /**/        DisplayPtrId  ( const Str &id ) : id( id ) {}
 
     explicit    operator bool () const;
     bool        operator<     ( const DisplayPtrId &that ) const;

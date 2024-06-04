@@ -1,6 +1,6 @@
 #pragma once
 
-// #include "WithDefaultOperators.h"
+#include "WithDefaultOperators.h"
 #include "metil_namespace.h"
 #include <cstdint>
 #include <string>
@@ -9,7 +9,7 @@ BEG_METIL_NAMESPACE
 
 ///
 template<int i>
-struct CtInt /*: public WithDefaultOperators*/ {
+struct CtInt : public WithDefaultOperators {
     static constexpr int  value                 = i;
 
     static void           for_each_template_arg ( auto &&f ) { f( CtInt<i>() ); }
