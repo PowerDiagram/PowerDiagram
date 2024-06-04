@@ -13,6 +13,7 @@ public:
     static RemainingBoxes for_first_leaf_of( PointTree *point_tree );
 
     void                  go_to_next_leaf  ( const std::function<bool( PointTree *point_tree )> &go_inside );
+    void                  go_to_next_leaf  ();
     operator              bool             () const;
 
     Vec<PointTree *>      remaining_boxes;

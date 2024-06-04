@@ -20,43 +20,36 @@ RemainingBoxes RemainingBoxes::for_first_leaf_of( PointTree *point_tree ) {
 }
 
 void RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point_tree )> &go_inside ) {
-    // early return if found a leaf
+    // we're looking for an leaf (validated by `go_inside`)
     while ( remaining_boxes.size() ) {
+        // test if we have to go inside into the last remaining box
         auto *point_tree = remaining_boxes.pop_back_val();
         if ( ! go_inside( point_tree ) )
             continue;
 
+        // if it's a leaf, it's done
         if ( point_tree->children.empty() ) {
             leaf = point_tree;
             return;
         }
 
-
+        // else, push children in remaining boxes
         for( PI i = 0, nc = point_tree->children.size(); i < nc; ++i ) {
-            leaf = point_tree->children[ i ].get();
-            if ( go_inside( leaf ) ) {
-                for( PI j = i + 1; j < nc; ++j )
+            PointTree *trial = point_tree->children[ i ].get();
+            if ( go_inside( trial ) ) {
+                for( PI j = nc; j-- > i; )
                     remaining_boxes << point_tree->children[ j ].get();
-
-                if ( leaf->children.empty() )
-                    return;
-
+                break;
             }
-            for( PI i = 1; i < nc; ++i )
-                res.remaining_boxes << point_tree->children[ i ].get();
-            point_tree = point_tree->children[ 0 ].get();
         }
-
-        res.leaf = point_tree;
-
-        if ( ! go_inside( b ) )
-            continue;
-
-        push_first_leaf_of( b );
     }
 
-    //
+    // not found
     leaf = nullptr;
+}
+
+void RemainingBoxes::go_to_next_leaf() {
+    go_to_next_leaf( []( PointTree * ) { return true; } );
 }
 
 RemainingBoxes::operator bool() const {

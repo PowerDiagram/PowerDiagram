@@ -12,7 +12,7 @@
  */
 class PowerDiagram {
 public:
-    /**/         PowerDiagram ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights );
+    /**/         PowerDiagram ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices );
     /**/        ~PowerDiagram ();
 
     void         for_each_cell( const std::function<void( const Cell &cell )> &f );
