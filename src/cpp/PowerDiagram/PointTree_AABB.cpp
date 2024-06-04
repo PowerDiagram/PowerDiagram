@@ -26,6 +26,8 @@ void PointTree_AABB::init_bounds( const PointTreeCtorParms &cp ) {
 
     min_offset_weights = weights[ 0 ];
     max_offset_weights = weights[ 0 ];
+    coeff_weights = { FromItemValue(), 0 };
+
     min_pos = points[ 0 ];
     max_pos = points[ 0 ];
     for( PI i = 1; i < n; ++i ) {
