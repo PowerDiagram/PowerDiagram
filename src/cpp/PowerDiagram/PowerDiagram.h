@@ -1,21 +1,24 @@
 #pragma once
 
-#include "WeightedPointSet.h"
-#include <vfs/String.h>
-#include "Cell.h"
+#include "support/UniquePtr.h"
+#include "PointTree.h"
 
-///
+#define PowerDiagram CC_DT( PowerDiagram )
+
+/**
+ * @brief 
+ * 
+ */
 class PowerDiagram {
 public:
-    /***/            PowerDiagram          ( WeightedPointSet &&wps = make_WeightedPointSet_Empty() );
+    using        PtPtr       = UniquePtr<PointTree>;
 
-    void             set_weighted_point_set( WeightedPointSet &&wps );
-    void             for_each_cell         ( const std::function<void( const Int &nb_threads, const std::function<void( const std::function<void( const Cell &cell, const Int &num_thread )> & )> & )> &f );
-    void             for_each_cell         ( const std::function<void( const Cell &cell )> &f );
+    /**/         PowerDiagram( PtPtr &&point_tree );
+    /**/        ~PowerDiagram();
 
-    void             display_vtk           ( const String &filename );
+    DisplayItem *display     ( DisplayItemFactory &df ) const;
 
-    List<Point>      b_dirs;               ///<
-    Vector           b_offs;               ///<
-    WeightedPointSet wps;                  ///<
+
+private:    
+    PtPtr        point_tree; ///<
 };
