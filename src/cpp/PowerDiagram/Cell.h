@@ -13,7 +13,7 @@
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
     void          init              ( const Point *orig_point, const Scalar *orig_weight, PI orig_index );
-    void          cut               ( const Point &dir, const Point &off, PI cut_index );
+    void          cut               ( const Point &dir, Scalar off, PI cut_index );
 
     const Scalar* orig_weight;      ///<
     const Point*  orig_point;       ///<
