@@ -1,7 +1,6 @@
 #pragma once
 
-// #include "select_with_n_indices.h"
-// #include "call_by_name.h"
+#include "select_with_n_indices.h"
 #include "Vec.h"
 
 BEG_METIL_NAMESPACE
@@ -10,10 +9,10 @@ BEG_METIL_NAMESPACE
 #define DTP template<class Item,int static_size>
 #define UTP Vec<Item,static_size>
 
-// DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
-//     for( PI index = 0; index < size(); ++index )
-//         new ( data( index ) ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
-// }
+DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
+    for( PI index = 0; index < size(); ++index )
+        new ( data( index ) ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
+}
 
 DTP UTP::Vec( FromItemValues, auto &&...values ) {
     PI index = 0;

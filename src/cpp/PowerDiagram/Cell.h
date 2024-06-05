@@ -1,6 +1,5 @@
 #pragma once
 
-#include "support/display/DisplayItemFactory.h"
 #include "Vertex.h"
 #include "Edge.h"
 #include "Cut.h"
@@ -14,8 +13,7 @@
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
     void          init              ( const Point *orig_point, const Scalar *orig_weight, PI orig_index );
-
-    DisplayItem*  display           ( DisplayItemFactory &df ) const;
+    void          cut               ( const Point &dir, const Point &off, PI cut_index );
 
     const Scalar* orig_weight;      ///<
     const Point*  orig_point;       ///<

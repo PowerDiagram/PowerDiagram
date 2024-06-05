@@ -20,7 +20,7 @@ class Vec : public WithDefaultOperators {
 public:
     // static auto      with_item_type        ( auto item_type ) { return CtType< Vec<typename VALUE_IN_DECAYED_TYPE_OF(item_type),static_size> >{}; }
 
-    // Tis              Vec                   ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
+    Tis                 Vec                   ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
     /**/                Vec                   ( FromItemValues, auto &&...values );
     /**/                Vec                   ( FromItemValue, auto &&...ctor_args );
     /**/                Vec                   ( FromIterator, auto iter );
@@ -64,7 +64,7 @@ template<class Item>
 class Vec<Item,-1> {
 public:
     /**/                Vec             ( FromSizeAndInitFunctionOnIndex, PI size, auto &&func );
-    // Tis              Vec             ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
+    Tis                 Vec             ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
     /**/                Vec             ( FromSizeAndItemValue, PI size, auto &&...ctor_args );
     /**/                Vec             ( FromSizeAndIterator, PI size, auto iterator );
     /**/                Vec             ( FromReservationSize, PI capa, PI raw_size = 0 );
@@ -148,6 +148,12 @@ END_METIL_NAMESPACE
 DTP auto get_compilation_flags( auto &cn, CtType<UTP> ) { cn.add_inc_file( "metil/containers/Vec.h" ); }
 DTP void for_each_template_arg( CtType<UTP>, auto &&f ) { f( CtType<Item>() ); f( CtInt<static_size>() ); }
 DTP auto template_type_name   ( CtType<UTP> ) { return "Vec"; }
+
+template<class Item,int static_size> struct ArrayTypeFor<Item,PrimitiveCtIntList<static_size>,1> { using value = Vec<Item,static_size>; };
+DTP struct StaticSizesOf<UTP> { using value = PrimitiveCtIntList<static_size>; };
+DTP struct TensorOrder<UTP> { enum { value = 1 }; };
+DTP struct ItemTypeOf<UTP> { using value = Item; };
+
 
 #undef DTP
 #undef UTP

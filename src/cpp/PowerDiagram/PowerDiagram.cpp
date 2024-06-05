@@ -1,6 +1,7 @@
+#include "support/operators/norm_2.h"
+#include "support/operators/sp.h"
 #include "RemainingBoxes.h"
 #include "PowerDiagram.h"
-#include "support/P.h"
 
 PowerDiagram::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices ) {
     point_tree = PtPtr{ PointTree::New( cp, points, weights, indices, nullptr ) };
@@ -32,8 +33,11 @@ void PowerDiagram::for_each_cell( const std::function<void( const Cell_2_double 
                 const PI &i1 = rb_base.leaf->indices[ n1 ];
 
                 const Point dir = p1 - p0;
-
-                cell.init( &p0, &w0, i0 );
+                auto n = norm_2_p2( dir );
+                auto s0 = sp( dir, p0 );
+                auto s1 = sp( dir, p1 );
+                auto off = s0 + ( 1 + 1 * ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+                cell.cut( dir, off, i1 );
             }
 
             // other boxes

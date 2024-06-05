@@ -13,25 +13,30 @@ struct PrimitiveCtIntList {
 };
 
 // max ----------------------------------------------------------------------------------------------------------
-template<int ha,int... ta,int hb,int... tb,class ...IntsSoFar>
-auto max( PrimitiveCtIntList<ha,ta...>, PrimitiveCtIntList<hb,tb...>, IntsSoFar... ints_so_far ) {
-    constexpr int hm = ha >= hb ? ha : hb;
-    return max( PrimitiveCtIntList<ta...>(), PrimitiveCtIntList<tb...>(), ints_so_far..., PrimitiveCtInt<hm>() );
-}
-
 template<int... a,class ...IntsSoFar>
-auto max( PrimitiveCtIntList<a...>, PrimitiveCtIntList<>, IntsSoFar... ints_so_far ) {
+auto __max_PrimitiveCtIntList( PrimitiveCtIntList<a...>, PrimitiveCtIntList<>, IntsSoFar&&... ints_so_far ) {
     return PrimitiveCtIntList<IntsSoFar::value...,a...>();
 }
 
 template<int... b,class ...IntsSoFar>
-auto max( PrimitiveCtIntList<>, PrimitiveCtIntList<b...>, IntsSoFar... ints_so_far ) {
+auto __max_PrimitiveCtIntList( PrimitiveCtIntList<>, PrimitiveCtIntList<b...>, IntsSoFar&&... ints_so_far ) {
     return PrimitiveCtIntList<IntsSoFar::value...,b...>();
 }
 
 template<class ...IntsSoFar>
-auto max( PrimitiveCtIntList<>, PrimitiveCtIntList<>, IntsSoFar... ints_so_far ) {
+auto __max_PrimitiveCtIntList( PrimitiveCtIntList<>, PrimitiveCtIntList<>, IntsSoFar&&... ints_so_far ) {
     return PrimitiveCtIntList<IntsSoFar::value...>();
+}
+
+template<int ha,int... ta,int hb,int... tb,class ...IntsSoFar>
+auto __max_PrimitiveCtIntList( PrimitiveCtIntList<ha,ta...>, PrimitiveCtIntList<hb,tb...>, IntsSoFar... ints_so_far ) {
+    constexpr int hm = ha >= hb ? ha : hb;
+    return __max_PrimitiveCtIntList( PrimitiveCtIntList<ta...>(), PrimitiveCtIntList<tb...>(), ints_so_far..., PrimitiveCtInt<hm>() );
+}
+
+template<int... ta,int... tb>
+auto max( PrimitiveCtIntList<ta...> a, PrimitiveCtIntList<tb...> b ) {
+    return __max_PrimitiveCtIntList( a, b );
 }
 
 END_METIL_NAMESPACE

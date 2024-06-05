@@ -8,5 +8,7 @@ TEST_CASE( "PowerDiagram", "" ) {
 
     PointTreeCtorParms cp{ .max_nb_points = 20 };
     PowerDiagram pd( cp, points, weights, indices );
-    P( pd );
+    pd.for_each_cell( [&]( const Cell &cell ) {
+        P( cell );
+    } );
 }
