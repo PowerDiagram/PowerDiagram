@@ -12,18 +12,20 @@
  */
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
-    void          init              ( const Point *orig_point, const Scalar *orig_weight, PI orig_index );
-    void          cut               ( const Point &dir, Scalar off, PI cut_index );
+    void          init              ( const Point *orig_point, const Scalar *orig_weight, SI orig_index );
+    void          cut               ( const Point &dir, Scalar off, SI point_index );
 
     const Scalar* orig_weight;      ///<
     const Point*  orig_point;       ///<
-    PI            orig_index;       ///<
+    SI            orig_index;       ///<
 
     Vec<Vertex>   vertices;         ///<
     Vec<Edge>     edges;            ///<
     Vec<Cut>      cuts;             ///<
 
 private:
+    static bool   is_ext            ( const Point &pos, const Point &dir, Scalar off );
+
     // FaceToInt  waiting_vertices; ///<
     Vec<int>      vertex_corr;      ///<
     Vec<int>      edge_corr;        ///<

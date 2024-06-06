@@ -1,44 +1,33 @@
+#include "support/operators/norm_2.h"
+#include "support/operators/sp.h"
 #include "Cell.h"
 
-void Cell::init( const Point *orig_point, const Scalar *orig_weight, PI orig_index ) {
+void Cell::init( const Point *orig_point, const Scalar *orig_weight, SI orig_index ) {
     this->orig_weight = orig_weight;
     this->orig_point = orig_point;
     this->orig_index = orig_index;
-
-
 }
 
-void Cell_2_double::cut( const Point &dir, Scalar off, PI cut_index ) {
-    // ext/int for each vertex
-    vertex_corr.resize( vertices.size() );
+void Cell_2_double::cut( const Point &dir, Scalar off, SI point_index ) {
+    // scalar product for each vertex
+    sps.resize( vertices.size() );
     bool has_ext = false;
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
-        bool ext = is_ext( vertices[ num_vertex ].pos, dir, off );
-        vertex_corr[ num_vertex ] = ! ext;
-        has_ext |= ext;
+        Scalar ext = sp( vertices[ num_vertex ].pos, dir ) - off;
+        sps[ num_vertex ] = ext;
+        has_ext |= ext > 0;
     }
 
     // all int ?
     if ( ! has_ext )
         return;
 
-    // check dir and off are new. TODO: something more robust
-    for( const Cut &cut : cuts ) {
-        using namespace std;
-        if ( Vfs::norm_2_p2( cut.dir - dir ) < 1e-10 && abs( cut.sp - off ) < 1e-10 )
-            return;
-    }
-
-
-    // move vertex to the new positions
-    apply_corr( vertices, vertex_corr );
-
     // add the new cut
     PI new_cut = cuts.size();
-    cuts.emplace_back( n_index, dir, off );
+    cuts.push_back( point_index, dir, off );
 
     //
-    if constexpr ( nb_dims >= 2 )
+    if constexpr ( PD_DIM >= 2 )
         waiting_vertices.init( cuts.size(), -1 );
 
     // for each edge
@@ -50,7 +39,7 @@ void Cell_2_double::cut( const Point &dir, Scalar off, PI cut_index ) {
         auto add_to_waiting_vertices = [&]( auto face, PI vertex ) {
             int &wv = waiting_vertices[ face ];
             if ( wv >= 0 ) {
-                edges.emplace_back( array_with_value( face, new_cut ), std::array<PI,2>{ PI( wv ), vertex } );
+                edges.push_back( array_with_value( face, new_cut ), std::array<PI,2>{ PI( wv ), vertex } );
                 edge = &edges[ num_edge ];
                 wv = -1;
             } else
@@ -58,8 +47,8 @@ void Cell_2_double::cut( const Point &dir, Scalar off, PI cut_index ) {
         };
 
         // all ext => remove it
-        bool e0 = vertex_corr[ edge->vertices[ 0 ] ] < 0;
-        bool e1 = vertex_corr[ edge->vertices[ 1 ] ] < 0;
+        bool e0 = sps[ edge->vertices[ 0 ] ] > 0;
+        bool e1 = sps[ edge->vertices[ 1 ] ] > 0;
         if ( e0 && e1 ) {
             edge_corr[ num_edge ] = 0;
             continue;
@@ -74,7 +63,7 @@ void Cell_2_double::cut( const Point &dir, Scalar off, PI cut_index ) {
             edge->vertices[ 0 ] = vertices.size();
 
             auto num_cuts = array_with_value( edge->num_cuts, new_cut );
-            vertices.emplace_back( num_cuts, compute_pos( num_cuts ) );
+            vertices.push_back( num_cuts, compute_pos( num_cuts ) );
 
             // add a waiting vertex for each face
             if constexpr ( nb_dims >= 2 )
@@ -110,3 +99,4 @@ void Cell_2_double::cut( const Point &dir, Scalar off, PI cut_index ) {
         edge_corr.push_back( 1 );
     apply_corr( edges, edge_corr );
 }
+
