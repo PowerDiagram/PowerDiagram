@@ -95,6 +95,10 @@ TT void Cell::apply_corr( Vec<T> &vec, Vec<int> &keep ) {
     vec.resize( last_keep );
 }
 
+Point Cell::compute_pos( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const {
+    return p0 - ( p1 - p0 ) * s0 / ( s1 - s0 );
+}
+
 Point Cell::compute_pos( Vec<PI,PD_DIM> num_cuts ) const {
     using TM = Eigen::Matrix<Scalar,PD_DIM,PD_DIM>;
     using TV = Eigen::Matrix<Scalar,PD_DIM,1>;
@@ -161,23 +165,30 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
         };
 
         // all ext => remove it
-        bool e0 = sps[ edge->vertices[ 0 ] ] > 0;
-        bool e1 = sps[ edge->vertices[ 1 ] ] > 0;
+        Scalar s0 = sps[ edge->vertices[ 0 ] ];
+        Scalar s1 = sps[ edge->vertices[ 1 ] ];
+        bool e0 = s0 > 0;
+        bool e1 = s1 > 0;
         if ( e0 && e1 ) {
             edge_corr[ num_edge ] = 0;
             continue;
         }
+
+        //
+        const PI v0 = vertex_corr[ edge->vertices[ 0 ] ];
+        const PI v1 = vertex_corr[ edge->vertices[ 1 ] ];
 
         // => we're going to keep this edge (potentially with a modification)
         edge_corr[ num_edge ] = 1;
 
         // only v0 is ext
         if ( e0 ) {
-            edge->vertices[ 1 ] = vertex_corr[ edge->vertices[ 1 ] ];
+            Point new_pos = compute_pos( vertices[ v0 ].pos, vertices[ v1 ].pos, s0, s1 );
+            edge->vertices[ 1 ] = v1;
             edge->vertices[ 0 ] = vertices.size();
 
             auto num_cuts = array_with_value( edge->num_cuts, new_cut );
-            vertices.push_back( num_cuts, compute_pos( num_cuts ) );
+            vertices.push_back( num_cuts, new_pos );
 
             // add a waiting vertex for each face
             if constexpr ( PD_DIM >= 2 )
@@ -189,11 +200,12 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
 
         // only v1 is ext
         if ( e1 ) {
-            edge->vertices[ 0 ] = vertex_corr[ edge->vertices[ 0 ] ];
+            Point new_pos = compute_pos( vertices[ v0 ].pos, vertices[ v1 ].pos, s0, s1 );
+            edge->vertices[ 0 ] = v0;
             edge->vertices[ 1 ] = vertices.size();
 
             auto num_cuts = array_with_value( edge->num_cuts, new_cut );
-            vertices.push_back( num_cuts, compute_pos( num_cuts ) );
+            vertices.push_back( num_cuts, new_pos );
 
             // add a waiting vertex for each face
             if constexpr ( PD_DIM >= 2 )
@@ -204,8 +216,8 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
         }
 
         // => all int
-        for( PI i = 0; i < 2; ++i )
-            edge->vertices[ i ] = vertex_corr[ edge->vertices[ i ] ];
+        edge->vertices[ 0 ] = v0;
+        edge->vertices[ 1 ] = v1;
     }
 
     // move edges to the new positions

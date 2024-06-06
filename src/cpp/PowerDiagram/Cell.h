@@ -42,6 +42,7 @@ private:
 
     void            make_init_simplex  ( const Point &center, Scalar radius );
     bool            vertex_has_cut     ( const Vertex &vertex, const std::function<bool( SI point_index )> &outside_cut ) const;
+    Point           compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
     Point           compute_pos        ( Vec<PI,PD_DIM> num_cuts ) const;
 
     FaceToInt       waiting_vertices;  ///<
