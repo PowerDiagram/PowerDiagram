@@ -5,7 +5,7 @@ TEST_CASE( "PowerDiagram", "" ) {
     Vec<Point> points; // { { 0.25, 0.5 }, { 0.75, 0.5 } };
     Vec<Scalar> weights; // { 1, 1 };
     Vec<PI> indices; // { 0, 1 };
-    for( PI i = 0; i < 2; ++i ) {
+    for( PI i = 0; i < 18; ++i ) {
         points << Point{ Scalar( rand() ) / RAND_MAX, Scalar( rand() ) / RAND_MAX };
         weights << 1;
         indices << i;
@@ -17,7 +17,7 @@ TEST_CASE( "PowerDiagram", "" ) {
     VtkOutput vo;
     pd.for_each_cell( [&]( const Cell &cell ) {
         cell.display_vtk( vo );
-        P( cell );
+        // P( cell );
     } );
 
     vo.save( "pd.vtk" );

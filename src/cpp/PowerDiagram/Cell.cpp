@@ -96,7 +96,7 @@ TT void Cell::apply_corr( Vec<T> &vec, Vec<int> &keep ) {
 }
 
 Point Cell::compute_pos( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const {
-    return p0 - ( p1 - p0 ) * s0 / ( s1 - s0 );
+    return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
 Point Cell::compute_pos( Vec<PI,PD_DIM> num_cuts ) const {
@@ -137,9 +137,6 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
     if ( ! has_ext )
         return;
 
-    // move vertex to the new positions
-    apply_corr( vertices, vertex_corr );
-
     // add the new cut
     PI new_cut = cuts.size();
     cuts.push_back( point_index, dir, off );
@@ -165,65 +162,71 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
         };
 
         // all ext => remove it
-        Scalar s0 = sps[ edge->vertices[ 0 ] ];
-        Scalar s1 = sps[ edge->vertices[ 1 ] ];
-        bool e0 = s0 > 0;
-        bool e1 = s1 > 0;
+        const PI o0 = edge->vertices[ 0 ];
+        const PI o1 = edge->vertices[ 1 ];
+        const Scalar s0 = sps[ o0 ];
+        const Scalar s1 = sps[ o1 ];
+        const bool e0 = s0 > 0;
+        const bool e1 = s1 > 0;
         if ( e0 && e1 ) {
             edge_corr[ num_edge ] = 0;
             continue;
         }
-
-        //
-        const PI v0 = vertex_corr[ edge->vertices[ 0 ] ];
-        const PI v1 = vertex_corr[ edge->vertices[ 1 ] ];
 
         // => we're going to keep this edge (potentially with a modification)
         edge_corr[ num_edge ] = 1;
 
         // only v0 is ext
         if ( e0 ) {
-            Point new_pos = compute_pos( vertices[ v0 ].pos, vertices[ v1 ].pos, s0, s1 );
-            edge->vertices[ 1 ] = v1;
-            edge->vertices[ 0 ] = vertices.size();
+            const PI nv = vertices.size();
+            edge->vertices[ 0 ] = nv;
 
+            // Point new_pos = ;
+            Point new_pos = compute_pos( vertices[ o0 ].pos, vertices[ o1 ].pos, s0, s1 );
             auto num_cuts = array_with_value( edge->num_cuts, new_cut );
             vertices.push_back( num_cuts, new_pos );
 
             // add a waiting vertex for each face
             if constexpr ( PD_DIM >= 2 )
                 for( int d = 0; d < PD_DIM - 1; ++d )
-                    add_to_waiting_vertices( array_without_index( edge->num_cuts, d ), edge->vertices[ 0 ] );
+                    add_to_waiting_vertices( array_without_index( edge->num_cuts, d ), nv );
 
             continue;
         }
 
         // only v1 is ext
         if ( e1 ) {
-            Point new_pos = compute_pos( vertices[ v0 ].pos, vertices[ v1 ].pos, s0, s1 );
-            edge->vertices[ 0 ] = v0;
-            edge->vertices[ 1 ] = vertices.size();
+            const PI nv = vertices.size();
+            edge->vertices[ 1 ] = nv;
 
+            Point new_pos = compute_pos( vertices[ o0 ].pos, vertices[ o1 ].pos, s0, s1 );
             auto num_cuts = array_with_value( edge->num_cuts, new_cut );
             vertices.push_back( num_cuts, new_pos );
 
             // add a waiting vertex for each face
             if constexpr ( PD_DIM >= 2 )
                 for( int d = 0; d < PD_DIM - 1; ++d )
-                    add_to_waiting_vertices( array_without_index( edge->num_cuts, d ), edge->vertices[ 1 ] );
+                    add_to_waiting_vertices( array_without_index( edge->num_cuts, d ), nv );
 
             continue;
         }
-
-        // => all int
-        edge->vertices[ 0 ] = v0;
-        edge->vertices[ 1 ] = v1;
     }
+
+
+    // move vertices to the new positions
+    while ( vertex_corr.size() < vertices.size() )
+        vertex_corr.push_back( 1 );
+    apply_corr( vertices, vertex_corr );
 
     // move edges to the new positions
     while ( edge_corr.size() < edges.size() )
         edge_corr.push_back( 1 );
     apply_corr( edges, edge_corr );
+
+    // update vertex refs
+    for( Edge &edge : edges )
+        for( PI i = 0; i < 2; ++i )
+            edge.vertices[ i ] = vertex_corr[ edge.vertices[ i ] ];
 }
 
 void Cell::for_each_vertex( const std::function<void( const Vertex &v )> &f ) const {
