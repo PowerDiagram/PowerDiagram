@@ -35,6 +35,7 @@ public:
     Vec&                operator=             ( Vec && );
 
     operator            Span<Item,static_size>() { return { data() }; }
+    operator            Span<Item,-1>         () { return { data(), size() }; }
 
     const Item&         operator[]            ( PI index ) const;
     Item&               operator[]            ( PI index );

@@ -8,7 +8,12 @@ TEST_CASE( "PowerDiagram", "" ) {
 
     PointTreeCtorParms cp{ .max_nb_points = 20 };
     PowerDiagram pd( cp, points, weights, indices );
+
+    VtkOutput vo;
     pd.for_each_cell( [&]( const Cell &cell ) {
+        cell.display_vtk( vo );
         P( cell );
     } );
+
+    vo.save( "pd.vtk" );
 }

@@ -20,7 +20,10 @@ public:
     static PointTree*    New          ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
 
     virtual DisplayItem *display      ( DisplayItemFactory &df ) const = 0;
+    virtual Scalar       radius       () const = 0;
+    virtual Point        center       () const = 0;
     bool                 leaf         () const;
+
 
     Vec<PtUPtr>          children;
     PointTree*           parent;

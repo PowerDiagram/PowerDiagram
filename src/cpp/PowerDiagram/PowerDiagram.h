@@ -18,6 +18,7 @@ public:
     void         for_each_cell( const std::function<void( const Cell &cell )> &f );
     DisplayItem *display      ( DisplayItemFactory &df ) const;
 
+    Scalar       coeff_init_simplex;
 private:
     using        PtPtr        = UniquePtr<PointTree>;
 

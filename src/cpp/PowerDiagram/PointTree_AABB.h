@@ -19,6 +19,8 @@ public:
     static Str           type_name     ();
 
     virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
+    virtual Scalar       radius        () const override { return max( max_pos - min_pos ); }
+    virtual Point        center        () const override { return ( max_pos + min_pos ) / 2; }
 
     Scalar               min_offset_weights;
     Scalar               max_offset_weights;

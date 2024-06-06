@@ -11,7 +11,7 @@
  */
 class Cut { STD_METIL_TYPE_INFO( Cut, "", n_index, dir, sp )
 public:
-    PI     n_index;
+    SI     n_index;
     Point  dir;
     Scalar sp;
 };
