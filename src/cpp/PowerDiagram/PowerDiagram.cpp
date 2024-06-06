@@ -30,30 +30,30 @@ void PowerDiagram::for_each_cell( const std::function<void( const Cell & )> &f )
             const PI &i0 = rb_base.leaf->indices[ n0 ];
             cell.init( &p0, &w0, i0, center, radius );
 
-            // // intersections with the points in the same box
-            // for( PI n1 = 0; n1 < nc; ++n1 ) {
-            //     if ( n1 == n0 )
-            //         continue;
+            // intersections with the points in the same box
+            for( PI n1 = 0; n1 < nc; ++n1 ) {
+                if ( n1 == n0 )
+                    continue;
 
-            //     const Scalar &w1 = rb_base.leaf->weights[ n1 ];
-            //     const Point &p1 = rb_base.leaf->points[ n1 ];
-            //     const PI &i1 = rb_base.leaf->indices[ n1 ];
+                const Scalar &w1 = rb_base.leaf->weights[ n1 ];
+                const Point &p1 = rb_base.leaf->points[ n1 ];
+                const PI &i1 = rb_base.leaf->indices[ n1 ];
 
-            //     const Point dir = p1 - p0;
-            //     auto n = norm_2_p2( dir );
-            //     auto s0 = sp( dir, p0 );
-            //     auto s1 = sp( dir, p1 );
-            //     auto off = s0 + ( 1 + 1 * ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
-            //     cell.cut( dir, off, i1 );
-            // }
+                const Point dir = p1 - p0;
+                auto n = norm_2_p2( dir );
+                auto s0 = sp( dir, p0 );
+                auto s1 = sp( dir, p1 );
+                auto off = s0 + ( 1 + 1 * ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+                cell.cut( dir, off, i1 );
+            }
 
-            // // other boxes
-            // const auto may_intersect = [&]( PointTree *point_tree ) -> bool { return true; };
-            // for( RemainingBoxes rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-            //     for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 ) {
-            //         TODO;
-            //     }
-            // }
+            // other boxes
+            const auto may_intersect = [&]( PointTree *point_tree ) -> bool { return true; };
+            for( RemainingBoxes rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+                for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 ) {
+                    TODO;
+                }
+            }
 
             //
             f( cell );

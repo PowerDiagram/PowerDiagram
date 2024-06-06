@@ -124,7 +124,7 @@ void Cell::cut( const Point &dir, Scalar off, SI point_index ) {
     bool has_ext = false;
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
         Scalar ext = sp( vertices[ num_vertex ].pos, dir ) - off;
-        vertex_corr[ num_vertex ] = ext > 0;
+        vertex_corr[ num_vertex ] = ! ( ext > 0 );
         sps[ num_vertex ] = ext;
         has_ext |= ext > 0;
     }
