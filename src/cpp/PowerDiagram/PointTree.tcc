@@ -1,19 +1,27 @@
+#pragma once
+
 #include "PointTree_AABB.h"
 
-PointTree::PointTree( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent ) : indices( indices ), weights( weights ), points( points ), parent( parent ) {
+#define DTP template<class Scalar,int nb_dims>
+#define UTP PointTree<Scalar,nb_dims>
+
+DTP UTP::PointTree( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent ) : indices( indices ), weights( weights ), points( points ), parent( parent ) {
 }
 
-PointTree::~PointTree() {
+DTP UTP::~PointTree() {
 }
 
-PointTree *PointTree::New( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent ) {
+DTP UTP *UTP::New( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent ) {
     return new PointTree_AABB( cp, points, weights, indices, parent );
 }
 
-bool PointTree::leaf() const {
+DTP bool UTP::leaf() const {
     return children.empty();
 }
 
-Str PointTree::type_name() {
+DTP Str UTP::type_name() {
     return "PointTree";
 }
+
+#undef DTP
+#undef UTP

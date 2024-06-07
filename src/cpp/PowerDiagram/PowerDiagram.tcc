@@ -1,17 +1,22 @@
+#pragma once
+
 #include "support/operators/norm_2.h"
 #include "support/operators/sp.h"
 #include "RemainingBoxes.h"
 #include "PowerDiagram.h"
 // #include "support/P.h"
 
-PowerDiagram::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs ) {
-    point_tree = PtPtr{ PointTree::New( cp, points, weights, indices, nullptr ) };
+#define DTP template<class Scalar,int nb_dims>
+#define UTP PowerDiagram<Scalar,nb_dims>
+
+DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs ) {
+    point_tree = PtPtr{ PointTree<Scalar,nb_dims>::New( cp, points, weights, indices, nullptr ) };
     this->bnd_dirs = bnd_dirs;
     this->bnd_offs = bnd_offs;
     coeff_init_simplex = 1;
 }
 
-void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
+DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )> &f ) {
     if ( ! point_tree )
         return;
 
@@ -22,7 +27,7 @@ void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
         radius = 1e10; // TODO: something more robust
 
     // make the base cell
-    Cell base_cell;
+    Cell<Scalar,nb_dims> base_cell;
     base_cell.make_init_simplex( center, radius );
 
     // cut by the boundaries
@@ -31,8 +36,8 @@ void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
         base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
 
     // get the cell point
-    Cell cell;
-    for( RemainingBoxes rb_base = RemainingBoxes::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
+    Cell<Scalar,nb_dims> cell;
+    for( RemainingBoxes<Scalar,nb_dims> rb_base = RemainingBoxes<Scalar,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
         for( PI n0 = 0, nc = rb_base.leaf->points.size(); n0 < nc; ++n0 ) {
             const Scalar &w0 = rb_base.leaf->weights[ n0 ];
             const Point &p0 = rb_base.leaf->points[ n0 ];
@@ -62,8 +67,8 @@ void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
             }
 
             // other boxes
-            const auto may_intersect = [&]( PointTree *point_tree ) -> bool { return true; };
-            for( RemainingBoxes rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+            const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool { return true; };
+            for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
                 for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 ) {
                     TODO;
                 }
@@ -75,10 +80,10 @@ void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
     }
 }
 
-DisplayItem *PowerDiagram::display( DisplayItemFactory &df ) const {
+DTP DisplayItem *UTP::display( DisplayItemFactory &df ) const {
     return df.new_display_item( *point_tree );
 }
 
-Str PowerDiagram::type_name() {
+DTP Str UTP::type_name() {
     return "PowerDiagram";
 }

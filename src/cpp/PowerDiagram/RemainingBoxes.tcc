@@ -1,7 +1,10 @@
 #include "RemainingBoxes.h"
 #include "PointTree.h"
 
-RemainingBoxes RemainingBoxes::for_first_leaf_of( PointTree *point_tree ) {
+#define DTP template<class Scalar,int nb_dims>
+#define UTP RemainingBoxes<Scalar,nb_dims>
+
+DTP UTP UTP::for_first_leaf_of( PointTree<Scalar,nb_dims> *point_tree ) {
     RemainingBoxes res;
 
     if ( point_tree ) {
@@ -19,7 +22,7 @@ RemainingBoxes RemainingBoxes::for_first_leaf_of( PointTree *point_tree ) {
     return res;
 }
 
-RemainingBoxes &RemainingBoxes::go_to_next_leaf( const std::function<bool( PointTree *point_tree )> &go_inside ) {
+DTP UTP &UTP::go_to_next_leaf( const std::function<bool( PointTree<Scalar,nb_dims> *point_tree )> &go_inside ) {
     // we're looking for an leaf (validated by `go_inside`)
     while ( remaining_boxes.size() ) {
         // test if we have to go inside into the last remaining box
@@ -35,7 +38,7 @@ RemainingBoxes &RemainingBoxes::go_to_next_leaf( const std::function<bool( Point
 
         // else, push children in remaining boxes
         for( PI i = 0, nc = point_tree->children.size(); i < nc; ++i ) {
-            PointTree *trial = point_tree->children[ i ].get();
+            PointTree<Scalar,nb_dims> *trial = point_tree->children[ i ].get();
             if ( go_inside( trial ) ) {
                 for( PI j = nc; j-- > i; )
                     remaining_boxes << point_tree->children[ j ].get();
@@ -49,10 +52,13 @@ RemainingBoxes &RemainingBoxes::go_to_next_leaf( const std::function<bool( Point
     return *this;
 }
 
-RemainingBoxes &RemainingBoxes::go_to_next_leaf() {
-    return go_to_next_leaf( []( PointTree * ) { return true; } );
+DTP UTP &UTP::go_to_next_leaf() {
+    return go_to_next_leaf( []( PointTree<Scalar,nb_dims> * ) { return true; } );
 }
 
-RemainingBoxes::operator bool() const {
+DTP UTP::operator bool() const {
     return leaf;
 }
+
+#undef DTP
+#undef UTP

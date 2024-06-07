@@ -2,16 +2,14 @@
 
 #include "support/display/DisplayItemFactory.h"
 #include "PointTreeCtorParms.h"
-#include "Point.h"
-
-#define PointTree CC_DT( PointTree )
-class CC_DT( RemainingBoxes );
 
 /**
 */
+template<class Scalar,int nb_dims>
 class PointTree {
 public:
-    using                PtUPtr       = UniquePtr<PointTree>;
+    using                PtUPtr       = UniquePtr<PointTree<Scalar,nb_dims>>;
+    using                Point        = Vec<Scalar,nb_dims>;
 
     /**/                 PointTree    ( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
     virtual             ~PointTree    ();
@@ -32,3 +30,5 @@ public:
     Span<Scalar>         weights;
     Span<Point>          points;
 };
+
+#include "PointTree.tcc"

@@ -2,17 +2,17 @@
 
 #include "PointTreeCtorParms.h"
 #include "PointTree.h"
-#include "Point.h"
 
 #include "support/Span.h"
 
-#define PointTree_AABB CC_DT( PointTree_AABB )
-
 /**
 */
-class PointTree_AABB : public PointTree {
+template<class Scalar,int nb_dims>
+class PointTree_AABB : public PointTree<Scalar,nb_dims> {
 public:
-    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
+    using                Point         = Vec<Scalar,nb_dims>;
+
+    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent );
 
     void                 init_children ( const PointTreeCtorParms &cp );
     void                 init_bounds   ( const PointTreeCtorParms &cp );
@@ -28,3 +28,5 @@ public:
     Point                min_pos;
     Point                max_pos;
 };
+
+#include "PointTree_AABB.tcc"

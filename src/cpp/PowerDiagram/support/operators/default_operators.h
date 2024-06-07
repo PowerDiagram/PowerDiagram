@@ -167,7 +167,7 @@ Ti constexpr auto ct_value_wrapper_for(); // defined in CtInt.h
     } else \
 
 
-#define DEFAULT_UNA_OPERATOR_CODE( NAME, FUNC ) \
+#define DEFAULT_UNA_OPERATOR_CODE( NAME ) \
     /* methods */ \
     if constexpr( requires { a.NAME(); } ) { \
         return a.NAME(); \
@@ -175,7 +175,7 @@ Ti constexpr auto ct_value_wrapper_for(); // defined in CtInt.h
     \
     /* ct value */ \
     if constexpr( requires { DECAYED_TYPE_OF( a )::ct_value(); } ) { \
-        constexpr auto val = FUNC( DECAYED_TYPE_OF( a )::ct_value() ); \
+        constexpr auto val = NAME( DECAYED_TYPE_OF( a )::ct_value() ); \
         return ct_value_wrapper_for<val>(); \
     } else \
     \
@@ -183,7 +183,17 @@ Ti constexpr auto ct_value_wrapper_for(); // defined in CtInt.h
     if constexpr( TensorOrder<DECAYED_TYPE_OF( a )>::value ) { \
         return make_array_from_unary_operations( Functor_##NAME(), FORWARD( a ) ); \
     } else \
- \
+    \
+
+
+#define DEFAULT_UNA_OPERATOR_CODE_SIGN( NAME, SIGN ) \
+    DEFAULT_UNA_OPERATOR_CODE( NAME ) \
+    \
+    /* scalar_class (a way to avoid recursion... TODO: find something more general and less fragile) */ \
+    if constexpr( requires { ScalarClass<DECAYED_TYPE_OF( a )>::value; } ) { \
+        return SIGN FORWARD( a ); \
+    } else \
+
 
 END_METIL_NAMESPACE
 

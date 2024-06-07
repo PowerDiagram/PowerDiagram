@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../common_types.h"
 #include "../TensorOrder.h"
-#include "../TypeConfig.h"
 
 BEG_METIL_NAMESPACE
 
