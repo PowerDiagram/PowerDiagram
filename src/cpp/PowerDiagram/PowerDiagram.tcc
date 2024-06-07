@@ -87,3 +87,6 @@ DTP DisplayItem *UTP::display( DisplayItemFactory &df ) const {
 DTP Str UTP::type_name() {
     return "PowerDiagram";
 }
+
+#undef DTP
+#undef UTP
