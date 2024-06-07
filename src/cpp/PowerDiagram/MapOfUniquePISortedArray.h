@@ -12,6 +12,9 @@ struct MapOfUniquePISortedArray;
 ///
 template<class T,int s,class Val>
 struct MapOfUniquePISortedArray<T,s,Val,true> {
+    void  init           ( auto &&... ) {}
+    Val&  operator[]     ( Vec<T,s> a ) { return val; }
+    Val   val;
 };
 
 /// generic case

@@ -14,10 +14,11 @@
  */
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
-    void            init               ( const Point *orig_point, const Scalar *orig_weight, SI orig_index, const Point &center, Scalar radius );
+    void            init_geometry_from ( const Cell &that );
+    void            make_init_simplex  ( const Point &center, Scalar radius );
     void            cut                ( const Point &dir, Scalar off, SI point_index );
 
-    void            display_vtk        ( VtkOutput &vo, const std::function<bool( SI point_index )> &outside_cut ) const; ///<
+    void            display_vtk        ( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const; ///<
     void            display_vtk        ( VtkOutput &vo ) const; ///<
 
     void            for_each_vertex    ( const std::function<void( const Vertex &v )> &f ) const;
@@ -40,7 +41,6 @@ private:
     TT static void  apply_corr         ( Vec<T> &vec, Vec<int> &keep );
     static bool     is_ext             ( const Point &pos, const Point &dir, Scalar off );
 
-    void            make_init_simplex  ( const Point &center, Scalar radius );
     bool            vertex_has_cut     ( const Vertex &vertex, const std::function<bool( SI point_index )> &outside_cut ) const;
     Point           compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
     Point           compute_pos        ( Vec<PI,PD_DIM> num_cuts ) const;

@@ -16,7 +16,7 @@ public:
 
     static Str   type_name    ();
 
-    void         for_each_cell( const std::function<void( Cell &cell )> &f );
+    void         for_each_cell( const std::function<void( const Cell &cell )> &f );
     DisplayItem *display      ( DisplayItemFactory &df ) const;
 
     Scalar       coeff_init_simplex;

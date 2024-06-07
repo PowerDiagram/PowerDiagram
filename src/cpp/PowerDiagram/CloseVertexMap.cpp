@@ -11,7 +11,7 @@ PowerDiagram::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Sp
     coeff_init_simplex = 1;
 }
 
-void PowerDiagram::for_each_cell( const std::function<void( Cell & )> &f ) {
+void PowerDiagram::for_each_cell( const std::function<void( const Cell & )> &f ) {
     if ( ! point_tree )
         return;
 

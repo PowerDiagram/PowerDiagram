@@ -1,17 +1,15 @@
 #include "support/operators/norm_2.h"
 #include "support/operators/sp.h"
 #include "support/compare.h"
-#include "support/P.h"
+// #include "support/P.h"
 #include "Cell.h"
 
 #include <eigen3/Eigen/LU>
 
-void Cell::init( const Point *orig_point, const Scalar *orig_weight, SI orig_index, const Point &center, Scalar radius ) {
-    this->orig_weight = orig_weight;
-    this->orig_point = orig_point;
-    this->orig_index = orig_index;
-
-    make_init_simplex( center, radius );
+void Cell::init_geometry_from( const Cell &that ) {
+    vertices = that.vertices;
+    edges = that.edges;
+    cuts = that.cuts;
 }
 
 void Cell::make_init_simplex( const Point &center, Scalar radius ) {
@@ -301,13 +299,14 @@ bool Cell::vertex_has_cut( const Vertex &vertex, const std::function<bool( SI po
     return false;
 }
 
-void Cell::display_vtk( VtkOutput &vo, const std::function<bool( SI point_index )> &outside_cut ) const { //
+void Cell::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const { //
     auto to_vtk = [&]( const auto &pos ) {
         VtkOutput::Pt res;
         for( PI i = 0; i < min( PI( pos.size() ), res.size() ); ++i )
             res[ i ] = pos[ i ];
         for( PI i = PI( pos.size() ); i < res.size(); ++i )
             res[ i ] = 0;
+        coord_change( res );
         return res;
     };
 
@@ -317,7 +316,7 @@ void Cell::display_vtk( VtkOutput &vo, const std::function<bool( SI point_index 
         VtkOutput::VTF is_outside;
         for( const Vertex *vertex : vertices ) {
             convex_function << sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
-            is_outside << vertex_has_cut( *vertex, outside_cut );
+            is_outside << vertex_has_cut( *vertex, []( SI v ) { return v < 0; } );
             points << to_vtk( vertex->pos );
         }
         vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } );
@@ -340,5 +339,5 @@ void Cell::display_vtk( VtkOutput &vo, const std::function<bool( SI point_index 
 }
 
 void Cell::display_vtk( VtkOutput &vo ) const {
-    return display_vtk( vo, []( SI v ) { return v < 0; } );
+    return display_vtk( vo, []( const Point &v ) { return v; } );
 }
