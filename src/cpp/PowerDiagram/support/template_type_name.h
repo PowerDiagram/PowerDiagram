@@ -13,6 +13,7 @@ BEG_METIL_NAMESPACE
 /// common types
 TTA auto template_type_name( CtType<std::function<T(A...)>> ) { return "std::function"; }
 
+#define DECL_BASE_TYPE_INFO_UVW( NAME ) template<class U,class V,class W> auto template_type_name( CtType<NAME<U,V,W>> ) { return #NAME; }
 #define DECL_BASE_TYPE_INFO_UV( NAME ) template<class U,class V> auto template_type_name( CtType<NAME<U,V>> ) { return #NAME; }
 #define DECL_BASE_TYPE_INFO_A_( NAME ) template<class... A> auto template_type_name( CtType<NAME<A...>> ) { return #NAME; }
 #define DECL_BASE_TYPE_INFO_T_( NAME ) template<class T> auto template_type_name( CtType<NAME<T>> ) { return #NAME; }
@@ -22,7 +23,7 @@ DECL_BASE_TYPE_INFO_A_( CtTypeList            );
 DECL_BASE_TYPE_INFO_T_( UniquePtr             );
 DECL_BASE_TYPE_INFO_T_( CtType                );
 DECL_BASE_TYPE_INFO_UV( Pair                  );
-DECL_BASE_TYPE_INFO_UV( Map                   );
+DECL_BASE_TYPE_INFO_UVW( Map                   );
 DECL_BASE_TYPE_INFO_A_( Tup                   );
 
 #undef DECL_BASE_TYPE_INFO_UV

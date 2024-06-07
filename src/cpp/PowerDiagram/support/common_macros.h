@@ -5,6 +5,7 @@
 
 // shortcuts for template<...>
 #define     TAUV                          template<class... A,class U,class V>
+#define     TUVW                          template<class U,class V,class W>
 #define     TTij                          template<class T,int i,int j>
 #define     TUVi                          template<class U,class V,int i>
 #define     Tijs                          template<int i,int... j>

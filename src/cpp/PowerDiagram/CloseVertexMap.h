@@ -1,29 +1,18 @@
 #pragma once
 
-#include "support/UniquePtr.h"
-#include "PointTree.h"
-#include "Cell.h"
-
-#define PowerDiagram CC_DT( PowerDiagram )
+#include "support/compare.h"
+#include <map>
 
 /**
  * @brief 
  * 
  */
-class PowerDiagram {
+template<class Point,class Value>
+class CloseVertexMap {
 public:
-    /**/         PowerDiagram ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs );
+    using  Map       = std::map<Point,Value,Less>;
 
-    static Str   type_name    ();
+    Value &operator[]( const Point &point );
 
-    void         for_each_cell( const std::function<void( const Cell &cell )> &f );
-    DisplayItem *display      ( DisplayItemFactory &df ) const;
-
-    Scalar       coeff_init_simplex;
-private:
-    using        PtPtr        = UniquePtr<PointTree>;
-
-    PtPtr        point_tree;  ///<
-    Span<Point>  bnd_dirs;    ///<
-    Span<Scalar> bnd_offs;    ///<
+    Map    map;      ///<
 };

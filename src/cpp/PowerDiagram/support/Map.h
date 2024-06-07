@@ -5,6 +5,6 @@
 
 BEG_METIL_NAMESPACE
 
-TUV using Map = std::map<U,V>;
+TUVW using Map = std::map<U,V,W>;
 
 END_METIL_NAMESPACE
