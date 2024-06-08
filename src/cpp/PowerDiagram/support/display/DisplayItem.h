@@ -19,6 +19,7 @@ public:
     /**/            DisplayItem  ( DisplayTypeInfo ti );
     virtual        ~DisplayItem  ();
 
+    virtual bool    need_cr      ( DisplayWriteContext &ctx ) const = 0;
     virtual void    write        ( const std::function<void( std::string_view str )> &func, DisplayWriteContext &ctx ) const = 0;
     virtual void    show         ( DisplayShowContext &ctx ) const = 0;
 

@@ -11,6 +11,7 @@ class DisplayItem_Pointer : public DisplayItem {
 public:
     /**/         DisplayItem_Pointer( DisplayTypeInfo ti, DisplayPtrId pointer_id, Vec<Str> port_path, Str label, Str style, DisplayItem *content );
     
+    virtual bool need_cr            ( DisplayWriteContext &ctx ) const override;
     virtual void write              ( const std::function<void( StrView str )> &func, DisplayWriteContext &ctx ) const override;
     virtual void show               ( DisplayShowContext &ctx ) const override;
 

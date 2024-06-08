@@ -9,19 +9,44 @@ DisplayItem_Array::DisplayItem_Array( DisplayTypeInfo ti ) : DisplayItem( ti ) {
     last_attr = nullptr;
 }
 
+bool DisplayItem_Array::need_cr( DisplayWriteContext &ctx ) const {
+    for( DisplayItem *attr = first_attr; attr; attr = attr->next )
+        if ( attr->need_cr( ctx ) )
+            return true;
+        return false;
+}
+
 void DisplayItem_Array::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
-    ctx.inc_sp();
-    for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
-        if ( ! std::exchange( ctx.on_a_new_line, false ) )
-            func( "\n" );
-        func( ctx.sp );
-        if ( ! attr->name.empty() ) {
-            func( attr->name );
-            func( ": " );
+    if ( need_cr( ctx ) ) {
+        ctx.inc_sp();
+        for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
+            if ( ! std::exchange( ctx.on_a_new_line, false ) )
+                func( "\n" );
+            func( ctx.sp );
+            if ( ! attr->name.empty() ) {
+                func( attr->name );
+                func( ": " );
+            }
+            attr->write( func, ctx );
         }
-        attr->write( func, ctx );
+        ctx.dec_sp();
+    } else {
+        func( "[" );
+        for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
+            if ( attr != first_attr )
+                func( "," );
+            func( " " );
+
+            if ( ! attr->name.empty() ) {
+                func( attr->name );
+                func( ": " );
+            }
+            attr->write( func, ctx );
+        }
+        if ( first_attr )
+            func( " " );
+        func( "]" );
     }
-    ctx.dec_sp();
 }
 
 void DisplayItem_Array::show( DisplayShowContext &ctx ) const {

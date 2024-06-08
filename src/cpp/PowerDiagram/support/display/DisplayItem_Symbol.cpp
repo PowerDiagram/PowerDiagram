@@ -7,6 +7,10 @@ BEG_METIL_NAMESPACE
 DisplayItem_Symbol::DisplayItem_Symbol( DisplayTypeInfo ti, StrView content ) : DisplayItem( ti ), content( content ) {
 }
 
+bool DisplayItem_Symbol::need_cr( DisplayWriteContext &ctx ) const {
+    return false;
+}
+
 void DisplayItem_Symbol::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
     func( content );
 }

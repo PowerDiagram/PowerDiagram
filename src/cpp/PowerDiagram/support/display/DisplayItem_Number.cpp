@@ -6,6 +6,10 @@ BEG_METIL_NAMESPACE
 DisplayItem_Number::DisplayItem_Number( DisplayTypeInfo ti, std::string numerator ) : DisplayItem( ti ), numerator( numerator ) {
 }
 
+bool DisplayItem_Number::need_cr( DisplayWriteContext &ctx ) const {
+    return false;
+}
+
 void DisplayItem_Number::write( const std::function<void( std::string_view )> &func, DisplayWriteContext &ctx ) const {
     func( numerator );
 }

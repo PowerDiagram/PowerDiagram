@@ -9,6 +9,10 @@ DisplayItem_Object::DisplayItem_Object( DisplayTypeInfo ti ) : DisplayItem( ti )
     last_attr = nullptr;
 }
 
+bool DisplayItem_Object::need_cr( DisplayWriteContext &ctx ) const {
+    return first_attr;
+}
+
 void DisplayItem_Object::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
     ctx.sp += "  ";
     func( type_info.name );

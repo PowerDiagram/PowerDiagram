@@ -8,6 +8,12 @@ BEG_METIL_NAMESPACE
 DisplayItem_Pointer::DisplayItem_Pointer( DisplayTypeInfo ti, DisplayPtrId pointer_id, Vec<Str> port_path, Str label, Str style, DisplayItem *content ) : DisplayItem( ti ), pointer_id( pointer_id ), port_path( port_path ), content( content ), label( label ), style( style ) {
 }
 
+bool DisplayItem_Pointer::need_cr( DisplayWriteContext &ctx ) const {
+    if ( content->nb_use > 1 )
+        return false;
+    return content->need_cr( ctx );
+}
+
 void DisplayItem_Pointer::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
     if ( ! content )
         return func( "NULL" );
