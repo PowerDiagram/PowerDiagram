@@ -240,10 +240,10 @@ DTP void UTP::for_each_vertex( const std::function<void( const Vertex<Scalar,nb_
 DTP void UTP::for_each_face( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const {
     // face => edge list
     std::map<Vec<PI,nb_dims-2>,Vec<Vec<const Vertex<Scalar,nb_dims> *,2>>,Less> map;
-    for_each_edge( [&]( Vec<PI,nb_dims-1> bc, const Vertex<Scalar,nb_dims> *v0, const Vertex<Scalar,nb_dims> *v1 ) {
+    for_each_edge( [&]( Vec<PI,nb_dims-1> bc, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 ) {
         for( PI nf = 0; nf < nb_dims - 1; ++nf ) {
             Vec<PI,nb_dims-2> bd = array_without_index( bc, nf );
-            map[ bd ].push_back( Vec<const Vertex<Scalar,nb_dims> *,2>{ v0, v1 } );
+            map[ bd ].push_back( Vec<const Vertex<Scalar,nb_dims> *,2>{ &v0, &v1 } );
         }
     } );
     if ( map.empty() )
@@ -292,9 +292,9 @@ DTP void UTP::for_each_face( const std::function<void( Vec<PI,nb_dims-2> num_cut
     }
 }
 
-DTP void UTP::for_each_edge( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> *v0, const Vertex<Scalar,nb_dims> *v1 )> &f ) const {
+DTP void UTP::for_each_edge( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 )> &f ) const {
     for( const Edge<Scalar,nb_dims> &e : edges )
-        f( e.num_cuts, vertices.data() + e.vertices[ 0 ], vertices.data() + e.vertices[ 1 ] );
+        f( e.num_cuts, vertices[ e.vertices[ 0 ] ], vertices[ e.vertices[ 1 ] ] );
 }
 
 DTP bool UTP::vertex_has_cut( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI point_index )> &outside_cut ) const {
@@ -329,8 +329,8 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::P
 
     // edges
     if constexpr ( nb_dims >= 1 ) {
-        for_each_edge( [&]( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> *v0, const Vertex<Scalar,nb_dims> *v1 ) {
-            const Vertex<Scalar,nb_dims> *vs[] = { v0, v1 };
+        for_each_edge( [&]( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 ) {
+            const Vertex<Scalar,nb_dims> *vs[] = { &v0, &v1 };
             add_item( VtkOutput::VtkLine, { vs, 2 } );
         } );
     }
@@ -347,11 +347,24 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
     return display_vtk( vo, []( VtkOutput::Pt & ) {} );
 }
 
-DTP bool UTP::has_cut_checking( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI n_index )> &f ) const {
-    for( const PI num_cut : vertex.num_cuts )
-        if ( f( cuts[ num_cut ].n_index ) )
-            return true;
-    return false;
+DTP UTP::VertexType UTP::vertex_type( const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const {
+    VertexType res{ .all_ext = true, .all_int = true, .all_bnd = true, .any_ext = false, .any_int = false, .any_bnd = false };
+    for( const PI num_cut : vertex.num_cuts ) {
+        const SI n_index = cuts[ num_cut ].n_index;
+
+        bool is_int = n_index >= nb_bnds;
+        bool is_ext = n_index < 0;
+        bool is_bnd = ! ( is_int || is_int );
+
+        res.all_ext &= is_ext;
+        res.all_int &= is_int;
+        res.all_bnd &= is_bnd;
+
+        res.any_ext |= is_ext;
+        res.any_int |= is_int;
+        res.any_bnd |= is_bnd;
+    }
+    return res;
 }
 
 #undef DTP

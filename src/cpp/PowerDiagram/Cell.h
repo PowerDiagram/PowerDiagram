@@ -13,6 +13,7 @@
 template<class Scalar,int nb_dims>
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
+    struct                      VertexType         { bool all_ext, all_int, all_bnd, any_ext, any_int, any_bnd; };
     using                       Point              = Vec<Scalar,nb_dims>;
 
     void                        init_geometry_from ( const Cell &that );
@@ -23,10 +24,10 @@ public:
     void                        display_vtk        ( VtkOutput &vo ) const; ///<
 
     void                        for_each_vertex    ( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const;
-    void                        for_each_edge      ( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> *v0, const Vertex<Scalar,nb_dims> *v1 )> &f ) const;
+    void                        for_each_edge      ( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 )> &f ) const;
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
-    bool                        has_cut_checking   ( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI n_index )> &f ) const;
+    VertexType                  vertex_type        ( const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
 
     const Scalar*               orig_weight;       ///<
     const Point*                orig_point;        ///<
