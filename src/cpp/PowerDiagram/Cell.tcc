@@ -347,24 +347,18 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
     return display_vtk( vo, []( VtkOutput::Pt & ) {} );
 }
 
-DTP UTP::VertexType UTP::vertex_type( const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const {
-    VertexType res{ .all_ext = true, .all_int = true, .all_bnd = true, .any_ext = false, .any_int = false, .any_bnd = false };
+DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const {
     for( const PI num_cut : vertex.num_cuts ) {
         const SI n_index = cuts[ num_cut ].n_index;
 
         bool is_int = n_index >= nb_bnds;
-        bool is_ext = n_index < 0;
-        bool is_bnd = ! ( is_int || is_int );
+        bool is_inf = n_index < 0;
+        bool is_bnd = ! ( is_int || is_inf );
 
-        res.all_ext &= is_ext;
-        res.all_int &= is_int;
-        res.all_bnd &= is_bnd;
-
-        res.any_ext |= is_ext;
-        res.any_int |= is_int;
-        res.any_bnd |= is_bnd;
+        cct.nb_ints += is_int;
+        cct.nb_infs += is_inf;
+        cct.nb_bnds += is_bnd;
     }
-    return res;
 }
 
 #undef DTP

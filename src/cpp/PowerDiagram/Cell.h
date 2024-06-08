@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MapOfUniquePISortedArray.h"
+#include "CountOfCutTypes.h"
 #include "VtkOutput.h"
 #include "Vertex.h"
 #include "Edge.h"
@@ -13,7 +14,6 @@
 template<class Scalar,int nb_dims>
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
-    struct                      VertexType         { bool all_ext, all_int, all_bnd, any_ext, any_int, any_bnd; };
     using                       Point              = Vec<Scalar,nb_dims>;
 
     void                        init_geometry_from ( const Cell &that );
@@ -27,7 +27,7 @@ public:
     void                        for_each_edge      ( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 )> &f ) const;
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
-    VertexType                  vertex_type        ( const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
+    void                        add_cut_types      ( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
 
     const Scalar*               orig_weight;       ///<
     const Point*                orig_point;        ///<
