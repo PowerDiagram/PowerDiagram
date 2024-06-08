@@ -347,5 +347,12 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
     return display_vtk( vo, []( VtkOutput::Pt & ) {} );
 }
 
+DTP bool UTP::has_cut_checking( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI n_index )> &f ) const {
+    for( const PI num_cut : vertex.num_cuts )
+        if ( f( cuts[ num_cut ].n_index ) )
+            return true;
+    return false;
+}
+
 #undef DTP
 #undef UTP

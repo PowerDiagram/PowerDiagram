@@ -26,6 +26,8 @@ public:
     void                        for_each_edge      ( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> *v0, const Vertex<Scalar,nb_dims> *v1 )> &f ) const;
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
+    bool                        has_cut_checking   ( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI n_index )> &f ) const;
+
     const Scalar*               orig_weight;       ///<
     const Point*                orig_point;        ///<
     SI                          orig_index;        ///<
