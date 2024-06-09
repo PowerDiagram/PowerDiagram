@@ -130,10 +130,10 @@ Ti constexpr auto ct_value_wrapper_for(); // defined in CtInt.h
     } else \
     \
 
-    // /* arrays */ \
-    // if constexpr( TensorOrder<DECAYED_TYPE_OF( a )>::value || TensorOrder<DECAYED_TYPE_OF( b )>::value ) { \
-    //     return make_array_from_binary_operations( Functor_##NAME(), FORWARD( a ), FORWARD( b ) ); \
-    // } else \
+    // arrays
+    // if constexpr( TensorOrder<DECAYED_TYPE_OF( a )>::value || TensorOrder<DECAYED_TYPE_OF( b )>::value ) {
+    //     return make_array_from_binary_operations( Functor_##NAME(), FORWARD( a ), FORWARD( b ) );
+    // } else
 
 
 //

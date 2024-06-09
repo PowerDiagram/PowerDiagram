@@ -49,6 +49,7 @@ void SpanOfBits::with_aligned_data( const std::function<void( const void *, PI )
     f( reinterpret_cast<const PI8 *>( blocks ) + beg / 8, size() );
 }
 
+#ifndef AVOID_DISPLAY
 DisplayItem *SpanOfBits::display( DisplayItemFactory &ds, const Str &prefix ) const {
     std::ostringstream res;
     res << prefix;
@@ -61,6 +62,7 @@ DisplayItem *SpanOfBits::display( DisplayItemFactory &ds, const Str &prefix ) co
 
     return ds.new_symbol( CtType<SpanOfBits>(), res.str() );
 }
+#endif
 
 PI SpanOfBits::nb_bytes() const {
     return ( size() + 7 ) / 8;

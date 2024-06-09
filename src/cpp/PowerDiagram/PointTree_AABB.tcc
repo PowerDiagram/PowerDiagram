@@ -1,4 +1,5 @@
 #include "PointTree_AABB.h"
+#include "support/TODO.h"
 
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTree_AABB<Scalar,nb_dims>
@@ -8,6 +9,7 @@ DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<
     init_children( cp );
 }
 
+#ifndef AVOID_DISPLAY
 DTP DisplayItem *UTP::display( DisplayItemFactory &ds ) const {
     const auto &children = this->children;
     if ( children.size() )
@@ -17,6 +19,7 @@ DTP DisplayItem *UTP::display( DisplayItemFactory &ds ) const {
     const auto &points = this->points;
     return DS_OBJECT( PointTree_AABB, min_pos, max_pos, points, weights );
 }
+#endif
 
 DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
     const PI n = this->points.size();

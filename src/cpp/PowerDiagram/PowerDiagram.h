@@ -18,7 +18,9 @@ public:
     static Str   type_name    ();
 
     void         for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f );
+    #ifndef AVOID_DISPLAY
     DisplayItem *display      ( DisplayItemFactory &df ) const;
+    #endif
 
     Scalar       coeff_init_simplex;
 private:

@@ -5,7 +5,7 @@
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTree<Scalar,nb_dims>
 
-DTP UTP::PointTree( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent ) : indices( indices ), weights( weights ), points( points ), parent( parent ) {
+DTP UTP::PointTree( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent ) : parent( parent ), indices( indices ), weights( weights ), points( points ) {
 }
 
 DTP UTP::~PointTree() {

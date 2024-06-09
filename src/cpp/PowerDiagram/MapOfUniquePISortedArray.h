@@ -1,5 +1,6 @@
 #pragma once
 
+#include "support/compare.h"
 #include "support/Vec.h"
 #include <map>
 
@@ -20,7 +21,7 @@ struct MapOfUniquePISortedArray<T,s,Val,true> {
 /// generic case
 template<class T,int s,class Val>
 struct MapOfUniquePISortedArray<T,s,Val,false> {
-    using Vals           = std::map<Vec<T,s>,Val>;
+    using Vals           = std::map<Vec<T,s>,Val,Less>;
 
     void  init           ( PI max_PI_value, const Val &default_value = {}) { this->default_value = default_value; }
 

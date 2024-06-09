@@ -10,10 +10,11 @@ DisplayItem_Array::DisplayItem_Array( DisplayTypeInfo ti ) : DisplayItem( ti ) {
 }
 
 bool DisplayItem_Array::need_cr( DisplayWriteContext &ctx ) const {
-    for( DisplayItem *attr = first_attr; attr; attr = attr->next )
+    for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
         if ( attr->need_cr( ctx ) )
             return true;
-        return false;
+    }
+    return false;
 }
 
 void DisplayItem_Array::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {

@@ -1,7 +1,11 @@
 #pragma once
 
+#ifndef AVOID_DISPLAY
 #include "support/display/DisplayItemFactory.h"
+#endif
+
 #include "PointTreeCtorParms.h"
+#include "support/Vec.h"
 
 /**
 */
@@ -17,7 +21,9 @@ public:
     static Str           type_name    ();
     static PointTree*    New          ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
 
+    #ifndef AVOID_DISPLAY
     virtual DisplayItem *display      ( DisplayItemFactory &df ) const = 0;
+    #endif
     virtual Scalar       radius       () const = 0;
     virtual Point        center       () const = 0;
     bool                 leaf         () const;

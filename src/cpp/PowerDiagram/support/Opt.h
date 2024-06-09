@@ -17,7 +17,7 @@ public:
 
     /**/    ~Opt          ();
     
-    auto*    display      ( DisplayItemFactory &ds ) const;
+    auto*    display      ( auto &ds ) const;
 
     Opt&     operator=    ( const Opt<T> &that );
     Opt&     operator=    ( Opt<T> &&that );

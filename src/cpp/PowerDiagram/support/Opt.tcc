@@ -47,7 +47,7 @@ DTP UTP::~Opt() {
         value().~T();
 }
 
-DTP auto *UTP::display( DisplayItemFactory &ds ) const {
+DTP auto *UTP::display( auto &ds ) const {
     if ( ok )
         return ds.new_display_item( value() );
     return ds.new_symbol( CtType<Opt>(), "none" );

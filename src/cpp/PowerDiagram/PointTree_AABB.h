@@ -18,7 +18,9 @@ public:
     void                 init_bounds   ( const PointTreeCtorParms &cp );
     static Str           type_name     ();
 
+    #ifndef AVOID_DISPLAY
     virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
+    #endif
     virtual Scalar       radius        () const override { return max( max_pos - min_pos ); }
     virtual Point        center        () const override { return ( max_pos + min_pos ) / 2; }
 

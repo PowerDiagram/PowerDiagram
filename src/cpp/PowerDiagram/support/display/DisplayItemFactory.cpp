@@ -12,6 +12,7 @@
 #include "graphviz_helpers.h"
 
 #include <fstream>
+#include <sstream>
 
 BEG_METIL_NAMESPACE
 

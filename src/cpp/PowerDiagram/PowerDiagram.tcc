@@ -80,9 +80,11 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
     }
 }
 
+#ifndef AVOID_DISPLAY
 DTP DisplayItem *UTP::display( DisplayItemFactory &df ) const {
     return df.new_display_item( *point_tree );
 }
+#endif
 
 DTP Str UTP::type_name() {
     return "PowerDiagram";

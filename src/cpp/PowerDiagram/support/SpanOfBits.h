@@ -18,7 +18,9 @@ public:
 
     void                with_aligned_data   ( const std::function<void( const void *data, PI size )> &f, PI alig_in_bits = 8 ) const;
     PI                  nb_bytes            () const;
+    #ifndef AVOID_DISPLAY
     DisplayItem*        display             ( DisplayItemFactory &ds, const Str &prefix = {} ) const;
+    #endif
     PI                  size                () const;
 
     bool                operator[]          ( PI index ) const;

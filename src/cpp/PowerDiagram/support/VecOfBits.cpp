@@ -152,6 +152,7 @@ VecOfBits::operator SpanOfBits() const {
     return { _data, 0, _size };
 }
 
+#ifndef AVOID_DISPLAY
 DisplayItem *VecOfBits::display( DisplayItemFactory &ds, const Str &prefix ) const {
     std::ostringstream res;
     res << prefix;
@@ -164,6 +165,7 @@ DisplayItem *VecOfBits::display( DisplayItemFactory &ds, const Str &prefix ) con
 
     return ds.new_symbol( CtType<VecOfBits>(), res.str() );
 }
+#endif
 
 bool VecOfBits::operator!=( const VecOfBits &that ) const {
     if ( size() != that.size() )
