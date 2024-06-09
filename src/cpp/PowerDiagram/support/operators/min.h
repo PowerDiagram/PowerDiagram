@@ -25,7 +25,7 @@ constexpr auto min( auto &&a, auto &&b, auto &&c, auto &&...d ) {
 auto min( auto &&a ) requires ( TensorOrder<DECAYED_TYPE_OF( a )>::value == 1 ) {
     using std::min;
     auto res = a[ 0 ];
-    for( std::size_t i = 1; i < a.size(); ++i )
+    for( std::size_t i = 1; i < std::size_t( a.size() ); ++i )
         res = min( res, a[ i ] );
     return res;
 }

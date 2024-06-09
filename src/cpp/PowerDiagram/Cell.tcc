@@ -307,9 +307,9 @@ DTP bool UTP::vertex_has_cut( const Vertex<Scalar,nb_dims> &vertex, const std::f
 DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const { //
     auto to_vtk = [&]( const auto &pos ) {
         VtkOutput::Pt res;
-        for( PI i = 0; i < min( PI( pos.size() ), res.size() ); ++i )
+        for( PI i = 0; i < min( PI( pos.size() ), PI( res.size() ) ); ++i )
             res[ i ] = pos[ i ];
-        for( PI i = PI( pos.size() ); i < res.size(); ++i )
+        for( PI i = PI( pos.size() ); i < PI( res.size() ); ++i )
             res[ i ] = 0;
         coord_change( res );
         return res;
@@ -359,6 +359,10 @@ DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> 
         cct.nb_infs += is_inf;
         cct.nb_bnds += is_bnd;
     }
+}
+
+DTP Scalar UTP::height( const Point &point ) const {
+    return sp( point, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
 }
 
 #undef DTP

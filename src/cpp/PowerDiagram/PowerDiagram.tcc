@@ -13,7 +13,7 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     point_tree = PtPtr{ PointTree<Scalar,nb_dims>::New( cp, points, weights, indices, nullptr ) };
     this->bnd_dirs = bnd_dirs;
     this->bnd_offs = bnd_offs;
-    coeff_init_simplex = 1e6;
+    coeff_init_simplex = 10;
 }
 
 DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )> &f ) {

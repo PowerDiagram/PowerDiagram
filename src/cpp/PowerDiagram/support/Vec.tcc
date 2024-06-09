@@ -39,7 +39,7 @@ DTP TT UTP::Vec( const std::initializer_list<T> &lst ) {
     for( PI index = 0; index < std::min( PI( lst.size() ), PI( size() ) ); ++index )
         new ( data( index ) ) Item( *(iter++) );
 
-    for( PI index = lst.size(); index < size(); ++index )
+    for( PI index = lst.size(); index < PI( size() ); ++index )
         new ( data( index ) ) Item;
 }
 
@@ -57,22 +57,22 @@ DTP UTP::Vec( const HasSizeAndAccess auto &l ) {
         }
     }
 
-    for( PI index = l.size(); index < size(); ++index )
+    for( PI index = l.size(); index < PI( size() ); ++index )
         new ( data( index ) ) Item;
 }
 
 DTP UTP::Vec( const Vec &that ) {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item( that[ index ] );
 }
 
 DTP UTP::Vec( Vec &&that ) {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item( std::move( that[ index ] ) );
 }
 
 DTP UTP::Vec() {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item;
 }
 
@@ -82,13 +82,13 @@ DTP UTP::~Vec() {
 }
 
 DTP UTP &UTP::operator=( const Vec &that ) {
-    for( PI i = 0; i < size(); ++i )
+    for( PI i = 0; i < PI( size() ); ++i )
         operator[]( i ) = that[ i ];
     return *this;
 }
 
 DTP UTP &UTP::operator=( Vec &&that ) {
-    for( PI i = 0; i < size(); ++i )
+    for( PI i = 0; i < PI( size() ); ++i )
         operator[]( i ) = std::move( that[ i ] );
     return *this;
 }
@@ -293,7 +293,7 @@ DTP PI UTP::size() const {
 }
 
 DTP Item *UTP::push_back_unique( auto &&value ) {
-    for( PI i = 0; i < size(); ++i )
+    for( PI i = 0; i < PI( size() ); ++i )
         if ( operator[]( i ) == value )
             return &operator[]( i );
     return push_back( FORWARD( value ) );

@@ -28,6 +28,7 @@ public:
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
     void                        add_cut_types      ( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
+    Scalar                      height             ( const Point &point ) const;
 
     const Scalar*               orig_weight;       ///<
     const Point*                orig_point;        ///<
