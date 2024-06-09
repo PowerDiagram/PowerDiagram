@@ -62,7 +62,7 @@ public:
 
 // dynamic size, items fully on the heap
 template<class Item>
-class Vec<Item,-1> {
+class Vec<Item,-1> : public WithDefaultOperators {
 public:
     /**/                Vec             ( FromSizeAndInitFunctionOnIndex, PI size, auto &&func );
     Tis                 Vec             ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );

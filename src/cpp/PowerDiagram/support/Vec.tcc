@@ -10,7 +10,7 @@ BEG_METIL_NAMESPACE
 #define UTP Vec<Item,static_size>
 
 DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
 }
 
@@ -25,12 +25,12 @@ DTP UTP::Vec( FromItemValues, auto &&...values ) {
 }
 
 DTP UTP::Vec( FromItemValue, auto &&...ctor_args ) {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item( ctor_args... );
 }
 
 DTP UTP::Vec( FromIterator, auto iter ) {
-    for( PI index = 0; index < size(); ++index )
+    for( PI index = 0; index < PI( size() ); ++index )
         new ( data( index ) ) Item( *( iter++ ) );
 }
 
@@ -152,24 +152,24 @@ DTP UTP::Vec( FromSize, PI size ) : Vec( FromReservationSize(), size, size ) {
         new ( data_ + index ) Item;
 }
 
-// DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
-//     // compute size
-//     PI size = std::numeric_limits<PI>::max();
-//     auto get_size = [&]( auto nb_to_take, const auto &list ) {
-//         if constexpr ( nb_to_take )
-//             size = std::min( size, list.size() );
-//     };
-//     ( get_size( CtInt<i>(), lists ), ... );
+DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
+    // compute size
+    PI size = std::numeric_limits<PI>::max() / sizeof( Item );
+    auto get_size = [&]( auto nb_to_take, const auto &list ) {
+        if constexpr ( nb_to_take )
+            size = std::min( size, list.size() );
+    };
+    ( get_size( CtInt<i>(), lists ), ... );
 
-//     // reserve
-//     data_ = allocate( size );
-//     size_ = size;
-//     capa_ = size;
+    // reserve
+    data_ = allocate( size );
+    size_ = size;
+    capa_ = size;
 
-//     // fill
-//     for( PI index = 0; index < size; ++index )
-//         new ( data_ + index ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
-// }
+    // fill
+    for( PI index = 0; index < size; ++index )
+        new ( data_ + index ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
+}
 
 DTP UTP::Vec( FromReservationSize, PI capa, PI raw_size ) {
     data_ = allocate( capa );
