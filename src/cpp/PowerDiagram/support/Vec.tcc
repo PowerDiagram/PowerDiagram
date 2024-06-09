@@ -154,10 +154,17 @@ DTP UTP::Vec( FromSize, PI size ) : Vec( FromReservationSize(), size, size ) {
 
 DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists ) {
     // compute size
-    PI size = std::numeric_limits<PI>::max() / sizeof( Item );
+    PI size = 0;
+    bool seen = false;
     auto get_size = [&]( auto nb_to_take, const auto &list ) {
-        if constexpr ( nb_to_take )
-            size = std::min( size, list.size() );
+        if constexpr ( nb_to_take ) {
+            if ( seen )
+                size = std::min( size, list.size() );
+            else {
+                size = list.size();
+                seen = true;
+            }
+        }
     };
     ( get_size( CtInt<i>(), lists ), ... );
 
@@ -167,7 +174,7 @@ DTP Tis UTP::Vec( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i..
     capa_ = size;
 
     // fill
-    for( PI index = 0; index < size; ++index )
+    for( PI index = 0; index < PI( size ); ++index )
         new ( data_ + index ) Item( functor( select_with_n_indices( lists, CtInt<i>(), index )... ) );
 }
 
@@ -180,6 +187,19 @@ DTP UTP::Vec( FromReservationSize, PI capa, PI raw_size ) {
 DTP UTP::Vec( FromItemValues, auto &&...values ) : Vec( FromReservationSize(), sizeof...( values ), sizeof...( values ) ) {
     PI index = 0;
     ( new ( data_ + index++ ) Item( FORWARD( values ) ), ... );
+}
+
+DTP UTP::Vec( FromConcatenation, auto &&...vecs ) : Vec( FromReservationSize(), ( vecs.size() + ... ), ( vecs.size() + ... ) ) {
+    PI index = 0;
+    const auto app = [&]( auto &&vec ) {
+        if ( std::is_rvalue_reference_v<decltype( vec )> )
+            for( auto &val : vec )
+                new ( data_ + index++ ) Item( std::move( val ) );
+        else
+            for( const auto &val : vec )
+                new ( data_ + index++ ) Item( val );
+    };
+    ( app( vecs ), ... );
 }
 
 DTP UTP::Vec( const std::initializer_list<Item> &l ) : Vec( FromReservationSize(), l.size(), l.size() ) {

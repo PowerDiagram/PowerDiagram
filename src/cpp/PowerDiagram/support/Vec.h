@@ -69,6 +69,7 @@ public:
     /**/                Vec             ( FromSizeAndItemValue, PI size, auto &&...ctor_args );
     /**/                Vec             ( FromSizeAndIterator, PI size, auto iterator );
     /**/                Vec             ( FromReservationSize, PI capa, PI raw_size = 0 );
+    /**/                Vec             ( FromConcatenation, auto &&...vecs );
     /**/                Vec             ( FromItemValues, auto &&...values );
     /**/                Vec             ( FromSize, PI size );
     /**/                Vec             ( const std::initializer_list<Item> &l );
