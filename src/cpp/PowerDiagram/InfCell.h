@@ -1,5 +1,6 @@
 #pragma once
 
+#include "support/Opt.h"
 #include "VtkOutput.h"
 #include "Vertex.h"
 #include "Cut.h"
@@ -36,7 +37,8 @@ private:
     TT static void              apply_corr         ( Vec<T> &vec, Vec<int> &keep );
 
     void                        clean_inactive_cuts();
-    Point                       compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
+    bool                        cut_is_useful      ( PI num_cut );
+    Opt<Point>                  compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
 
     // Vec<int>                 vertex_corr;       ///<
     // Vec<Scalar>              sps;               ///<

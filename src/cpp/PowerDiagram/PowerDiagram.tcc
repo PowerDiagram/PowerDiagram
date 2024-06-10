@@ -4,7 +4,7 @@
 #include "support/operators/sp.h"
 #include "PowerDiagram.h"
 
-#include "support/P.h"
+// #include "support/P.h"
 
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PowerDiagram<Scalar,nb_dims>
@@ -17,9 +17,6 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     // limits
     Point min_box_pos = point_tree->min_point();
     Point man_box_pos = point_tree->max_point();
-
-    min_box_pos[ 0 ] = 10;
-    max_box_pos[ 0 ] = 11;
 
     // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );

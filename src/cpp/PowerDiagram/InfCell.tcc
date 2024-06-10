@@ -1,7 +1,13 @@
 #pragma once
 
 #include "support/for_each_selection.h"
+#include "support/operators/sp.h"
+#include "support/TODO.h"
+
+#include "support/P.h"
+
 #include <eigen3/Eigen/LU>
+
 #include "InfCell.h"
 
 #define DTP template<class Scalar,int nb_dims>
@@ -20,23 +26,28 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
     PI new_cut = cuts.push_back_ind( point_index, dir, off );
 
     // create the new vertices (from all the new cut combinations)
-    for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
-        // get the new coordinates
-        Vec<PI,nb_dims> num_cuts;
-        for( PI i = 0; i < nb_dims - 1; ++i )
-            num_cuts[ i ] = selection_of_cuts[ i ];
-        num_cuts[ nb_dims - 1 ] = new_cut;
+    if ( new_cut >= nb_dims - 1 ) {
+        for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
+            // get the new coordinates
+            Vec<PI,nb_dims> num_cuts;
+            for( PI i = 0; i < nb_dims - 1; ++i )
+                num_cuts[ i ] = selection_of_cuts[ i ];
+            num_cuts[ nb_dims - 1 ] = new_cut;
 
-        Point pos = compute_pos( num_cuts );
-
-        // early return if the new vertew is outside
-        for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
-            if ( selection_of_cuts.contains( num_cut ) == false && sp( pos, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
+            // early return if parallel cuts
+            Opt<Point> pos = compute_pos( num_cuts );
+            if ( ! pos )
                 return;
 
-        // else, register the new vertex
-        vertices.push_back( num_cuts, pos );
-    }, nb_dims - 1, new_cut );
+            // early return if the new vertex is outside
+            for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
+                if ( selection_of_cuts.contains( num_cut ) == false && sp( *pos, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
+                    return;
+
+            // else, register the new vertex
+            vertices.push_back( num_cuts, *pos );
+        }, nb_dims - 1, new_cut );
+    }
 
     //
     clean_inactive_cuts();
@@ -64,8 +75,8 @@ DTP void UTP::clean_inactive_cuts() {
 }
 
 DTP bool UTP::cut_is_useful( PI num_cut ) {
-    using TM = Eigen::Matrix<Scalar,Eigen::dynamic,Eigen::dynamic>;
-    using TV = Eigen::Matrix<Scalar,Eigen::dynamic,1>;
+    using TM = Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>;
+    using TV = Eigen::Matrix<Scalar,Eigen::Dynamic,1>;
 
     Vec<PI> constraints;
     auto get_prop_point = [&]() -> Point {
@@ -99,18 +110,17 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
         for( PI n = 0; n < cuts.size(); ++n ) {
             if ( n == num_cut )
                 continue;
-            if ( sp( x, cuts[ n ].dir ) > cuts[ n ].sp ) {
-                return true;
-            }
+            if ( sp( x, cuts[ n ].dir ) > cuts[ n ].sp )
+                return { n };
         }
-        return false;
+        return {};
     };
 
     // find a point and add constraint until interior
     while ( true ) {
         // impossible to find a point at the exterior of the cut, we can say that this cut is not useful
         Point x = get_prop_point();
-        if ( sp( x, cuts[ n ].dir ) <= cuts[ n ].sp )
+        if ( sp( x, cuts[ num_cut ].dir ) <= cuts[ num_cut ].sp )
             return false;
 
         // if we have to add a constraint, loop again
@@ -160,7 +170,7 @@ DTP TT void UTP::apply_corr( Vec<T> &vec, Vec<int> &keep ) {
     vec.resize( last_keep );
 }
 
-DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
+DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
     using TV = Eigen::Matrix<Scalar,nb_dims,1>;
 
@@ -173,13 +183,10 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 
     Eigen::FullPivLU<TM> lu( m );
-    TV x = lu.solve( v );
+    if ( lu.dimensionOfKernel() )
+        return {};
 
-    Point res;
-    for( PI i = 0; i < nb_dims; ++i )
-        res[ i ] = x[ i ];
-
-    return res;
+    return lu.solve( v );
 }
 
 DTP void UTP::for_each_vertex( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const {
