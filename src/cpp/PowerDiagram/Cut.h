@@ -12,6 +12,8 @@ class Cut { STD_METIL_TYPE_INFO( Cut, "", n_index, dir, sp )
 public:
     using  Point    = Vec<Scalar,nb_dims>;
 
+    bool   is_inf   () const { return n_index < 0; }
+
     SI     n_index;
     Point  dir;
     Scalar sp;

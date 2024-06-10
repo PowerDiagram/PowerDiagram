@@ -24,8 +24,8 @@ public:
     #ifndef AVOID_DISPLAY
     virtual DisplayItem *display      ( DisplayItemFactory &df ) const = 0;
     #endif
-    virtual Scalar       radius       () const = 0;
-    virtual Point        center       () const = 0;
+    virtual Point        min_point    () const = 0;
+    virtual Point        max_point    () const = 0;
     bool                 leaf         () const;
 
 

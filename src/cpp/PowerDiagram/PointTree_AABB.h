@@ -21,8 +21,9 @@ public:
     #ifndef AVOID_DISPLAY
     virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
     #endif
-    virtual Scalar       radius        () const override { return max( max_pos - min_pos ); }
-    virtual Point        center        () const override { return ( max_pos + min_pos ) / 2; }
+
+    virtual Point        min_point     () const override { return min_pos; }
+    virtual Point        max_point     () const override { return max_pos; }
 
     Scalar               min_offset_weights;
     Scalar               max_offset_weights;

@@ -17,7 +17,10 @@ DTP void UTP::init_geometry_from( const Cell &that ) {
     cuts = that.cuts;
 }
 
-DTP void UTP::make_init_simplex( const Point &center, Scalar radius ) {
+DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
+    Point min_pos = ( mi + ma ) / 2 - ( ma - mi );
+    Point max_pos = ( mi + ma ) / 2 + ( ma - mi );
+
     vertices.clear();
     edges.clear();
     cuts.clear();
@@ -27,12 +30,11 @@ DTP void UTP::make_init_simplex( const Point &center, Scalar radius ) {
     for( int d = 0; d < nb_dims; ++d ) {
         Point dir( FromItemValue(), 0 );
         dir[ d ] = -1;
-        cuts.push_back( --point_index, dir, radius - center[ d ] );
+        cuts.push_back( --point_index, dir, sp( min_pos, dir ) );
     }
 
     Point dir( FromItemValue(), 1 );
-    Point vrd( FromItemValue(), radius );
-    cuts.push_back( --point_index, dir, sp( center + vrd, dir ) );
+    cuts.push_back( --point_index, dir, sp( max_pos, dir ) );
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
@@ -359,6 +361,22 @@ DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> 
         cct.nb_infs += is_inf;
         cct.nb_bnds += is_bnd;
     }
+}
+
+DTP bool UTP::has_inf_cut( const Vertex<Scalar,nb_dims> &vertex ) const {
+    for( const PI num_cut : vertex.num_cuts )
+        if ( cuts[ num_cut ].n_index < 0 )
+            return true;
+    return false;
+}
+
+DTP bool UTP::is_inf() const {
+    if ( vertices.empty() )
+        return true;
+    for( const Vertex<Scalar,nb_dims> &vertex : vertices )
+        if ( has_inf_cut( vertex ) )
+            return true;
+    return false;
 }
 
 DTP Scalar UTP::height( const Point &point ) const {

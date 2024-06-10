@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <assert.h>
 
 #ifdef KSDOT_DEBUG

@@ -17,7 +17,7 @@ public:
     using                       Point              = Vec<Scalar,nb_dims>;
 
     void                        init_geometry_from ( const Cell &that );
-    void                        make_init_simplex  ( const Point &center, Scalar radius );
+    void                        make_init_simplex  ( const Point &min_pos, const Point &max_pos );
     void                        cut                ( const Point &dir, Scalar off, SI point_index );
 
     void                        display_vtk        ( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const; ///<
@@ -28,6 +28,8 @@ public:
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
     void                        add_cut_types      ( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
+    bool                        has_inf_cut        ( const Vertex<Scalar,nb_dims> &vertex ) const;
+    bool                        is_inf             () const;
     Scalar                      height             ( const Point &point ) const;
 
     const Scalar*               orig_weight;       ///<
