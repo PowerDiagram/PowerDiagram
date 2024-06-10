@@ -3,7 +3,6 @@
 #include "support/operators/norm_2.h"
 #include "support/operators/sp.h"
 #include "PowerDiagram.h"
-#include "InfCell.h"
 
 #include "support/P.h"
 
@@ -15,14 +14,21 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     this->bnd_dirs = bnd_dirs;
     this->bnd_offs = bnd_offs;
 
-    // make the base cell
+    // limits
     Point min_box_pos = point_tree->min_point();
     Point man_box_pos = point_tree->max_point();
 
     min_box_pos[ 0 ] = 10;
     max_box_pos[ 0 ] = 11;
 
+    // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );
+    for( PI i = 0; i < bnd_offs.size(); ++i )
+        base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
+
+    // base inf cell
+    for( PI i = 0; i < bnd_offs.size(); ++i )
+        base_inf_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
 }
 
 DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base, PI n0 ) {
@@ -60,11 +66,6 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
     if ( ! point_tree )
         return;
 
-    // cut by the boundaries
-    const PI nb_bnds = bnd_offs.size();
-    for( PI i = 0; i < nb_bnds; ++i )
-        base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
-
     // get the cell point
     Cell<Scalar,nb_dims> cell;
     for( RemainingBoxes<Scalar,nb_dims> rb_base = RemainingBoxes<Scalar,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
@@ -83,8 +84,6 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
 
                 // make the cuts
                 make_intersections( cell, rb_base, n0 );
-
-                P( n0 );
 
                 // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
                 if ( cell.is_inf() && outside_cell( cell, rb_base, n0 ) )
@@ -109,10 +108,9 @@ DTP Str UTP::type_name() {
 }
 
 DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base, PI n0 ) {
-    // make the cell without the inf bounds
-    InfCell<Scalar,nb_dims> inf_cell;
+    // make the inf cell (i.e. without the inf bounds)
+    InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
     make_intersections( inf_cell, rb_base, n0 );
-    P( inf_cell );
 
     // check that the vertices of the inf_cell are inside the inf bounds
     bool has_outside_vertex = false;
