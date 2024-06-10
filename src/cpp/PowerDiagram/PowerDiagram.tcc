@@ -15,8 +15,10 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     this->bnd_offs = bnd_offs;
 
     // limits
-    Point min_box_pos = point_tree->min_point();
-    Point man_box_pos = point_tree->max_point();
+    min_box_pos = point_tree->min_point();
+    max_box_pos = point_tree->max_point();
+    if ( all( min_box_pos == max_box_pos ) && nb_dims )
+        max_box_pos[ 0 ] += 1;
 
     // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );
@@ -83,12 +85,11 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
                 make_intersections( cell, rb_base, n0 );
 
                 // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
-                if ( cell.is_inf() && outside_cell( cell, rb_base, n0 ) )
-                    continue;
-
-                //
-                f( cell );
-                break;
+                bool inf_cut = cell.is_inf() && outside_cell( cell, rb_base, n0 );
+                if ( ! inf_cut ) {
+                    f( cell );
+                    break;
+                }
             }
         }
     }
@@ -122,8 +123,11 @@ DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb
     }
 
     // update base cell if necessary
-    if ( has_outside_vertex )
+    if ( has_outside_vertex ) {
         base_cell.make_init_simplex( min_box_pos, max_box_pos );
+        for( PI i = 0; i < bnd_offs.size(); ++i )
+            base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
+    }
 
     return has_outside_vertex;
 }

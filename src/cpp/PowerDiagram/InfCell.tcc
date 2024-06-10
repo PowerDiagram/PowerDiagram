@@ -108,7 +108,7 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
     //
     auto outside_for_cut = [&]( const Point &x ) -> Opt<PI> {
         for( PI n = 0; n < cuts.size(); ++n ) {
-            if ( n == num_cut )
+            if ( n == num_cut || constraints.contains( n ) )
                 continue;
             if ( sp( x, cuts[ n ].dir ) > cuts[ n ].sp )
                 return { n };
