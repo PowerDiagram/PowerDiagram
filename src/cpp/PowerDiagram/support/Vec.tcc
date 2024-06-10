@@ -46,7 +46,7 @@ DTP TT UTP::Vec( const std::initializer_list<T> &lst ) {
 DTP UTP::Vec( const HasSizeAndAccess auto &l ) {
     using namespace std;
     if constexpr( requires { l[ 0 ]; } ) {
-        for( PI index = 0; index < min( size(), l.size() ); ++index )
+        for( PI index = 0; index < min( PI( size() ), PI( l.size() ) ); ++index )
             new ( data( index ) ) Item( l[ index ] );
     } else {
         PI index = 0;

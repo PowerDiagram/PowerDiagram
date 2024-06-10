@@ -1,5 +1,6 @@
 #pragma once
 
+#include "support/type_name.h"
 #include "PointTree.h"
 
 /**
