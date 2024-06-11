@@ -105,25 +105,29 @@ DTP UTP::Point UTP::compute_pos( const Point &p0, const Point &p1, Scalar s0, Sc
 }
 
 DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
-    using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
-    using TV = Eigen::Matrix<Scalar,nb_dims,1>;
+    if constexpr ( nb_dims == 0 ) {
+        return {};
+    } else {
+        using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
+        using TV = Eigen::Matrix<Scalar,nb_dims,1>;
 
-    TM m;
-    TV v;
-    for( PI i = 0; i < nb_dims; ++i ) {
-        for( PI j = 0; j < nb_dims; ++j )
-            m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-        v( i ) = cuts[ num_cuts[ i ] ].sp;
+        TM m;
+        TV v;
+        for( PI i = 0; i < nb_dims; ++i ) {
+            for( PI j = 0; j < nb_dims; ++j )
+                m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
+            v( i ) = cuts[ num_cuts[ i ] ].sp;
+        }
+
+        Eigen::PartialPivLU<TM> lu( m );
+        TV x = lu.solve( v );
+
+        Point res;
+        for( PI i = 0; i < nb_dims; ++i )
+            res[ i ] = x[ i ];
+
+        return res;
     }
-
-    Eigen::PartialPivLU<TM> lu( m );
-    TV x = lu.solve( v );
-
-    Point res;
-    for( PI i = 0; i < nb_dims; ++i )
-        res[ i ] = x[ i ];
-
-    return res;
 }
 
 DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {

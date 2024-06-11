@@ -99,6 +99,11 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
             v( nb_dims + i ) = cuts[ constraints[ i ] ].sp;
         }
 
+        // zeros
+        for( PI i = 0; i < constraints.size(); ++i )
+            for( PI j = 0; j < constraints.size(); ++j )
+                m( nb_dims + i, nb_dims + j ) = 0;
+
         // solve
         Eigen::FullPivLU<TM> lu( m );
         return lu.solve( v );
@@ -171,22 +176,26 @@ DTP TT void UTP::apply_corr( Vec<T> &vec, Vec<int> &keep ) {
 }
 
 DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
-    using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
-    using TV = Eigen::Matrix<Scalar,nb_dims,1>;
-
-    TM m;
-    TV v;
-    for( PI i = 0; i < nb_dims; ++i ) {
-        for( PI j = 0; j < nb_dims; ++j )
-            m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-        v( i ) = cuts[ num_cuts[ i ] ].sp;
-    }
-
-    Eigen::FullPivLU<TM> lu( m );
-    if ( lu.dimensionOfKernel() )
+    if constexpr( nb_dims == 0 ) {
         return {};
+    } else {
+        using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
+        using TV = Eigen::Matrix<Scalar,nb_dims,1>;
 
-    return lu.solve( v );
+        TM m;
+        TV v;
+        for( PI i = 0; i < nb_dims; ++i ) {
+            for( PI j = 0; j < nb_dims; ++j )
+                m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
+            v( i ) = cuts[ num_cuts[ i ] ].sp;
+        }
+
+        Eigen::FullPivLU<TM> lu( m );
+        if ( lu.dimensionOfKernel() )
+            return {};
+
+        return lu.solve( v );
+    }
 }
 
 DTP void UTP::for_each_vertex( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const {
