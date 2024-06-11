@@ -38,7 +38,7 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
-        Vec<PI,nb_dims> num_cuts;
+        Vec<PI,nb_dims> num_cuts( FromItemValue(), 0 );
         for( int i = 0; i < nc_0; ++i )
             num_cuts[ i ] = i;
         for( int i = nc_0 + 1; i < nb_dims + 1; ++i )
@@ -395,6 +395,13 @@ DTP bool UTP::is_inf() const {
         if ( has_inf_cut( vertex ) )
             return true;
     return false;
+}
+
+DTP bool UTP::contains( const Point &x ) const {
+    for( const auto &cut : cuts )
+        if ( sp( cut.dir, x ) > cut.sp )
+            return false;
+    return true;
 }
 
 DTP Scalar UTP::height( const Point &point ) const {
