@@ -20,10 +20,10 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     if ( all( min_box_pos == max_box_pos ) && nb_dims )
         max_box_pos[ 0 ] += 1;
 
-    for( auto &v : min_box_pos )
-        v = -1e2;
-    for( auto &v : max_box_pos )
-        v = +1e2;
+    // for( auto &v : min_box_pos )
+    //     v = -1e2;
+    // for( auto &v : max_box_pos )
+    //     v = +1e2;
 
     // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );
@@ -115,9 +115,6 @@ DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb
     InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
     make_intersections( inf_cell, rb_base, n0 );
 
-    // P( inf_cell );
-    // P( cell );
-
     // check that the vertices of the inf_cell are inside the inf bounds
     bool has_outside_vertex = false;
     inf_cell.for_each_repr_point( [&]( const Point &pos ) {
@@ -137,7 +134,6 @@ DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb
             base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
     }
 
-    // P( has_outside_vertex );
     return has_outside_vertex;
 }
 

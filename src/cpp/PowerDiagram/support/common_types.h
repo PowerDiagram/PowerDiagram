@@ -26,6 +26,7 @@ using       Byte                       = std::byte;
 using       PI                         = std::conditional< sizeof( void * ) == 8, PI64, PI32 >::type;
 using       SI                         = std::conditional< sizeof( void * ) == 8, SI64, SI32 >::type;
 
+using       FP80                       = long double;
 using       FP64                       = double;
 using       FP32                       = float;
 

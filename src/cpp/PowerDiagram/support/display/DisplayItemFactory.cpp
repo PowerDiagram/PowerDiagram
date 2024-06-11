@@ -133,6 +133,7 @@ DisplayItem *display( DisplayItemFactory &ds, SI32               val ) { return 
 DisplayItem *display( DisplayItemFactory &ds, SI16               val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
 DisplayItem *display( DisplayItemFactory &ds, SI8                val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
 DisplayItem *display( DisplayItemFactory &ds, bool               val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
+DisplayItem *display( DisplayItemFactory &ds, FP80               val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
 DisplayItem *display( DisplayItemFactory &ds, FP64               val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
 DisplayItem *display( DisplayItemFactory &ds, FP32               val ) { return ds.new_number( CT_DECAYED_TYPE_OF( val ), { .numerator = std::to_string( val ) } ); }
 

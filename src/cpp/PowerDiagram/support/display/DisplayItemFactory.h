@@ -81,6 +81,7 @@ DisplayItem *display( DisplayItemFactory &ds, SI8                val );
 
 DisplayItem *display( DisplayItemFactory &ds, bool               val );
 
+DisplayItem *display( DisplayItemFactory &ds, FP80               val );
 DisplayItem *display( DisplayItemFactory &ds, FP64               val );
 DisplayItem *display( DisplayItemFactory &ds, FP32               val );
 
