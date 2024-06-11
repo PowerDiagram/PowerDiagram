@@ -26,11 +26,11 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
     PI new_cut = cuts.push_back_ind( point_index, dir, off );
 
     // create the new vertices (from all the new cut combinations)
-    if ( new_cut >= nb_dims - 1 ) {
+    if ( nb_dims && new_cut >= PI( nb_dims - 1 ) ) {
         for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
             // get the new coordinates
             Vec<PI,nb_dims> num_cuts;
-            for( PI i = 0; i < nb_dims - 1; ++i )
+            for( PI i = 0; i < PI( nb_dims - 1 ); ++i )
                 num_cuts[ i ] = selection_of_cuts[ i ];
             num_cuts[ nb_dims - 1 ] = new_cut;
 
@@ -196,6 +196,11 @@ DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const 
 
         return lu.solve( v );
     }
+}
+
+DTP void UTP::for_each_repr_point( const std::function<void( const Point &pos )> &f ) const {
+    for( const Vertex<Scalar,nb_dims> &v : vertices )
+        f( v.pos );
 }
 
 DTP void UTP::for_each_vertex( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const {

@@ -5,7 +5,9 @@
 BEG_METIL_NAMESPACE
 
 /// norm
-auto norm_2_p2( auto &&a ) {
+auto norm_2_p2( auto &&a ) -> decltype( a[ 0 ] * a[ 0 ] ) {
+    if ( a.size() == 0 )
+        return 0;
     auto res = a[ 0 ] * a[ 0 ];
     for( std::size_t i = 1; i < std::size_t( a.size() ); ++i )
         res += a[ i ] * a[ i ];

@@ -21,6 +21,7 @@ public:
     void                        display_vtk        ( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const; ///<
     void                        display_vtk        ( VtkOutput &vo ) const; ///<
 
+    void                        for_each_repr_point( const std::function<void( const Point &pos )> &f ) const;
     void                        for_each_vertex    ( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const;
     Scalar                      height             ( const Point &point ) const;
 
