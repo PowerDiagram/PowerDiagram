@@ -10,7 +10,6 @@ BEG_METIL_NAMESPACE
 
 // DECL_VOID_STRUCT_STD( FromSizeAndUninitializedItemValues ); ///<
 // DECL_VOID_STRUCT_STD( FromSizeAndExternalItemValues  ); ///< will make a ref
-// DECL_VOID_STRUCT_STD( FromSizeAndItemIndexFunction   ); ///< fill with a init function
 // DECL_VOID_STRUCT_STD( FromSizeAndInitItemFunction    ); ///< fill with a init function
 // DECL_VOID_STRUCT_STD( FromSizeAndItemValues          ); ///< will make a copy
 // DECL_VOID_STRUCT_STD( FromSizeAndItemValue           ); ///< fill-like
@@ -22,6 +21,7 @@ BEG_METIL_NAMESPACE
 // DECL_VOID_STRUCT_STD( Uninitialized                  );
 
 DECL_VOID_STRUCT_STD( FromSizeAndInitFunctionOnIndex );
+DECL_VOID_STRUCT_STD( FromSizeAndFunctionOnIndex     );
 DECL_VOID_STRUCT_STD( FromTypeAndCtorArguments       );
 DECL_VOID_STRUCT_STD( FromOperationOnItemsOf         );
 DECL_VOID_STRUCT_STD( FromPointerOnBorrowed          ); ///<

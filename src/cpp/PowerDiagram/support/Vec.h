@@ -65,6 +65,7 @@ template<class Item>
 class Vec<Item,-1> : public WithDefaultOperators {
 public:
     /**/                Vec             ( FromSizeAndInitFunctionOnIndex, PI size, auto &&func );
+    /**/                Vec             ( FromSizeAndFunctionOnIndex, PI size, auto &&func );
     Tis                 Vec             ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
     /**/                Vec             ( FromSizeAndItemValue, PI size, auto &&...ctor_args );
     /**/                Vec             ( FromSizeAndIterator, PI size, auto iterator );

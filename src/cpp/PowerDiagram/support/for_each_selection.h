@@ -6,7 +6,7 @@
 
 /// return false to stop, true to continue
 inline bool for_each_selection_cont( const std::function<bool( const Vec<PI> & )> &f, PI n_sel, PI n_tot ) {
-    using TF = std::function<bool( const Vec<PI> & )>;
+    // using TF = std::function<bool( const Vec<PI> & )>;
     Vec<PI> comb( FromSize(), n_sel );
     ASSERT( n_sel <= n_tot );
 

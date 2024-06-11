@@ -67,7 +67,7 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
 DTP TTi auto UTP::array_without_index( const Vec<T,i> &values, PI index ) {
     Vec<T,i-1> res;
     for( int d = 0, o = 0; d < i; ++d )
-        if ( d != index )
+        if ( PI( d ) != index )
             res[ o++ ] = values[ d ];
     return res;
 }
@@ -363,6 +363,20 @@ DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> 
     }
 }
 
+DTP void UTP::get_used_fbs( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds ) const {
+    if ( ! empty() )
+        used_fs[ orig_index ] = true;
+    for_each_vertex( [&]( const Vertex<Scalar,nb_dims> &v ) {
+        for( PI num_cut : v.num_cuts ) {
+            SI ind = cuts[ num_cut ].n_index;
+            if ( ind >= SI( nb_bnds ) )
+                used_fs[ ind - nb_bnds ] = true;
+            else if ( ind >= 0 )
+                used_bs[ ind ] = true;
+        }
+    } );
+}
+
 DTP bool UTP::has_inf_cut( const Vertex<Scalar,nb_dims> &vertex ) const {
     for( const PI num_cut : vertex.num_cuts )
         if ( cuts[ num_cut ].n_index < 0 )
@@ -381,6 +395,10 @@ DTP bool UTP::is_inf() const {
 
 DTP Scalar UTP::height( const Point &point ) const {
     return sp( point, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
+}
+
+DTP bool UTP::empty() const {
+    return vertices.empty();
 }
 
 #undef DTP

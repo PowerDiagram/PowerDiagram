@@ -28,9 +28,11 @@ public:
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
     void                        add_cut_types      ( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
+    void                        get_used_fbs       ( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds ) const;
     bool                        has_inf_cut        ( const Vertex<Scalar,nb_dims> &vertex ) const;
     bool                        is_inf             () const;
     Scalar                      height             ( const Point &point ) const;
+    bool                        empty              () const;
 
     const Scalar*               orig_weight;       ///<
     const Point*                orig_point;        ///<

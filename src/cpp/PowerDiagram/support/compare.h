@@ -1,6 +1,6 @@
 #pragma once
 
-#include "metil_namespace.h"
+#include "PrimitiveCtInt.h"
 #include <string_view>
 
 BEG_METIL_NAMESPACE
@@ -33,16 +33,25 @@ std::ptrdiff_t compare( const auto &a, const auto &b ) {
 
     // // tuple like
     // if constexpr ( requires { std::tuple_size<std::decay_t<decltype(a)>>{}; std::tuple_size<std::decay_t<decltype(b)>>{}; } ) {
-    //     constexpr PI sa = std::tuple_size<std::decay_t<decltype(a)>>{};
-    //     constexpr PI sb = std::tuple_size<std::decay_t<decltype(b)>>{};
-    //     if constexpr ( constexpr SI d = sa - sb )
+    //     constexpr int sa = std::tuple_size<std::decay_t<decltype(a)>>{};
+    //     constexpr int sb = std::tuple_size<std::decay_t<decltype(b)>>{};
+    //     if constexpr ( constexpr int d = sa - sb )
     //         return d;
     //     else
-    //         return compare_tuple( a, b, CtInt<0>(), CtInt<sa>() );
+    //         return compare_tuple( a, b, PrimitiveCtInt<0>(), PrimitiveCtInt<sa>() );
     // } else
 
+    // BEWARE: does not work for float, ...
+    // return std::ptrdiff_t( a ) - std::ptrdiff_t( b );
+
     // by default (BEWARE: does not work for float, ...)
-    return std::ptrdiff_t( a ) - std::ptrdiff_t( b );
+    {
+        if ( a < b )
+            return -1;
+        if ( a > b )
+            return +1;
+        return 0;
+    }
 }
 
 /// Operator that can be used for std::map, std::set, ...

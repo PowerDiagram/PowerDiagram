@@ -41,7 +41,7 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
 
             // early return if the new vertex is outside
             for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
-                if ( selection_of_cuts.contains( num_cut ) == false && sp( *pos, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
+                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *pos, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
                     return;
 
             // else, register the new vertex

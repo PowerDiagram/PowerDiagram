@@ -43,6 +43,13 @@ struct Tup<Head,Tail...> {
 
     auto                         reversed_tie          ( auto &...values_so_far ) const { return tail.reversed_tie( head, values_so_far... ); }
 
+    void                         for_each_item         ( auto &&func ) const { func( head ); tail.for_each_item( FORWARD( func ) ); }
+    void                         for_each_item         ( auto &&func ) { func( head ); tail.for_each_item( FORWARD( func ) ); }
+
+    Ti auto&                     get                   ( PrimitiveCtInt<i> ) { return tail.template get<i-1>(); }
+    auto&                        get                   ( PrimitiveCtInt<0> ) { return head; }
+    Ti auto&                     get                   () { return get( PrimitiveCtInt<i>() ); }
+
     // auto                      append                ( auto &&...args ) { return Tuple<Head,Tail...,>; }
 
     NUA Head                     head;
@@ -73,6 +80,9 @@ struct Tup<> {
     TTY void                     filtered_apply_seq    ( const auto &func ) const {}
     TTY auto                     filtered_apply        ( auto &&func, auto &&...end_args ) const { return func( FORWARD( end_args )... ); }
     auto                         apply                 ( auto &&func, auto &&...end_args ) const { return func( FORWARD( end_args )... ); }
+
+    void                         for_each_item         ( auto &&func ) const {}
+    void                         for_each_item         ( auto &&func ) {}
 
     TA auto                      reversed_tie          ( A &...values_so_far ) const { return Tup<A& ...>{ values_so_far... }; }
 };
@@ -116,9 +126,6 @@ auto tuple_cat( const Tup<A...> &a, const Tup<B...> &b ) {
 ///
 auto tuple_cat( auto &&a, auto &&b, auto &&c ) { return tuple_cat( tuple_cat( a, b ), c ); }
 auto tuple_cat( auto &&a ) { return a; }
-
-// ext functions ---------------------------------------------------------------------------------------------------------------
-TA auto *display( auto &ds, const Tup<A...> &value ) { return value.apply( [&]( const auto &...args ) { return ds.array( { display( ds, args )... } ); } ); }
 
 // -----------------------------------------------------------------------------------------------------------------------------
 TA struct StorageTypeFor<Tup<A...>> { using value = Tup<typename StorageTypeFor<A>::value...>; };
