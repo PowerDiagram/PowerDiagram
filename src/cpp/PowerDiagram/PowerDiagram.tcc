@@ -1,6 +1,7 @@
 #pragma once
 
 #include "support/operators/norm_2.h"
+#include "support/operators/all.h"
 #include "support/operators/sp.h"
 #include "PowerDiagram.h"
 

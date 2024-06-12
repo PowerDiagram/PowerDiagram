@@ -3,6 +3,7 @@
 #include "support/operators/norm_2.h"
 #include "support/operators/sp.h"
 #include "support/compare.h"
+#include "support/conv.h"
 // #include "support/P.h"
 #include "Cell.h"
 
@@ -141,6 +142,8 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
         sps[ num_vertex ] = ext;
         has_ext |= ext > 0;
     }
+
+    P( sps, vertex_corr );
 
     // all int ?
     if ( ! has_ext )
@@ -310,14 +313,18 @@ DTP bool UTP::vertex_has_cut( const Vertex<Scalar,nb_dims> &vertex, const std::f
     return false;
 }
 
-DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const { //
+DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( Vec<Scalar,3> &pt )> &coord_change ) const { //
     auto to_vtk = [&]( const auto &pos ) {
+        Vec<Scalar,3> opi;
+        for( PI i = 0; i < min( PI( pos.size() ), PI( opi.size() ) ); ++i )
+            opi[ i ] = pos[ i ];
+        for( PI i = PI( pos.size() ); i < PI( opi.size() ); ++i )
+            opi[ i ] = 0;
+        coord_change( opi );
+
         VtkOutput::Pt res;
-        for( PI i = 0; i < min( PI( pos.size() ), PI( res.size() ) ); ++i )
-            res[ i ] = pos[ i ];
-        for( PI i = PI( pos.size() ); i < PI( res.size() ); ++i )
-            res[ i ] = 0;
-        coord_change( res );
+        for( PI i = 0; i < PI( opi.size() ); ++i )
+            res[ i ] = conv( CtType<VtkOutput::TF>(), opi[ i ] );
         return res;
     };
 
@@ -350,7 +357,7 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::P
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo ) const {
-    return display_vtk( vo, []( VtkOutput::Pt & ) {} );
+    return display_vtk( vo, []( Vec<Scalar,3> & ) {} );
 }
 
 DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const {

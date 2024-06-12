@@ -20,7 +20,7 @@ public:
     void                        make_init_simplex  ( const Point &min_pos, const Point &max_pos );
     void                        cut                ( const Point &dir, Scalar off, SI point_index );
 
-    void                        display_vtk        ( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const; ///<
+    void                        display_vtk        ( VtkOutput &vo, const std::function<void( Vec<Scalar,3> &pt )> &coord_change ) const; ///<
     void                        display_vtk        ( VtkOutput &vo ) const; ///<
 
     void                        for_each_vertex    ( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const;
