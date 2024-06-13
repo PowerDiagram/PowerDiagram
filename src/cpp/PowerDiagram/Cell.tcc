@@ -143,8 +143,6 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
         has_ext |= ext > 0;
     }
 
-    P( sps, vertex_corr );
-
     // all int ?
     if ( ! has_ext )
         return;
