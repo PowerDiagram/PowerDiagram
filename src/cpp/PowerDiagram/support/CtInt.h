@@ -39,6 +39,8 @@ struct CtInt : public WithDefaultOperators {
     constexpr operator    std::int16_t          () const { return value; }
     constexpr operator    std::int8_t           () const { return value; }
     constexpr operator    bool                  () const { return value; }
+
+    constexpr operator    unsigned long         () const requires ( ! std::is_same_v<unsigned long,std::uint64_t> && ! std::is_same_v<unsigned long,std::uint32_t> ) { return value; }
 };
 
 template<int i> constexpr auto ct_value_wrapper_for() { return CtInt<i>(); }
