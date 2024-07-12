@@ -21,10 +21,10 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     if ( all( min_box_pos == max_box_pos ) && nb_dims )
         max_box_pos[ 0 ] += 1;
 
-    for( auto &v : min_box_pos )
-        v = -1e7;
-    for( auto &v : max_box_pos )
-        v = +1e7;
+    // for( auto &v : min_box_pos )
+    //     v = -1e7;
+    // for( auto &v : max_box_pos )
+    //     v = +1e7;
 
     // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );

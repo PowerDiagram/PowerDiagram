@@ -52,24 +52,24 @@ void VtkOutput::save( std::ostream &os ) const {
 }
 
 void VtkOutput::add_triangle( Vec<Pt,3> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkTriangle, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkTriangle, point_data, cell_data );
 }
 
 void VtkOutput::add_pyramid( Vec<Pt,5> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
     Vec<Pt,5> npts{ pts[ 0 ], pts[ 1 ], pts[ 3 ], pts[ 2 ], pts[ 4 ] };
-    add_item( npts.data(), npts.size(), VtkPyramid, point_data, cell_data );
+    add_item( npts.data(), (int)npts.size(), VtkPyramid, point_data, cell_data );
 }
 
 void VtkOutput::add_wedge( Vec<Pt,6> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkWedge, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkWedge, point_data, cell_data );
 }
 
 void VtkOutput::add_tetra( Vec<Pt,4> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkTetra, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkTetra, point_data, cell_data );
 }
 
 void VtkOutput::add_quad( Vec<Pt,4> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkQuad, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkQuad, point_data, cell_data );
 }
 
 void VtkOutput::add_edge( Vec<Pt, 2> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
@@ -81,15 +81,15 @@ void VtkOutput::add_point( Pt pt, const std::map<std::string,VTF> &point_data, c
 }
 
 void VtkOutput::add_hexa( Vec<Pt,8> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkHexa, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkHexa, point_data, cell_data );
 }
 
 void VtkOutput::add_polygon( Span<Pt> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkPolygon, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkPolygon, point_data, cell_data );
 }
 
 void VtkOutput::add_line( Span<Pt> pts, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
-    add_item( pts.data(), pts.size(), VtkLine, point_data, cell_data );
+    add_item( pts.data(), (int)pts.size(), VtkLine, point_data, cell_data );
 }
 
 void VtkOutput::add_item( const Pt *pts_data, PI pts_size, PI vtk_type, const std::map<std::string,VTF> &point_data, const std::map<std::string,TF> &cell_data ) {
