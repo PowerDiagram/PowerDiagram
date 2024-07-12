@@ -13,6 +13,8 @@ public:
     using        VecInd     = Vec<PI,nb_dims>;
     using        Point      = Vec<Scalar,nb_dims>;
 
+    /**/         Vertex     ( VecInd num_cuts = {}, Point pos = {} ) : num_cuts( num_cuts ), pos( pos ), op_id( 0 ) {}
+
     VecInd       num_cuts;  ///<
     Point        pos;       ///<
 
