@@ -18,7 +18,7 @@ bool DisplayItem_Array::need_cr( DisplayWriteContext &ctx ) const {
 }
 
 void DisplayItem_Array::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
-    if ( need_cr( ctx ) ) {
+    if ( need_cr( ctx ) && ! ctx.compact ) {
         ctx.inc_sp();
         for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
             if ( ! std::exchange( ctx.on_a_new_line, false ) )

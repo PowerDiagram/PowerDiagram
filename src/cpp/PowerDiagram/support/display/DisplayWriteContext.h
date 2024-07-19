@@ -11,6 +11,7 @@ public:
     void  dec_sp        ();
 
     bool  on_a_new_line = true;
+    bool  compact       = false;
     Str   sp;
 };
 

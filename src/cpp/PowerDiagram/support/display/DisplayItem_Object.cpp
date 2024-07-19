@@ -14,19 +14,33 @@ bool DisplayItem_Object::need_cr( DisplayWriteContext &ctx ) const {
 }
 
 void DisplayItem_Object::write( const std::function<void( StrView )> &func, DisplayWriteContext &ctx ) const {
-    ctx.sp += "  ";
-    func( type_info.name );
-    for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
-        if ( ! std::exchange( ctx.on_a_new_line, false ) )
-            func( "\n" );
-        func( ctx.sp );
-        if ( ! attr->name.empty() ) {
-            func( attr->name );
-            func( ": " );
+    if ( need_cr( ctx ) && ! ctx.compact ) {
+        ctx.sp += "  ";
+        func( type_info.name );
+        for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
+            if ( ! std::exchange( ctx.on_a_new_line, false ) )
+                func( "\n" );
+            func( ctx.sp );
+            if ( ! attr->name.empty() ) {
+                func( attr->name );
+                func( ": " );
+            }
+            attr->write( func, ctx );
         }
-        attr->write( func, ctx );
+        ctx.sp.resize( ctx.sp.size() - 2 );
+    } else {
+        func( type_info.name );
+        for( DisplayItem *attr = first_attr; attr; attr = attr->next ) {
+            if ( attr != first_attr )
+                func( ", " );
+            func( ctx.sp );
+            if ( ! attr->name.empty() ) {
+                func( attr->name );
+                func( ": " );
+            }
+            attr->write( func, ctx );
+        }
     }
-    ctx.sp.resize( ctx.sp.size() - 2 );
 }
 
 void DisplayItem_Object::show( DisplayShowContext &ctx ) const {

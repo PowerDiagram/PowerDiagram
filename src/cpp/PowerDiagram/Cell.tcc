@@ -331,7 +331,7 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( Vec<Scalar,3
         VtkOutput::VTF convex_function;
         VtkOutput::VTF is_outside;
         for( const Vertex<Scalar,nb_dims> *vertex : vertices ) {
-            convex_function << sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
+            convex_function << conv( CtType<VtkOutput::TF>(), sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2 );
             is_outside << vertex_has_cut( *vertex, []( SI v ) { return v < 0; } );
             points << to_vtk( vertex->pos );
         }
@@ -407,6 +407,48 @@ DTP bool UTP::contains( const Point &x ) const {
         if ( sp( cut.dir, x ) > cut.sp )
             return false;
     return true;
+}
+
+DTP Scalar UTP::measure() const {
+    if ( vertices.empty() )
+        return 0;
+    // la proposition, c'est de faire toutes les combinaisons en partant d'un point
+    // => pour tous les points, on fait toutes les combinaisons de coupes
+    //    => on cherche le point le plus petit (en indice) pour avoir un point de ref pour chaque combinaison
+
+    // get min_vertex for each item (edge, face, ...)
+    using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
+    std::map<Vec<PI>,PI,Less> min_vertices;
+    Scalar res = 0;
+    TM mat;
+    std::function<void( PI num_vertex, PI d, const Point &prev_pos, const Vec<PI> &cuts )> get_measure_rec = [&]( PI num_vertex, PI d, const Point &prev_pos, const Vec<PI> &cuts ) {
+        if ( d == nb_dims ) {
+            res += mat.determinant();
+            return;
+        }
+
+        auto iter = min_vertices.find( cuts );
+        if ( iter == min_vertices.end() )
+            min_vertices.insert( iter, { cuts, num_vertex } );
+        const auto &next_pos = vertices[ iter->second ].pos;
+
+        for( PI i = 0; i < nb_dims; ++i )
+            mat.coeffRef( i, d ) = next_pos[ i ] - prev_pos[ i ];
+
+        Vec<PI> sub_cuts;
+        for( PI i = 0; i < cuts.size(); ++i ) {
+            sub_cuts.clear();
+            for( PI j = 0; j < cuts.size(); ++j )
+                if ( i != j )
+                    sub_cuts << cuts[ j ];
+            get_measure_rec( num_vertex, d + 1, next_pos, sub_cuts );
+        }
+    };
+
+    for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex )
+        get_measure_rec( num_vertex, 0, vertices[ num_vertex ].pos, vertices[ num_vertex ].num_cuts );
+
+    return res;
 }
 
 DTP Scalar UTP::height( const Point &point ) const {

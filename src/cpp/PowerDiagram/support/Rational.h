@@ -6,6 +6,7 @@
 #include <cln/rational.h>
 #include <sstream>
 
+#include "display/DisplayItemFactory.h"
 #include "common_types.h"
 #include "CtType.h"
 
@@ -14,14 +15,15 @@
 using Rational = cln::cl_RA;
 
 inline auto type_name( CtType<Rational> ) { return "Rational"; }
-inline void display( auto &sr, const Rational &value ) { std::ostringstream ss; cln::fprint( ss, value ); return sr.new_number( "Rational", ss.str() ); }
-inline FP64 conv( CtType<FP64>(), const cln::cl_RA &value ) { return cln::double_approx( value ); }
+inline auto *display( DisplayItemFactory &sr, const Rational &value ) { std::ostringstream ss; cln::fprint( ss, value ); return sr.new_number( CtType<Rational>(), { .numerator = ss.str() } ); }
+
+inline FP64 conv( CtType<FP64>, const Rational &value ) { return cln::double_approx( value ); }
 
 namespace Eigen {
-template<> struct NumTraits<cln::cl_RA> : GenericNumTraits<cln::cl_RA> {
-    typedef cln::cl_RA Real;
-    typedef cln::cl_RA NonInteger;
-    typedef cln::cl_RA Nested;
+template<> struct NumTraits<Rational> : GenericNumTraits<Rational> {
+    typedef Rational Real;
+    typedef Rational NonInteger;
+    typedef Rational Nested;
     static inline Real epsilon() { return 0; }
     static inline Real dummy_precision() { return 0; }
     static inline Real digits10() { return 0; }
