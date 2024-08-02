@@ -28,7 +28,6 @@ public:
     virtual Point        max_point    () const = 0;
     bool                 leaf         () const;
 
-
     Vec<PtUPtr>          children;
     PointTree*           parent;
 

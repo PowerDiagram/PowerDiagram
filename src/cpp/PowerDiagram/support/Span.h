@@ -52,6 +52,8 @@ struct Span<T,-1> {
 
     auto               subspan   ( PI offset ) const { return Span<T>( data_ + offset, size_ - offset ); }
 
+    void               resize    ( PI size ) { size_ = size; }
+
     T*                 data_;
     PI                 size_;
 };

@@ -1,5 +1,6 @@
 #include "PointTree_AABB.h"
 #include "support/TODO.h"
+#include "support/P.h"
 
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTree_AABB<Scalar,nb_dims>
@@ -23,8 +24,38 @@ DTP DisplayItem *UTP::display( DisplayItemFactory &ds ) const {
 
 DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
     const PI n = this->points.size();
-    if ( n <= cp.max_nb_points )
+    if ( n <= cp.max_nb_points ) {
+        // if we have cells sharing the same point, we keep the one with the largest weight
+        PI k = 0;
+        for( PI i = 0; i < this->indices.size(); ++i ) {
+            for( PI j = 0; ; ++j ) {
+                // no similar point
+                if ( j == i ) {
+                    if ( k != i ) {
+                        this->indices[ k ] = this->indices[ i ];
+                        this->weights[ k ] = this->weights[ i ];
+                        this->points[ k ] = this->points[ i ];
+                    }
+                    ++k;
+                    break;
+                }
+                // similar point
+                if ( all( this->points[ j ] == this->points[ i ] ) ) {
+                    if ( this->weights[ j ] < this->weights[ i ] ) {
+                        this->indices[ j ] = this->indices[ i ];
+                        this->weights[ j ] = this->weights[ i ];
+                    }
+                    break;
+                }
+            }        
+        }
+
+        this->indices.resize( k );
+        this->weights.resize( k );
+        this->points.resize( k );
+
         return;
+    }
 
     TODO;
 }
