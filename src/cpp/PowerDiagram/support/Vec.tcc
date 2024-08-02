@@ -81,6 +81,14 @@ DTP UTP::~Vec() {
         data( i )->~Item();
 }
 
+DTP Vec<Item,static_size-1> UTP::without_index( PI index ) const {
+    Vec<Item,static_size-1> res;
+    for( PI i = 0, j = 0; i < PI( size() ); ++i )
+        if ( i != index )
+            res[ j++ ] = operator[]( i );
+    return res;
+}
+
 DTP UTP &UTP::operator=( const Vec &that ) {
     for( PI i = 0; i < PI( size() ); ++i )
         operator[]( i ) = that[ i ];
@@ -297,6 +305,14 @@ DTP Item &UTP::operator[]( PI index ) {
     return data_[ index ];
 }
 
+DTP const Item &UTP::operator()( PI index ) const {
+    return data_[ index ];
+}
+
+DTP Item &UTP::operator()( PI index ) {
+    return data_[ index ];
+}
+
 DTP const Item *UTP::data( PI index ) const {
     return data_ + index;
 }
@@ -376,6 +392,18 @@ DTP void UTP::append( auto &&that ) {
 DTP void UTP::clear() {
     while( size_ )
         data_[ --size_ ].~Item();
+}
+
+DTP void UTP::remove_indices( auto &&func ) {
+    PI j = 0;
+    for( PI i = 0; i < size(); ++i ) {
+        if ( func( i ) )
+            continue;
+        if ( j != i )
+            operator[]( j ) = std::move( operator[]( i ) );
+        ++j;
+    }
+    resize( j );
 }
 
 DTP void UTP::reserve( PI tgt_capa ) {

@@ -8,8 +8,8 @@
 #include "Cut.h"
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 template<class Scalar,int nb_dims>
 class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
@@ -36,8 +36,8 @@ public:
     Scalar                      height             ( const Point &point ) const;
     bool                        empty              () const;
 
-    const Scalar*               orig_weight;       ///<
-    const Point*                orig_point;        ///<
+    const Scalar*               orig_weight        = nullptr; ///<
+    const Point*                orig_point         = nullptr; ///<
     SI                          orig_index;        ///<
 
     Vec<Vertex<Scalar,nb_dims>> vertices;          ///<
@@ -45,10 +45,11 @@ public:
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
 
 private:
-    using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,int>;
+    using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,nb_dims-2,int>;
 
     TTi static auto             array_without_index( const Vec<T,i> &values, PI index );
     TTi static auto             array_with_value   ( const Vec<T,i> &a, T value );
+    void                        add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex ) const;
     TT static void              apply_corr         ( Vec<T> &vec, Vec<int> &keep );
     static bool                 is_ext             ( const Point &pos, const Point &dir, Scalar off );
 
@@ -64,4 +65,4 @@ private:
     mutable PI                  curr_op_id = 0;    ///<
 };
 
-#include "Cell.tcc"
+#include "Cell.tcc" // IWYU pragma: export

@@ -15,15 +15,23 @@
 using Rational = cln::cl_RA;
 
 inline auto type_name( CtType<Rational> ) { return "Rational"; }
-inline auto *display( DisplayItemFactory &sr, const Rational &value ) { std::ostringstream ss; cln::fprint( ss, value ); return sr.new_number( CtType<Rational>(), { .numerator = ss.str() } ); }
 
-inline FP64 conv( CtType<FP64>, const Rational &value ) { return cln::double_approx( value ); }
+inline FP64 conv( CtType<FP64>, const cln::cl_RA &value ) { return cln::double_approx( value ); }
+
+inline auto display( DisplayItemFactory &sr, const Rational &value ) {
+    std::ostringstream ss;
+    cln::fprint( ss, value );
+    return sr.new_number( { "Rational" }, {
+        // TODO: find denominator
+        .numerator = ss.str()
+    } );
+}
 
 namespace Eigen {
-template<> struct NumTraits<Rational> : GenericNumTraits<Rational> {
-    typedef Rational Real;
-    typedef Rational NonInteger;
-    typedef Rational Nested;
+template<> struct NumTraits<cln::cl_RA> : GenericNumTraits<cln::cl_RA> {
+    typedef cln::cl_RA Real;
+    typedef cln::cl_RA NonInteger;
+    typedef cln::cl_RA Nested;
     static inline Real epsilon() { return 0; }
     static inline Real dummy_precision() { return 0; }
     static inline Real digits10() { return 0; }
@@ -39,3 +47,11 @@ template<> struct NumTraits<Rational> : GenericNumTraits<Rational> {
     };
 };
 }
+
+BEG_METIL_NAMESPACE
+
+inline Rational abs( const Rational &a ) { return cln::abs( a ); }
+inline Rational abs( Rational &&a ) { return cln::abs( a ); }
+inline Rational abs( Rational &a ) { return cln::abs( a ); }
+
+END_METIL_NAMESPACE

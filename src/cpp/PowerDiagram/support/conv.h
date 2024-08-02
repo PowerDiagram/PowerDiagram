@@ -2,8 +2,7 @@
 
 #include "CtType.h"
 
-template<class T,class U>
-inline T conv( CtType<T>, const U &value ) {
-    return FORWARD( value );
+template<class T>
+inline T conv( CtType<T>, const auto &value ) {
+    return value;
 }
-

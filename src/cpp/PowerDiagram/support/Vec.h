@@ -37,6 +37,8 @@ public:
     operator            Span<Item,static_size>() { return { data() }; }
     operator            Span<Item,-1>         () { return { data(), size() }; }
 
+    auto                without_index         ( PI index ) const -> Vec<Item,static_size-1>;
+
     const Item&         operator[]            ( PI index ) const;
     Item&               operator[]            ( PI index );
     const Item&         operator()            ( PI index ) const;
@@ -53,8 +55,8 @@ public:
     const Item*         end                   () const { return begin() + size(); }
     Item*               end                   () { return begin() + size(); }
 
-    CtInt<static_size>  size                  ( PI d ) const { return {}; }
-    CtInt<static_size>  size                  () const { return {}; }
+    constexpr auto      size                  ( PI d ) const -> CtInt<static_size> { return {}; }
+    constexpr auto      size                  () const -> CtInt<static_size> { return {}; }
 
     static constexpr PI nbch                  = static_size * sizeof( Item );
     char                data_                 [ nbch ]; ///<
@@ -91,6 +93,8 @@ public:
 
     const Item&         operator[]      ( PI index ) const;
     Item&               operator[]      ( PI index );
+    const Item&         operator()      ( PI index ) const;
+    Item&               operator()      ( PI index );
     PI                  size_tot        () const { return size(); }
     const Item*         begin           () const { return data(); }
     Item*               begin           () { return data(); }
@@ -112,14 +116,16 @@ public:
     PI                  size            () const;
 
     Item*               push_back_unique( auto &&value );
+    void                remove_indices  ( auto &&func );
     PI                  push_back_ind   ( auto&&...args ); ///< push_back with Item{ FORWARD( args )... }, return index of new item
     Item                pop_back_val    ();
     Item*               push_back_br    ( auto&&...args ); ///< push_back with Item{ FORWARD( args )... }
     Item*               push_back       ( auto&&...args ); ///< push_back with Item( FORWARD( args )... )
     void                pop_back        ();
+    void                append          ( auto &&that );
+
     void                reserve         ( PI capa );
     void                resize          ( PI size, auto&&...ctor_args );
-    void                append          ( auto &&that );
     void                clear           ();
 
     void                copy_data_to    ( void *data ) const;

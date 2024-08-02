@@ -10,8 +10,8 @@ public:
     void  inc_sp        ();
     void  dec_sp        ();
 
+    bool  use_delimiters = false;
     bool  on_a_new_line = true;
-    bool  compact       = false;
     Str   sp;
 };
 

@@ -9,7 +9,7 @@
 BEG_METIL_NAMESPACE
 template<class Value> std::string type_name();
 
-void __print_with_mutex( std::ostream &os, DisplayWriteContext &&ctx, std::string_view arg_names, const auto &...arg_values ) {
+void __print_with_mutex( std::ostream &os, std::string_view arg_names, const auto &...arg_values ) {
     // create a root display item
     DisplayItemFactory ds;
     DisplayItem *item = ds.new_object( {}, [&]( DisplayObjectFiller &dof ) {
@@ -18,6 +18,7 @@ void __print_with_mutex( std::ostream &os, DisplayWriteContext &&ctx, std::strin
 
     // make a string
     std::ostringstream ss;
+    DisplayWriteContext ctx;
     auto writer = [&]( std::string_view str ) { ss.write( str.data(), str.size() ); };
     item->write( writer, ctx );
     ds.write_pointers( writer, ctx );
@@ -48,15 +49,15 @@ void __show( const Str &arg_names, ArgValues &&...arg_values ) {
 #ifndef P
     // PRINT in cout
     #define P( ... ) \
-        METIL_NAMESPACE::__print_with_mutex( std::cout, DisplayWriteContext(), #__VA_ARGS__, __VA_ARGS__ )
+        METIL_NAMESPACE::__print_with_mutex( std::cout, #__VA_ARGS__, __VA_ARGS__ )
 
     // PRINT in cerr
     #define PE( ... ) \
         METIL_NAMESPACE::__print_with_mutex( std::cerr, METIL_NAMESPACE::DisplayParameters::for_debug_info(), #__VA_ARGS__, __VA_ARGS__ )
 
     // PRINT in cout with options
-    #define PO( CTX, ... ) \
-        METIL_NAMESPACE::__print_with_mutex( std::cout, CTX, #__VA_ARGS__, __VA_ARGS__ )
+    #define PO( VALUE, PARAMS ) \
+        __print_with_mutex( std::cout, " -> ", ", ", PARAMS, #VALUE, VALUE )
 
     // PRINT in cout
     #define PT( ... ) \

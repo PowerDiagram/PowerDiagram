@@ -13,7 +13,7 @@
 template<class Scalar,int nb_dims>
 class PowerDiagram {
 public:
-    using                Point             = Vec<Scalar,nb_dims>;
+    using                   Point             = Vec<Scalar,nb_dims>;
 
     /**/                    PowerDiagram      ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs );
 
