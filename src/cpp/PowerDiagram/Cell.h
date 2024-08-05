@@ -27,7 +27,7 @@ public:
     void                        for_each_edge      ( const std::function<void( Vec<PI,nb_dims-1> num_cuts, const Vertex<Scalar,nb_dims> &v0, const Vertex<Scalar,nb_dims> &v1 )> &f ) const;
     void                        for_each_face      ( const std::function<void( Vec<PI,nb_dims-2> num_cuts, Span<const Vertex<Scalar,nb_dims> *> vertices )> &f ) const;
 
-    void                        add_cut_types      ( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const;
+    void                        add_cut_types      ( CountOfCutTypes &cct, const auto &num_cuts, SI nb_bnds ) const;
     void                        get_used_fbs       ( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds ) const;
     bool                        has_inf_cut        ( const Vertex<Scalar,nb_dims> &vertex ) const;
     bool                        contains           ( const Point &x ) const;

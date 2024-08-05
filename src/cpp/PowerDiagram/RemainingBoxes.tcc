@@ -22,6 +22,25 @@ DTP UTP UTP::for_first_leaf_of( PointTree<Scalar,nb_dims> *point_tree ) {
     return res;
 }
 
+DTP void UTP::from_leaf_rec( RemainingBoxes &res, PointTree<Scalar,nb_dims> *tree ) {
+    if ( PointTree<Scalar,nb_dims> *parent = tree->parent ) {
+        from_leaf_rec( res, parent );
+        
+        for( PI i = 0; i < parent->children.size(); ++i )
+            if ( i != tree->num_in_parent )
+                res.remaining_boxes << parent->children[ i ].get();
+    }
+}
+
+DTP UTP UTP::from_leaf( PointTree<Scalar,nb_dims> *leaf ) {
+    RemainingBoxes res;
+    res.leaf = leaf;
+
+    from_leaf_rec( res, leaf );
+
+    return res;
+}
+
 DTP UTP &UTP::go_to_next_leaf( const std::function<bool( PointTree<Scalar,nb_dims> *point_tree )> &go_inside ) {
     // we're looking for an leaf (validated by `go_inside`)
     while ( remaining_boxes.size() ) {

@@ -12,7 +12,7 @@ class PointTree_AABB : public PointTree<Scalar,nb_dims> {
 public:
     using                Point         = Vec<Scalar,nb_dims>;
 
-    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent );
+    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent, PI num_in_parent );
 
     void                 init_children ( const PointTreeCtorParms &cp );
     void                 init_bounds   ( const PointTreeCtorParms &cp );

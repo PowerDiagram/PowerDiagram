@@ -11,7 +11,7 @@
 #define UTP PowerDiagram<Scalar,nb_dims>
 
 DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs ) {
-    point_tree = PtPtr{ PointTree<Scalar,nb_dims>::New( cp, points, weights, indices, nullptr ) };
+    point_tree = PtPtr{ PointTree<Scalar,nb_dims>::New( cp, points, weights, indices, nullptr, 0 ) };
     this->bnd_dirs = bnd_dirs;
     this->bnd_offs = bnd_offs;
 
@@ -41,14 +41,11 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
     const Point &p0 = rb_base.leaf->points[ n0 ];
     const PI nb_bnds = bnd_offs.size();
 
-    // intersections with the points in the same box
-    for( PI n1 = 0, nc = rb_base.leaf->points.size(); n1 < nc; ++n1 ) {
-        if ( n1 == n0 )
-            continue;
-
-        const Scalar &w1 = rb_base.leaf->weights[ n1 ];
-        const Point &p1 = rb_base.leaf->points[ n1 ];
-        const PI &i1 = rb_base.leaf->indices[ n1 ];
+    // helper
+    auto cut = [&]( const RemainingBoxes<Scalar,nb_dims> &rb, PI n1 ) {
+        const Scalar &w1 = rb.leaf->weights[ n1 ];
+        const Point &p1 = rb.leaf->points[ n1 ];
+        const PI &i1 = rb.leaf->indices[ n1 ];
 
         const Point dir = p1 - p0;
         auto n = norm_2_p2( dir );
@@ -56,15 +53,18 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
         auto s1 = sp( dir, p1 );
         auto off = s0 + ( 1 + 1 * ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
         cell.cut( dir, off, nb_bnds + i1 );
-    }
+    };
+
+    // intersections with the points in the same box
+    for( PI n1 = 0, nc = rb_base.leaf->points.size(); n1 < nc; ++n1 )
+        if ( n1 != n0 )
+            cut( rb_base, n1 );
 
     // other boxes
     const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool { return true; };
-    for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-        for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 ) {
-            TODO;
-        }
-    }
+    for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); )
+        for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 )
+            cut( rb, n1 );
 }
 
 DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )> &f ) {
@@ -79,6 +79,9 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
             const Point &p0 = rb_base.leaf->points[ n0 ];
             const PI i0 = rb_base.leaf->indices[ n0 ];
 
+            //
+            auto rb = RemainingBoxes<Scalar,nb_dims>::from_leaf( rb_base.leaf );
+
             // we may have to redo the cell if the base one is not large enough
             while ( true ) {
                 // start from the base cell
@@ -88,10 +91,10 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
                 cell.orig_index = i0;
 
                 // make the cuts
-                make_intersections( cell, rb_base, n0 );
+                make_intersections( cell, rb, n0 );
 
                 // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
-                bool inf_cut = cell.is_inf() && outside_cell( cell, rb_base, n0 );
+                bool inf_cut = cell.is_inf() && outside_cell( cell, rb, n0 );
                 if ( ! inf_cut ) {
                     f( cell );
                     break;

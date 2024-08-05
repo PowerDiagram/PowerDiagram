@@ -15,11 +15,11 @@ public:
     using                PtUPtr       = UniquePtr<PointTree<Scalar,nb_dims>>;
     using                Point        = Vec<Scalar,nb_dims>;
 
-    /**/                 PointTree    ( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
+    /**/                 PointTree    ( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent, PI num_in_parent );
     virtual             ~PointTree    ();
 
     static Str           type_name    ();
-    static PointTree*    New          ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent );
+    static PointTree*    New          ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent, PI num_in_parent );
 
     #ifndef AVOID_DISPLAY
     virtual DisplayItem *display      ( DisplayItemFactory &df ) const = 0;
@@ -28,6 +28,7 @@ public:
     virtual Point        max_point    () const = 0;
     bool                 leaf         () const;
 
+    PI                   num_in_parent;
     Vec<PtUPtr>          children;
     PointTree*           parent;
 

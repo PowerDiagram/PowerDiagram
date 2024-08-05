@@ -408,8 +408,8 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
     return display_vtk( vo, []( Vec<Scalar,3> & ) {} );
 }
 
-DTP void UTP::add_cut_types( CountOfCutTypes &cct, const Vertex<Scalar,nb_dims> &vertex, SI nb_bnds ) const {
-    for( const PI num_cut : vertex.num_cuts ) {
+DTP void UTP::add_cut_types( CountOfCutTypes &cct, const auto &num_cuts, SI nb_bnds ) const {
+    for( const PI num_cut : num_cuts ) {
         const SI n_index = cuts[ num_cut ].n_index;
 
         bool is_int = n_index >= nb_bnds;

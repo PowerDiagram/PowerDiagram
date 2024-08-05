@@ -1,11 +1,13 @@
-#include "PointTree_AABB.h"
+#include "support/operators/argmax.h"
 #include "support/TODO.h"
 #include "support/P.h"
+
+#include "PointTree_AABB.h"
 
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTree_AABB<Scalar,nb_dims>
 
-DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent ) : PointTree<Scalar,nb_dims>( points, weights, indices, parent ) {
+DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent, PI num_in_parent ) : PointTree<Scalar,nb_dims>( points, weights, indices, parent, num_in_parent ) {
     init_bounds( cp );
     init_children( cp );
 }
@@ -57,7 +59,32 @@ DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
         return;
     }
 
-    TODO;
+    // inplace swap
+    PI dd = argmax( max_pos - min_pos );
+    Scalar sep = ( max_pos[ dd ] + min_pos[ dd ] ) / 2;
+    PI i = 0;
+    for( PI j = this->points.size() - 1; ; ) {
+        // while we have points at the right place
+        while ( this->points[ i ][ dd ] <= sep )
+            ++i;
+        while ( this->points[ j ][ dd ] > sep )
+            --j;
+        if ( j < i )
+            break;
+
+        // swap the 2 points that are at the wrong places
+        std::swap( this->indices[ i ], this->indices[ j ] );
+        std::swap( this->weights[ i ], this->weights[ j ] );
+        std::swap( this->points[ i ], this->points[ j ] );
+        ++i;
+        --j;
+        if ( j < i )
+            break;
+    }
+
+    // create 2 children
+    this->children << new PointTree_AABB( cp, this->points.subspan( 0, i ), this->weights.subspan( 0, i ), this->indices.subspan( 0, i ), this, 0 );
+    this->children << new PointTree_AABB( cp, this->points.subspan( i ), this->weights.subspan( i ), this->indices.subspan( i ), this, 1 );
 }
 
 DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {

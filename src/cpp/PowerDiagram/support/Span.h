@@ -34,6 +34,7 @@ struct Span {
 template<class T>
 struct Span<T,-1> {
     constexpr          Span      ( T *data, PI size ) : data_( data ), size_( size ) {}
+    constexpr          Span      ( T *beg, T *end ) : Span( beg, end - beg ) {}
     constexpr          Span      () : data_( nullptr ), size_( 0 ) {}
 
     constexpr auto     size      () const { return size_; }
@@ -50,6 +51,7 @@ struct Span<T,-1> {
     const T*           end       () const { return data_ + size_; }
     T*                 end       () { return data_ + size_; }
 
+    auto               subspan   ( PI beg, PI end ) const { return Span<T>( data_ + beg, end - beg ); }
     auto               subspan   ( PI offset ) const { return Span<T>( data_ + offset, size_ - offset ); }
 
     void               resize    ( PI size ) { size_ = size; }
