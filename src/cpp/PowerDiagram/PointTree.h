@@ -24,6 +24,7 @@ public:
     #ifndef AVOID_DISPLAY
     virtual DisplayItem *display      ( DisplayItemFactory &df ) const = 0;
     #endif
+    virtual bool         may_intersect( const Point &vertex, const Point &p0, Scalar w0 ) const = 0;
     virtual Point        min_point    () const = 0;
     virtual Point        max_point    () const = 0;
     bool                 leaf         () const;

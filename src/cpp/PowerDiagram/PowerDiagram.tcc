@@ -61,7 +61,12 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
             cut( rb_base, n1 );
 
     // other boxes
-    const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool { return true; };
+    const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
+        for( const Vertex<Scalar,nb_dims> &vertex : cell.vertices )
+            if ( point_tree->may_intersect( vertex.pos, p0, w0 ) )
+                return true;
+        return false;
+    };
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); )
         for( PI n1 = 0; n1 < rb.leaf->points.size(); ++n1 )
             cut( rb, n1 );

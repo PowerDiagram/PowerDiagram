@@ -4,10 +4,14 @@
 
 #include "PointTree_AABB.h"
 
+#include <eigen3/Eigen/LU>
+
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTree_AABB<Scalar,nb_dims>
 
 DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent, PI num_in_parent ) : PointTree<Scalar,nb_dims>( points, weights, indices, parent, num_in_parent ) {
+    num_sym = 0;
+    
     init_bounds( cp );
     init_children( cp );
 }
@@ -96,17 +100,61 @@ DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
     max_offset_weights = this->weights[ 0 ];
     coeff_weights = { FromItemValue(), 0 };
 
+    // for now, we recompute the coefficient for each the boxes.
+    // TODO optimization: use data from the children
+    Eigen::Matrix<Scalar,nb_dims+1,nb_dims+1> M;
+    Eigen::Matrix<Scalar,nb_dims+1,1> V;
+    for( PI r = 0; r <= nb_dims; ++r )
+        for( PI c = 0; c <= nb_dims; ++c )
+            M.coeffRef( r, c ) = 0;
+    for( PI r = 0; r <= nb_dims; ++r )
+        V[ r ] = 0;
+    auto add_pt = [&]( const Point &point, const Scalar &weight ) {
+        Scalar coeffs[ nb_dims + 1 ];
+        for( PI r = 0; r < nb_dims; ++r )
+            coeffs[ r ] = point[ r ];
+        coeffs[ nb_dims ] = 1;
+
+        for( PI r = 0; r <= nb_dims; ++r ) {
+            for( PI c = 0; c <= nb_dims; ++c )
+                M.coeffRef( r, c ) += coeffs[ r ] * coeffs[ c ];
+            V[ r ] += coeffs[ r ] * weight;
+        }
+    };
+
+
+    // points sweep
     min_pos = this->points[ 0 ];
     max_pos = this->points[ 0 ];
+    add_pt( this->points[ 0 ], this->weights[ 0 ] );
     for( PI i = 1; i < n; ++i ) {
         for( PI d = 0; d < nb_dims; ++d ) {
             min_pos[ d ] = min( min_pos[ d ], this->points[ i ][ d ] );
             max_pos[ d ] = max( max_pos[ d ], this->points[ i ][ d ] );
         }
-
-        min_offset_weights = min( min_offset_weights, this->weights[ i ] );
-        max_offset_weights = max( max_offset_weights, this->weights[ i ] );
+        add_pt( this->points[ i ], this->weights[ i ] );
     }
+
+    // coefficients
+    Eigen::FullPivLU<Eigen::Matrix<Scalar,nb_dims+1,nb_dims+1>> lu( M );
+    auto X = lu.solve( V );
+    for( PI d = 0; d < nb_dims; ++d )
+        coeff_weights[ d ] = X[ d ];
+
+    min_offset_weights = this->weights[ 0 ] - sp( coeff_weights, this->points[ 0 ] );
+    max_offset_weights = min_offset_weights;
+
+    for( PI i = 1; i < n; ++i ) {
+        Scalar value = this->weights[ i ] - sp( coeff_weights, this->points[ i ] );
+        min_offset_weights = min( min_offset_weights, value );
+        max_offset_weights = max( max_offset_weights, value );
+    }
+}
+
+DTP bool UTP::may_intersect( const Point &vertex, const Point &p0, Scalar w0 ) const {
+    Point q1 = min( max_pos, max( min_pos, vertex + Scalar( 1 ) / 2 * coeff_weights ) );
+    Point p1 = inv_sym( q1, this->num_sym );
+    return norm_2_p2( vertex - p0 ) - w0 > norm_2_p2( vertex - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;
 }
 
 DTP Str UTP::type_name() {

@@ -22,12 +22,16 @@ public:
     virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
     #endif
 
+    Point                inv_sym       ( const Point &pt, int ) const { return pt; }
+
+    virtual bool         may_intersect ( const Point &vertex, const Point &p0, Scalar w0 ) const override;
     virtual Point        min_point     () const override { return min_pos; }
     virtual Point        max_point     () const override { return max_pos; }
 
     Scalar               min_offset_weights;
     Scalar               max_offset_weights;
     Point                coeff_weights;
+    int                  num_sym;
     Point                min_pos;
     Point                max_pos;
 };

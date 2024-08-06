@@ -10,9 +10,9 @@ TEST_CASE( "PowerDiagram", "" ) {
     Vec<Scalar> weights; // { 1, 1 };
     Vec<Point> points; // { { 0.25, 0.5 }, { 0.75, 0.5 } };
     Vec<PI> indices; // { 0, 1 };
-    for( PI i = 0; i < 500; ++i ) {
+    for( PI i = 0; i < 5000; ++i ) {
         points << Point{ Scalar( rand() ) / RAND_MAX, Scalar( rand() ) / RAND_MAX };
-        weights << 1;
+        weights << points.back()[ 1 ] * 0.3 + 0.2;
         indices << i;
     }
 

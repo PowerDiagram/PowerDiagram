@@ -19,6 +19,9 @@ public:
 
     static Str              type_name         ();
 
+    Point                   inv_sym           ( const Point &pt, int num_sym ) const { return pt; }
+    Point                   sym               ( const Point &pt, int num_sym ) const { return pt; }
+
     void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f );
 
     #ifndef AVOID_DISPLAY
