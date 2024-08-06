@@ -62,6 +62,54 @@ public:
     char                data_                 [ nbch ]; ///<
 };
 
+#ifdef _MSC_VER
+/// This specialization is for static 0 sized vectors (to please the micro$oft compiler)
+template<class Item>
+class Vec<Item,0> : public WithDefaultOperators {
+public:
+    // static auto      with_item_type        ( auto item_type ) { return CtType< Vec<typename VALUE_IN_DECAYED_TYPE_OF(item_type),static_size> >{}; }
+
+    Tis                 Vec                   ( FromOperationOnItemsOf, auto &&functor, PrimitiveCtIntList<i...>, auto &&...lists );
+    /**/                Vec                   ( FromItemValues, auto &&...values ) {}
+    /**/                Vec                   ( FromItemValue, auto &&...ctor_args ) {}
+    /**/                Vec                   ( FromIterator, auto iter ) {}
+    TT                  Vec                   ( const std::initializer_list<T> &lst ) {}
+    /**/                Vec                   ( const HasSizeAndAccess auto &l ) {}
+    /**/                Vec                   ( const Vec &that ) {}
+    /**/                Vec                   ( Vec && ) {}
+    /**/                Vec                   () {}
+
+    Vec&                operator=             ( const Vec & ) { return *this; }
+    Vec&                operator=             ( Vec && ) { return *this; }
+
+    operator            Span<Item,0>          () { return { nullptr }; }
+    operator            Span<Item,-1>         () { return { nullptr, 0 }; }
+
+    // auto             without_index         ( PI index ) const -> Vec<Item,static_size-1>;
+
+    const Item&         operator[]            ( PI index ) const { return *data(); }
+    Item&               operator[]            ( PI index ) { return *data(); }
+    const Item&         operator()            ( PI index ) const { return *data(); }
+    Item&               operator()            ( PI index ) { return *data(); }
+    PI                  size_tot              () const { return 0; }
+    const Item*         begin                 () const { return data(); }
+    Item*               begin                 () { return data(); }
+    const Item*         data                  ( PI index ) const { return data(); }
+    Item*               data                  ( PI index ) { return data(); }
+    const Item*         data                  () const { return (Item *)nullptr; }
+    Item*               data                  () { return (Item *)nullptr; }
+    const Item&         back                  () const { return operator[]( size() - 1 ); }
+    Item&               back                  () { return operator[]( size() - 1 ); }
+    const Item*         end                   () const { return begin() + size(); }
+    Item*               end                   () { return begin() + size(); }
+
+    constexpr auto      size                  ( PI d ) const -> CtInt<0> { return {}; }
+    constexpr auto      size                  () const -> CtInt<0> { return {}; }
+
+    char                smurf;
+};
+#endif
+
 // dynamic size, items fully on the heap
 template<class Item>
 class Vec<Item,-1> : public WithDefaultOperators {
