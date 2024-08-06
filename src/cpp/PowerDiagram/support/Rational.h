@@ -54,4 +54,6 @@ inline Rational abs( const Rational &a ) { return cln::abs( a ); }
 inline Rational abs( Rational &&a ) { return cln::abs( a ); }
 inline Rational abs( Rational &a ) { return cln::abs( a ); }
 
+inline auto epsilon( CtType<Rational> ) { return Rational( 0 ); }
+
 END_METIL_NAMESPACE

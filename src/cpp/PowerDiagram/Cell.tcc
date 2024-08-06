@@ -344,7 +344,7 @@ DTP Scalar UTP::measure() const {
 
     Scalar res = 0;
     Eigen::Matrix<Scalar,nb_dims,nb_dims> M;
-    for( int i = 0; i < vertices.size(); ++i ) {
+    for( PI i = 0; i < vertices.size(); ++i ) {
         auto num_cuts = vertices[ i ].num_cuts;
         std::sort( num_cuts.begin(), num_cuts.end() );
         add_measure_rec( res, M, item_to_vertex, num_cuts, i );

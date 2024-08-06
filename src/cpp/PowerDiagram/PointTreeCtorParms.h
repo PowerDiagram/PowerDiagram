@@ -3,5 +3,5 @@
 #include "support/common_types.h"
 
 struct PointTreeCtorParms {
-    PI max_nb_points = 200;
+    PI max_nb_points = 18;
 };
