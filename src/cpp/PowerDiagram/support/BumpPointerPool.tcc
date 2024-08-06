@@ -58,7 +58,7 @@ inline char *BumpPointerPool::allocate( PI size, PI alig ) {
     // room
     current_ptr.cp += size;
     if ( current_ptr.cp > ending_ptr ) {
-        PI frame_size = max( 4096ul, sizeof( Frame * ) + sizeof( char * ) + alig - 1 + size );
+        PI frame_size = max( PI( 4096 ), PI( sizeof( Frame * ) + sizeof( char * ) + alig - 1 + size ) );
         Frame *new_frame = new ( malloc( frame_size ) ) Frame;
         new_frame->ending_ptr = reinterpret_cast<char *>( new_frame ) + frame_size;
         new_frame->prev_frame = last_frame;
@@ -86,7 +86,7 @@ inline char *BumpPointerPool::allocate( PI size ) {
     // room
     current_ptr.cp += size;
     if ( current_ptr.cp > ending_ptr ) {
-        PI frame_size = max( 4096ul, sizeof( Frame * ) + sizeof( char * ) + size );
+        PI frame_size = max( PI( 4096 ), PI( sizeof( Frame * ) + sizeof( char * ) + size ) );
         Frame *new_frame = new ( malloc( frame_size ) ) Frame;
         new_frame->ending_ptr = reinterpret_cast<char *>( new_frame ) + frame_size;
         new_frame->prev_frame = last_frame;
