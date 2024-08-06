@@ -157,7 +157,7 @@ DTP TTi auto UTP::array_with_value( const Vec<T,i> &a, T value ) {
 }
 
 DTP TT void UTP::apply_corr( Vec<T> &vec, Vec<int> &keep ) {
-    int last_keep = vec.size();
+    int last_keep = int( vec.size() );
     for( int i = 0; i < last_keep; ++i ) {
         if ( keep[ i ] ) {
             keep[ i ] = i;
