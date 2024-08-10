@@ -109,6 +109,39 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
     }
 }
 
+DTP Opt<std::tuple<const Scalar *, const typename UTP::Point *, SI>> UTP::cell_data_at( const Point &pt ) const {
+    // inside ?
+    for( PI i = 0; i < bnd_offs.size(); ++i )
+        if ( sp( bnd_dirs[ i ], pt ) > bnd_offs[ i ] )
+            return {};
+
+    
+    // TODO: optimize
+    const Scalar *best_w0 = nullptr;
+    const Point *best_p0 = nullptr;
+    PI best_i0 = 0;
+    Scalar best_v;
+    for( RemainingBoxes<Scalar,nb_dims> rb_base = RemainingBoxes<Scalar,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
+        for( PI n0 = 0, nc = rb_base.leaf->points.size(); n0 < nc; ++n0 ) {
+            const Scalar &w0 = rb_base.leaf->weights[ n0 ];
+            const Point &p0 = rb_base.leaf->points[ n0 ];
+            const PI i0 = rb_base.leaf->indices[ n0 ];
+
+            Scalar v = norm_2_p2( pt - p0 ) - w0;
+            if ( ! best_w0 || best_v > v ) {
+                best_w0 = &w0;
+                best_p0 = &p0;
+                best_i0 = i0;
+                best_v = v;
+            }
+        }
+    }
+
+    if ( ! best_w0 )
+        return {};
+    return std::tuple<const Scalar *, const typename UTP::Point *, SI>{ best_w0, best_p0, best_i0 };
+}
+
 #ifndef AVOID_DISPLAY
 DTP DisplayItem *UTP::display( DisplayItemFactory &df ) const {
     return df.new_display_item( *point_tree );
