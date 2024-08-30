@@ -142,6 +142,32 @@ DTP Opt<std::tuple<const Scalar *, const typename UTP::Point *, SI>> UTP::cell_d
     return std::tuple<const Scalar *, const typename UTP::Point *, SI>{ best_w0, best_p0, best_i0 };
 }
 
+DTP Vec<std::tuple<const Scalar *, const typename UTP::Point *, SI>> UTP::cell_data_at( const Point &pt, Scalar probe_size ) const {
+    // find the "best cell"
+    auto cda = cell_data_at( pt );
+    if ( ! cda )
+        return {};
+
+    //  
+    Scalar best_v = norm_2_p2( pt - *std::get<1>( *cda ) ) - *std::get<0>( *cda );
+
+    // find the cell within the ball 
+    Vec<std::tuple<const Scalar *, const Point *, SI>> res;
+    for( RemainingBoxes<Scalar,nb_dims> rb_base = RemainingBoxes<Scalar,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
+        for( PI n0 = 0, nc = rb_base.leaf->points.size(); n0 < nc; ++n0 ) {
+            const Scalar &w0 = rb_base.leaf->weights[ n0 ];
+            const Point &p0 = rb_base.leaf->points[ n0 ];
+            const PI i0 = rb_base.leaf->indices[ n0 ];
+
+            Scalar v = norm_2_p2( pt - p0 ) - w0;
+            if ( v - best_v <= probe_size )
+                res << std::tuple<const Scalar *, const Point *, SI>{ &w0, &p0, i0 };
+        }
+    }
+
+    return res;
+}
+
 #ifndef AVOID_DISPLAY
 DTP DisplayItem *UTP::display( DisplayItemFactory &df ) const {
     return df.new_display_item( *point_tree );

@@ -23,6 +23,7 @@ public:
     Point                   sym               ( const Point &pt, int num_sym ) const { return pt; }
 
     void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f );
+    auto                    cell_data_at      ( const Point &pt, Scalar probe_size ) const -> Vec<std::tuple<const Scalar *, const Point *, SI>>;
     auto                    cell_data_at      ( const Point &pt ) const -> Opt<std::tuple<const Scalar *, const Point *, SI>>;
 
     #ifndef AVOID_DISPLAY
