@@ -1,14 +1,14 @@
 #pragma once
 
-#include "support/type_name.h"
-#include "support/Vec.h"
+#include <tl/support/type_info/type_name.h>
+#include <tl/support/containers/Vec.h>
 
 /**
  * @brief 
  * 
  */
 template<class Scalar,int nb_dims>
-class Cut { STD_METIL_TYPE_INFO( Cut, "", n_index, dir, sp )
+class Cut { // STD_TL_TYPE_INFO( Cut, "", n_index, dir, sp )
 public:
     using  Point    = Vec<Scalar,nb_dims>;
 

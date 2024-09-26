@@ -1,6 +1,6 @@
 #pragma once
 
-#include "support/type_name.h"
+#include <tl/support/type_info/type_name.h>
 #include "PointTree.h"
 
 /**
@@ -8,7 +8,7 @@
  * 
  */
 template<class Scalar,int nb_dims>
-class RemainingBoxes { STD_METIL_TYPE_INFO( RemainingBoxes, "", remaining_boxes, leaf )
+class RemainingBoxes { STD_TL_TYPE_INFO( RemainingBoxes, "", remaining_boxes, leaf )
 public:
     static RemainingBoxes            for_first_leaf_of       ( PointTree<Scalar,nb_dims> *point_tree ); ///< take
     static RemainingBoxes            from_leaf               ( PointTree<Scalar,nb_dims> *leaf );

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "support/UniquePtr.h"
+#include <tl/support/memory/UniquePtr.h>
 #include "RemainingBoxes.h"
 #include "PointTree.h"
 #include "InfCell.h"
@@ -22,11 +22,13 @@ public:
     Point                   inv_sym           ( const Point &pt, int num_sym ) const { return pt; }
     Point                   sym               ( const Point &pt, int num_sym ) const { return pt; }
 
-    void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f );
+    int                     max_nb_threads    () const;
+    void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell, int num_thread )> &f );
+    void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f ); ///< version with a mutex lock for `f`
     auto                    cell_data_at      ( const Point &pt ) const -> Opt<std::tuple<const Scalar *, const Point *, SI>>;
 
     #ifndef AVOID_DISPLAY
-    DisplayItem*            display           ( DisplayItemFactory &df ) const;
+    void                    display           ( Displayer &df ) const;
     #endif
 
 private:
@@ -44,4 +46,4 @@ private:
     Span<Scalar>            bnd_offs;         ///<
 };
 
-#include "PowerDiagram.tcc"
+#include "PowerDiagram.cxx"

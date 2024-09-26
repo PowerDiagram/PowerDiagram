@@ -1,6 +1,6 @@
 #pragma once
 
-#include "support/Opt.h"
+#include <tl/support/containers/Opt.h>
 #include "VtkOutput.h"
 #include "Vertex.h"
 #include "Cut.h"
@@ -12,7 +12,7 @@
  * 
  */
 template<class Scalar,int nb_dims>
-class InfCell { STD_METIL_TYPE_INFO( InfCell, "", vertices, cuts )
+class InfCell { STD_TL_TYPE_INFO( InfCell, "", vertices, cuts )
 public:
     using                       Point              = Vec<Scalar,nb_dims>;
 
@@ -33,9 +33,9 @@ public:
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
 
 private:
-    TTi static auto             array_without_index( const Vec<T,i> &values, PI index );
-    TTi static auto             array_with_value   ( const Vec<T,i> &a, T value );
-    TT static void              apply_corr         ( Vec<T> &vec, Vec<int> &keep );
+    T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
+    T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );
+    T_T static void             apply_corr         ( Vec<T> &vec, Vec<int> &keep );
 
     void                        clean_inactive_cuts();
     bool                        cut_is_useful      ( PI num_cut );
@@ -47,4 +47,4 @@ private:
     // mutable PI               curr_op_id = 0;    ///<
 };
 
-#include "InfCell.tcc"
+#include "InfCell.cxx"

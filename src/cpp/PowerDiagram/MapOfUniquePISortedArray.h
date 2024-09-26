@@ -1,7 +1,7 @@
 #pragma once
 
-#include "support/compare.h"
-#include "support/Vec.h"
+#include <tl/support/containers/Vec.h>
+#include <tl/support/compare.h>
 #include <map>
 
 /**

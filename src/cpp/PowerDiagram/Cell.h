@@ -12,7 +12,7 @@
  *
  */
 template<class Scalar,int nb_dims>
-class Cell { STD_METIL_TYPE_INFO( Cell, "", vertices, edges, cuts )
+class Cell { STD_TL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
     using                       Point              = Vec<Scalar,nb_dims>;
 
@@ -47,10 +47,10 @@ public:
 private:
     using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,nb_dims-2,int>;
 
-    TTi static auto             array_without_index( const Vec<T,i> &values, PI index );
-    TTi static auto             array_with_value   ( const Vec<T,i> &a, T value );
+    T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
+    T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );
     void                        add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex ) const;
-    TT static void              apply_corr         ( Vec<T> &vec, Vec<int> &keep );
+    T_T static void             apply_corr         ( Vec<T> &vec, Vec<int> &keep );
     static bool                 is_ext             ( const Point &pos, const Point &dir, Scalar off );
 
     bool                        vertex_has_cut     ( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI point_index )> &outside_cut ) const;
@@ -60,9 +60,9 @@ private:
     FaceToInt                   waiting_vertices;  ///<
     Vec<int>                    vertex_corr;       ///<
     Vec<int>                    edge_corr;         ///<
-    Vec<Scalar>                 sps;               ///<
+    Vec<Scalar>                 sps;               ///< scalar products for each new cut
 
     mutable PI                  curr_op_id = 0;    ///<
 };
 
-#include "Cell.tcc" // IWYU pragma: export
+#include "Cell.cxx" // IWYU pragma: export

@@ -1,14 +1,11 @@
 #pragma once
 
-#include "PointTreeCtorParms.h"
-#include "PointTree.h"
-
-#include "support/Span.h"
+#include "PointTreeWithValues.h"
 
 /**
 */
 template<class Scalar,int nb_dims>
-class PointTree_AABB : public PointTree<Scalar,nb_dims> {
+class PointTree_AABB : public PointTreeWithValues<Scalar,nb_dims> {
 public:
     using                Point         = Vec<Scalar,nb_dims>;
 
@@ -19,7 +16,7 @@ public:
     static Str           type_name     ();
 
     #ifndef AVOID_DISPLAY
-    virtual DisplayItem* display       ( DisplayItemFactory &df ) const override;
+    virtual void         display      ( Displayer &df ) const override;
     #endif
 
     Point                inv_sym       ( const Point &pt, int ) const { return pt; }
@@ -36,4 +33,4 @@ public:
     Point                max_pos;
 };
 
-#include "PointTree_AABB.tcc"
+#include "PointTree_AABB.cxx"
