@@ -1,3 +1,4 @@
+#include <tl/support/containers/operators/argmin.h>
 #include <tl/support/containers/operators/mean.h>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
@@ -22,7 +23,7 @@ public:
         Vec<Scalar> res( FromSize(), nb_cells() );
         for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int ) {
             const Scalar target_measure = Scalar( 1 ) / nb_cells();
-            res[ cell.orig_index ] = cell.measure() - target_measure;
+            res[ cell.orig_index ] = target_measure - cell.measure();
         }, weights );
         return res;
     }
@@ -35,6 +36,7 @@ public:
             const Scalar target_measure = Scalar( 1 ) / nb_cells();
             errors[ num_thread ] += pow( cell.measure() - target_measure, 2 );
         }, weights );
+
         return sum( errors );
     }
 
@@ -68,10 +70,23 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
 
     Vec<Scalar> weights( FromSizeAndItemValue(), solver.nb_cells(), 0 );
 
-    Vec<Scalar> dir = solver.jacobi_dir( weights );
-    for( int i = -10; i < 10; ++i ) {
-        Vec<Scalar> prop = weights + i / Scalar( 40 ) * dir;
-        P( i, solver.error( prop ) );
+    for( int iter = 0; iter < 10; ++iter ) {
+        Vec<Scalar> dir = solver.jacobi_dir( weights );
+        Vec<Scalar> errors, alphas;
+        for( int i = -100; i < 100; ++i ) {
+            Scalar alpha = i / Scalar( 15000 );
+
+            Vec<Scalar> prop = weights + alpha * dir;
+            errors << solver.error( prop );
+            alphas << alpha;
+        }
+        P( errors );
+
+        PI bi = argmin( errors );
+
+        weights = weights + alphas[ bi ] * dir;
+
+        P( bi, errors[ bi ] );
     }
 
     // if ( filename.size() ) {

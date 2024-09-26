@@ -209,6 +209,10 @@ DTP Str UTP::type_name() {
 DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
     // make the inf cell (i.e. without the inf bounds)
     InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
+    inf_cell.orig_weight = cell.orig_weight;
+    inf_cell.orig_point = cell.orig_point;
+    inf_cell.orig_index = cell.orig_index;
+
     make_intersections( inf_cell, rb_base );
 
     // check that the vertices of the inf_cell are inside the inf bounds
