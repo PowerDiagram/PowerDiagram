@@ -12,7 +12,7 @@ public:
     /**/                 PointTreeWithValues( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent, PI num_in_parent ) : PointTree<Scalar,nb_dims>( parent, num_in_parent ), indices( indices ), weights( weights ), points( points ) {}
 
     virtual void         for_each_point     ( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) { for( PI n0 = 0, nc = points.size(); n0 < nc; ++n0 ) f( points[ n0 ], weights[ n0 ], indices[ n0 ] ); }
-    virtual PI           nb_points          () const { return indices.size(); }
+    virtual PI           nb_seed_points     () const { return indices.size(); }
 
     Span<PI>             indices;
     Span<Scalar>         weights;

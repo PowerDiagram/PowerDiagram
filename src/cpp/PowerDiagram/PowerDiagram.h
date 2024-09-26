@@ -22,11 +22,13 @@ public:
     Point                   inv_sym           ( const Point &pt, int num_sym ) const { return pt; }
     Point                   sym               ( const Point &pt, int num_sym ) const { return pt; }
 
-    int                     max_nb_threads    () const;
+    static int              max_nb_threads    ();
     void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell, int num_thread )> &f );
     void                    for_each_cell     ( const std::function<void( Cell<Scalar,nb_dims> &cell )> &f ); ///< version with a mutex lock for `f`
     auto                    cell_data_at      ( const Point &pt, Scalar probe_size ) const -> Vec<std::tuple<const Scalar *, const Point *, SI>>;
     auto                    cell_data_at      ( const Point &pt ) const -> Opt<std::tuple<const Scalar *, const Point *, SI>>;
+    void                    display_vtk       ( VtkOutput &vo );
+    PI                      nb_cells          () const { return point_tree->nb_seed_points(); }
 
     #ifndef AVOID_DISPLAY
     void                    display           ( Displayer &df ) const;

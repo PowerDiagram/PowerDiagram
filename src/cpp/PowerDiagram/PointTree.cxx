@@ -41,7 +41,7 @@ DTP UTP *UTP::next_leaf() {
 }
 
 DTP Vec<UTP *> UTP::split( PI nb_sub_lists ) {
-    const PI np = nb_points();
+    const PI np = nb_seed_points();
     if ( np == 0 )
         return {};
 
@@ -54,7 +54,7 @@ DTP Vec<UTP *> UTP::split( PI nb_sub_lists ) {
         const PI np_bound = i * np / nb_sub_lists;
 
         while ( acc < np_bound ) {
-            acc += pt->nb_points();
+            acc += pt->nb_seed_points();
             pt = pt->next_leaf();
             if ( ! pt )
                 break;

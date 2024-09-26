@@ -76,7 +76,7 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
     }
 }
 
-DTP int UTP::max_nb_threads() const {
+DTP int UTP::max_nb_threads() {
     return std::thread::hardware_concurrency();
 }
 
@@ -116,7 +116,7 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
                         make_intersections( cell, rb_base );
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
-                        bool inf_cut = false; // cell.is_inf() && outside_cell( cell, rb_base );
+                        bool inf_cut = cell.is_inf() && outside_cell( cell, rb_base );
                         if ( ! inf_cut ) {
                             f( cell, num_thread );
                             break;
@@ -129,6 +129,12 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
 
     for( std::thread &th : threads )
         th.join();
+}
+
+DTP void UTP::display_vtk( VtkOutput &vo ) {
+    for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell ) {
+        cell.display_vtk( vo );
+    } );
 }
 
 DTP Opt<std::tuple<const Scalar *, const typename UTP::Point *, SI>> UTP::cell_data_at( const Point &pt ) const {

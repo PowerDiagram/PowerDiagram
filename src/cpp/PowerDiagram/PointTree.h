@@ -28,15 +28,15 @@ public:
 
     virtual void         for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) = 0;
 
-    virtual bool         may_intersect( const Point &vertex, const Point &p0, Scalar w0 ) const = 0;
-    PointTree*           first_leaf   (); ///<
-    PointTree*           next_leaf    (); ///<
-    virtual Point        min_point    () const = 0;
-    virtual Point        max_point    () const = 0;
-    virtual PI           nb_points    () const = 0;
-    bool                 is_a_leaf    () const;
+    virtual PI           nb_seed_points() const = 0;
+    virtual bool         may_intersect ( const Point &vertex, const Point &p0, Scalar w0 ) const = 0;
+    PointTree*           first_leaf    (); ///<
+    PointTree*           next_leaf     (); ///<
+    virtual Point        min_point     () const = 0;
+    virtual Point        max_point     () const = 0;
+    bool                 is_a_leaf     () const;
 
-    Vec<PointTree *>     split        ( PI nb_sub_lists ); ///< returns leaf bounds for an equal splitting (+ nullptr at the end)
+    Vec<PointTree *>     split         ( PI nb_sub_lists ); ///< returns leaf bounds for an equal splitting (+ nullptr at the end)
 
     PI                   num_in_parent;
     Vec<PtUPtr>          children;
