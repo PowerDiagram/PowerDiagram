@@ -11,6 +11,12 @@
 #define DTP template<class Scalar,int nb_dims>
 #define UTP Cell<Scalar,nb_dims>
 
+DTP UTP::Cell() {
+    vertex_list_size = 0;
+    vertex_list_capa = 128;
+    vertex_coords.resize( vertex_list_capa * nb_dims );
+}
+
 DTP void UTP::init_geometry_from( const Cell &that ) {
     vertices = that.vertices;
     edges = that.edges;

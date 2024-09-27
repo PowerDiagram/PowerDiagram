@@ -7,6 +7,11 @@
 #include "Edge.h"
 #include "Cut.h"
 
+#include <amgcl/profiler.hpp>
+#include <xsimd/xsimd.hpp>
+
+extern amgcl::profiler<> *prof;
+
 /**
  * @brief
  *
@@ -14,7 +19,13 @@
 template<class Scalar,int nb_dims>
 class Cell { STD_TL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public:
+    using                       AlignedVec         = std::vector<Scalar,xsimd::default_allocator<Scalar>>;
+    using                       SimdVec            = xsimd::batch<Scalar>;
     using                       Point              = Vec<Scalar,nb_dims>;
+
+    static constexpr PI         simd_size          = SimdVec::size;
+
+    /**/                        Cell               ();
 
     void                        init_geometry_from ( const Cell &that );
     void                        make_init_simplex  ( const Point &min_pos, const Point &max_pos );
@@ -36,6 +47,11 @@ public:
     Scalar                      height             ( const Point &point ) const;
     bool                        empty              () const;
 
+    PI                          vertex_list_size;  ///<
+    PI                          vertex_list_capa;  ///<
+    AlignedVec                  vertex_coords;     ///< x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 ...
+    Vec<Vec<int,nb_dims>>       vertex_cuts;       ///<
+
     Vec<Vertex<Scalar,nb_dims>> vertices;          ///<
     Vec<Edge<Scalar,nb_dims>>   edges;             ///<
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
@@ -46,6 +62,8 @@ public:
 
 private:
     using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,nb_dims-2,int>;
+
+
 
     T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
     T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );

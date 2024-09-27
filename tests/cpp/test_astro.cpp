@@ -2,11 +2,12 @@
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
 
-#include <amgcl/profiler.hpp>
 #include <fstream>
 
+amgcl::profiler<> *prof;
+
 template<class Scalar,int nb_dims>
-void test_astro( std::string filename = {} ) {
+void test_astro( std::string filename ) {
     using Point = Vec<Scalar,nb_dims>;
 
     // load points
@@ -14,7 +15,7 @@ void test_astro( std::string filename = {} ) {
     Vec<Point> positions;
     Vec<Scalar> weights;
     Vec<PI> indices;
-    for( PI i = 0; i < ( 1 << 15 ); ++i ) {
+    for( PI i = 0; i < ( 1 << 18 ); ++i ) {
         float x, y, z;
         f.read( (char *)&x, sizeof( x ) );
         f.read( (char *)&y, sizeof( y ) );
@@ -40,25 +41,25 @@ void test_astro( std::string filename = {} ) {
         bnd_dirs << p << q;
     }
 
-    amgcl::profiler<> prof;
 
-    prof.tic( "setup" );
-    PointTreeCtorParms cp;
+    prof->tic( "setup" );
+    PointTreeCtorParms cp{ .max_nb_points = 26 };
     PowerDiagram<Scalar,nb_dims> pd( cp, positions, weights, indices, bnd_dirs, bnd_offs );
-    prof.toc( "setup" );
+    prof->toc( "setup" );
 
-    prof.tic( "cell" );
+    prof->tic( "cell" );
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
         volumes[ num_thread ] += cell.measure();
     } );
-    prof.toc( "cell" );
+    prof->toc( "cell" );
 
-    std::cout << prof << std::endl;
+    std::cout << *prof << std::endl;
     P( sum( volumes ) );
 }
 
 
 TEST_CASE( "Astro 3D", "" ) {
+    prof = new amgcl::profiler<>( "sdot" );
     test_astro<double,3>( "/home/leclerc/test_amg/16M.xyz32.bin" );
 }

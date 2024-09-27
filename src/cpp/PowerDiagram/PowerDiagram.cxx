@@ -78,7 +78,7 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
 }
 
 DTP int UTP::max_nb_threads() {
-    return 1; // std::thread::hardware_concurrency();
+    return std::thread::hardware_concurrency();
 }
 
 DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )> &f ) {
