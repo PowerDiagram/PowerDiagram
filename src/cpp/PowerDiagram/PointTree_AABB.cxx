@@ -72,11 +72,8 @@ DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
     PI i = 0;
     for( PI j = n - 1; ; ) {
         // while we have points at the right place
-        while ( this->points[ i ][ dd ] <= sep ) {
-            if ( i == 400 )
-                assert( 0 );
+        while ( this->points[ i ][ dd ] <= sep )
             ++i;
-        }
         while ( this->points[ j ][ dd ] > sep )
             --j;
         if ( j < i )

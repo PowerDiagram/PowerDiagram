@@ -36,13 +36,13 @@ public:
     Scalar                      height             ( const Point &point ) const;
     bool                        empty              () const;
 
-    const Scalar*               orig_weight        = nullptr; ///<
-    const Point*                orig_point         = nullptr; ///<
-    SI                          orig_index;        ///<
-
     Vec<Vertex<Scalar,nb_dims>> vertices;          ///<
     Vec<Edge<Scalar,nb_dims>>   edges;             ///<
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
+
+    const Scalar*               orig_weight        = nullptr; ///<
+    const Point*                orig_point         = nullptr; ///<
+    SI                          orig_index;        ///<
 
 private:
     using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,nb_dims-2,int>;
@@ -56,6 +56,7 @@ private:
     bool                        vertex_has_cut     ( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI point_index )> &outside_cut ) const;
     Point                       compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
     Point                       compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
+
 
     FaceToInt                   waiting_vertices;  ///<
     Vec<int>                    vertex_corr;       ///<

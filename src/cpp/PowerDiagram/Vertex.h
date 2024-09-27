@@ -13,10 +13,8 @@ public:
     using        NumCuts    = Vec<PI,nb_dims>;
     using        Point      = Vec<Scalar,nb_dims>;
 
-    /**/         Vertex     ( NumCuts num_cuts = {}, Point pos = {} ) : num_cuts( num_cuts ), pos( pos ), op_id( 0 ) {}
+    /**/         Vertex     ( NumCuts num_cuts = {}, Point pos = {} ) : num_cuts( num_cuts ), pos( pos ) {}
 
     NumCuts      num_cuts;  ///<
     Point        pos;       ///<
-
-    mutable PI   op_id = 0; ///<
 };

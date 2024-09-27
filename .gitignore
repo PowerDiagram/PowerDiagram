@@ -8,6 +8,7 @@ commentaires.rst
 err
 compile_flags.txt
 modules
+callgrind.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

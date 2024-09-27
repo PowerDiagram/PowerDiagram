@@ -6,6 +6,7 @@ def config( options ):
     # vfs.vfs_build_config( options )
 
     options.add_cpp_flag( '-march=native' )
+    options.add_cpp_flag( '-ffast-math' )
     options.add_cpp_flag( '-O3' )
 
     options.add_cpp_flag( '-std=c++20' )
@@ -15,5 +16,6 @@ def config( options ):
 
     options.add_inc_path( '../../src/cpp' )
     options.add_inc_path( '../../modules/tl20/src/cpp' )
+    options.add_inc_path( '../../modules/amgcl' )
     
 

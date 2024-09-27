@@ -132,19 +132,23 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
 
 DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
     // scalar product for each vertex
+    bool has_ext = false;
+    for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex )
+        has_ext |= sp( vertices[ num_vertex ].pos, dir ) > off;
+
+    // all int ?
+    if ( ! has_ext )
+        return;
+
+    // store scalar product for each vertex
     vertex_corr.resize( vertices.size() );
     sps.resize( vertices.size() );
-    bool has_ext = false;
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
         Scalar ext = sp( vertices[ num_vertex ].pos, dir ) - off;
         vertex_corr[ num_vertex ] = ! ( ext > 0 );
         sps[ num_vertex ] = ext;
         has_ext |= ext > 0;
     }
-
-    // all int ?
-    if ( ! has_ext )
-        return;
 
     // add the new cut
     PI new_cut = cuts.size();
@@ -220,7 +224,6 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
             continue;
         }
     }
-
 
     // move vertices to the new positions
     while ( vertex_corr.size() < vertices.size() )
