@@ -42,6 +42,7 @@ public:
     void                        get_used_fbs       ( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds ) const;
     bool                        has_inf_cut        ( const Vertex<Scalar,nb_dims> &vertex ) const;
     bool                        contains           ( const Point &x ) const;
+    auto                        measure            ( const auto &get_w ) const;
     Scalar                      measure            () const;
     bool                        is_inf             () const;
     Scalar                      height             ( const Point &point ) const;
@@ -67,12 +68,14 @@ private:
 
     T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
     T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );
+    void                        add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, const auto &positions ) const;
     void                        add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex ) const;
     T_T static void             apply_corr         ( Vec<T> &vec, Vec<int> &keep );
     static bool                 is_ext             ( const Point &pos, const Point &dir, Scalar off );
 
     bool                        vertex_has_cut     ( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI point_index )> &outside_cut ) const;
     Point                       compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
+    auto                        compute_pos        ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                       compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
 
 

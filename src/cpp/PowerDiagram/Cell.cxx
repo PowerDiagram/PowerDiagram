@@ -110,6 +110,35 @@ DTP UTP::Point UTP::compute_pos( const Point &p0, const Point &p1, Scalar s0, Sc
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
+DTP auto UTP::compute_pos( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const {
+    using NScalar = DECAYED_TYPE_OF( get_w( *orig_weight, orig_index ) );
+    using NPoint = Vec<NScalar,nb_dims>;
+
+    if constexpr ( nb_dims == 0 ) {
+        return NPoint{};
+    } else {
+        using TM = Eigen::Matrix<NScalar,nb_dims,nb_dims>;
+        using TV = Eigen::Matrix<NScalar,nb_dims,1>;
+
+        TM m;
+        TV v;
+        for( PI i = 0; i < nb_dims; ++i ) {
+            for( PI j = 0; j < nb_dims; ++j )
+                m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
+            v( i ) = cuts[ num_cuts[ i ] ].sp;
+        }
+
+        Eigen::PartialPivLU<TM> lu( m );
+        TV x = lu.solve( v );
+
+        NPoint res;
+        for( PI i = 0; i < nb_dims; ++i )
+            res[ i ] = x[ i ];
+
+        return res;
+    }
+}
+
 DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
@@ -319,6 +348,34 @@ DTP bool UTP::vertex_has_cut( const Vertex<Scalar,nb_dims> &vertex, const std::f
     return false;
 }
 
+DTP void UTP::add_measure_rec( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, const auto &positions ) const {
+    if constexpr ( constexpr PI c = decltype( num_cuts.size() )::value ) {
+        for( int n = 0; n < num_cuts.size(); ++n ) {
+            // next item ref
+            auto next_num_cuts = num_cuts.without_index( n );
+
+            // vertex choice for this item
+            int &next_vertex = item_to_vertex[ next_num_cuts ];
+            if ( next_vertex < 0 ) {
+                next_vertex = last_vertex;
+                continue;
+            }
+
+            // matrix column
+            const auto &last_pos = positions[ last_vertex ];
+            const auto &next_pos = positions[ next_vertex ];
+            for( int d = 0; d < nb_dims; ++d )
+                M.coeffRef( d, c - 1 ) = next_pos[ d ] - last_pos[ d ];
+
+            // recursion
+            add_measure_rec( res, M, item_to_vertex, next_num_cuts, next_vertex );
+        }
+    } else {
+        using std::abs;
+        res += abs( M.determinant() );
+    }
+}
+
 DTP void UTP::add_measure_rec( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex ) const {
     if constexpr ( constexpr PI c = decltype( num_cuts.size() )::value ) {
         for( int n = 0; n < num_cuts.size(); ++n ) {
@@ -345,6 +402,31 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, auto &item_to_vertex, const a
         using std::abs;
         res += abs( M.determinant() );
     }
+}
+
+DTP auto UTP::measure( const auto &get_w ) const {
+    MapOfUniquePISortedArray<PI,0,nb_dims-1,int> item_to_vertex;
+    item_to_vertex.init( cuts.size(), -1 );
+
+    using NScalar = DECAYED_TYPE_OF( get_w( *orig_weight, orig_index ) );
+    using NPoint = Vec<NScalar,nb_dims>;
+    Vec<NPoint> positions( FromReservationSize(), vertices.size() );
+    for( PI i = 0; i < vertices.size(); ++i )
+        positions[ i ] = compute_pos( vertices[ i ].num_cuts, get_w );
+
+    NScalar res = 0;
+    Eigen::Matrix<NScalar,nb_dims,nb_dims> M;
+    for( PI i = 0; i < vertices.size(); ++i ) {
+        auto num_cuts = vertices[ i ].num_cuts;
+        std::sort( num_cuts.begin(), num_cuts.end() );
+        add_measure_rec( res, M, item_to_vertex, num_cuts, i, positions );
+    }
+
+    Scalar coe = 1;
+    for( int d = 2; d <= nb_dims; ++d )
+        coe *= d;
+
+    return res / coe;
 }
 
 DTP Scalar UTP::measure() const {

@@ -27,10 +27,6 @@ void test_astro( std::string filename ) {
         weights << 0;
     }
 
-    // positions.resize( 1 << 11 );
-    // weights.resize( 1 << 11 );
-    // indices.resize( 1 << 11 );
-
     // boundaries
     Vec<Scalar> bnd_offs;
     Vec<Point> bnd_dirs;
@@ -40,7 +36,6 @@ void test_astro( std::string filename ) {
         bnd_offs << 1 << 0;
         bnd_dirs << p << q;
     }
-
 
     prof->tic( "setup" );
     PointTreeCtorParms cp{ .max_nb_points = 26 };

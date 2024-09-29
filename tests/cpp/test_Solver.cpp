@@ -22,6 +22,9 @@ public:
     Vec<Scalar> jacobi_dir( Span<Scalar> weights ) {
         Vec<Scalar> res( FromSize(), nb_cells() );
         for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int ) {
+            // P( cell.measure() );
+            P( cell.measure( [&]( Scalar w, PI index ) { return w; } ) );
+
             const Scalar target_measure = Scalar( 1 ) / nb_cells();
             res[ cell.orig_index ] = target_measure - cell.measure();
         }, weights );
@@ -72,21 +75,26 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
 
     for( int iter = 0; iter < 10; ++iter ) {
         Vec<Scalar> dir = solver.jacobi_dir( weights );
-        Vec<Scalar> errors, alphas;
-        for( int i = -100; i < 100; ++i ) {
-            Scalar alpha = i / Scalar( 15000 );
+        P( dir );
+        break;
+        // dir: [ 0.041565, 0.020301, 0.063598, 0.014879, -0.140344 ]
 
-            Vec<Scalar> prop = weights + alpha * dir;
-            errors << solver.error( prop );
-            alphas << alpha;
-        }
-        P( errors );
 
-        PI bi = argmin( errors );
+        // Vec<Scalar> errors, alphas;
+        // for( int i = -100; i < 100; ++i ) {
+        //     Scalar alpha = i / Scalar( 15000 );
 
-        weights = weights + alphas[ bi ] * dir;
+        //     Vec<Scalar> prop = weights + alpha * dir;
+        //     errors << solver.error( prop );
+        //     alphas << alpha;
+        // }
+        // P( errors );
 
-        P( bi, errors[ bi ] );
+        // PI bi = argmin( errors );
+
+        // weights = weights + alphas[ bi ] * dir;
+
+        // P( bi, errors[ bi ] );
     }
 
     // if ( filename.size() ) {
@@ -98,5 +106,5 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 2D", "" ) {
-    test_solver<double,2>( 50, "out.vtk" );
+    test_solver<double,2>( 5, "out.vtk" );
 }
