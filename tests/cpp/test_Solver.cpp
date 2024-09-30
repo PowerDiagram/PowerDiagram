@@ -43,27 +43,31 @@ public:
         return res;
     }
 
-    auto der_err( Span<Scalar> weights, Span<Scalar> dir ) {
+    Vec<Scalar,3> der_err( Span<Scalar> weights, Span<Scalar> dir ) {
         using namespace boost::math::differentiation;
-        using AD = autodiff_fvar<Scalar,2>;
         using namespace std;
 
-        Vec<AD> res( FromSizeAndItemValue(), Pd::max_nb_threads(), 0 );
+        Vec<Scalar> d0( FromSizeAndItemValue(), Pd::max_nb_threads(), 0 );
+        Vec<Scalar> d1( FromSizeAndItemValue(), Pd::max_nb_threads(), 0 );
+        Vec<Scalar> d2( FromSizeAndItemValue(), Pd::max_nb_threads(), 0 );
         for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
+            using AD = autodiff_fvar<Scalar,1>;
             auto m = cell.measure( [&]( Scalar w, CutType type, PI i ) -> AD {
-                if ( type == CutType::Dirac )
-                    P( w, weights[ i ] );
                 AD res = w;
                 if ( type == CutType::Dirac )
-                    res += make_fvar<Scalar,2>( 0 ) * dir[ i ];
+                    res += make_fvar<Scalar,1>( 0 ) * dir[ i ];
                 return res;
             } );
 
             const Scalar target_measure = Scalar( 1 ) / nb_cells();
-            res[ num_thread ] += pow( m - target_measure, 2 );
+            AD di = target_measure - m;
+
+            d0[ num_thread ] += 1 * di.derivative( 0 ) * di.derivative( 0 );
+            d1[ num_thread ] += 4 * di.derivative( 0 ) * di.derivative( 1 );
+            d2[ num_thread ] += 1 * di.derivative( 1 ) * di.derivative( 1 );
         }, weights );
 
-        return sum( res );
+        return { sum( d0 ), sum( d1 ), sum( d2 ) };
     }
 
     Vec<Scalar> measures( Span<Scalar> weights ) {
@@ -140,30 +144,36 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
     // P( xs );
     // P( ms );
 
-    std::vector<Scalar> xs;
-    std::vector<Scalar> es;
-    std::vector<Scalar> vs;
-    for( int iter = 0; iter < 2; ++iter ) {
+    for( int iter = 0; iter < 10; ++iter ) {
         Vec<Scalar> dir = solver.jacobi_dir( weights );
 
         auto err = solver.der_err( weights, dir );
+        P( err );
 
         //P( err, err.derivative( 1 ) / err.derivative( 2 ) );
-        for( PI i = 0; i < 200; ++i ) {
-            Scalar x = Scalar( i ) / 1000;
+        std::vector<Scalar> xs;
+        std::vector<Scalar> es;
+        std::vector<Scalar> vs;
+        for( PI i = 0; i < 2000; ++i ) {
+            Scalar x = Scalar( i ) / 2000;
             xs.push_back( x );
-            es.push_back( err.derivative( 0 ) + err.derivative( 1 ) * x + err.derivative( 2 ) * pow( x, 2 ) / 2 );
+            es.push_back( err[ 0 ] + err[ 1 ] * x /*+ err.derivative( 2 ) * pow( x, 2 ) / 2*/ );
             vs.push_back( solver.error( weights + x * dir ) );
         }
-        // break;
+        P( xs[ argmin( vs ) ] );
 
-        Scalar alpha = err.derivative( 1 ) / err.derivative( 2 ) / 3;
-        weights = weights - alpha * dir;
+        matplotlibcpp::plot( xs, es );
+        matplotlibcpp::plot( xs, vs );
+        matplotlibcpp::show();
+        break;
+
+        // Scalar alpha = err.derivative( 1 ) / err.derivative( 2 ) / 3;
+        Scalar alpha = xs[ argmin( vs ) ];
+        weights = weights + alpha * dir;
+
+        // P( err.derivative( 0 ), argmin( vs ) );
     }
 
-    matplotlibcpp::plot( xs, es );
-    matplotlibcpp::plot( xs, vs );
-    matplotlibcpp::show();
 
     if ( filename.size() ) {
         VtkOutput vo;
@@ -174,7 +184,7 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 2D", "" ) {
-    test_solver<double,3>( 30, "out.vtk" );
+    test_solver<double,3>( 100, "out.vtk" );
 
     // Vec<Vec<double,3>,3> M;
     // Vec<double,3> V;
