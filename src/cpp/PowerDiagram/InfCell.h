@@ -41,7 +41,7 @@ private:
     void                        clean_inactive_cuts();
     bool                        cut_is_useful      ( PI num_cut );
     Opt<Point>                  compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
-    void                        _cut               ( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 );
+    void                        _cut               ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 );
 };
 
 #include "InfCell.cxx"

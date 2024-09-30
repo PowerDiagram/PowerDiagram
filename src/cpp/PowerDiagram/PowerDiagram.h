@@ -15,7 +15,7 @@ class PowerDiagram {
 public:
     using                   Point             = Vec<Scalar,nb_dims>;
 
-    /**/                    PowerDiagram      ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs );
+    /**/                    PowerDiagram      ( const PointTreeCtorParms &cp, Vec<Point> &&points, Vec<Scalar> &&weights, Span<Point> bnd_dirs, Span<Scalar> bnd_offs );
 
     static Str              type_name         ();
 
@@ -45,8 +45,13 @@ private:
     Point                   max_box_pos;      ///<
     PtPtr                   point_tree;       ///<
     Cell<Scalar,nb_dims>    base_cell;        ///<
+
     Span<Point>             bnd_dirs;         ///<
     Span<Scalar>            bnd_offs;         ///<
+
+    Vec<PI>                 indices;          ///<
+    Vec<Scalar>             weights;          ///<
+    Vec<Point>              points;           ///<
 };
 
 #include "PowerDiagram.cxx"

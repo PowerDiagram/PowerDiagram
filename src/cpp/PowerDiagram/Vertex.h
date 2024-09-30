@@ -17,4 +17,6 @@ public:
 
     NumCuts      num_cuts;  ///<
     Point        pos;       ///<
+
+    mutable PI   op_id = 0; ///<
 };

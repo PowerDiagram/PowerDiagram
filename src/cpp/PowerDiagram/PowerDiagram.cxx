@@ -11,10 +11,16 @@
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PowerDiagram<Scalar,nb_dims>
 
-DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, Span<Point> bnd_dirs, Span<Scalar> bnd_offs ) {
+DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<Scalar> &&weights_, Span<Point> bnd_dirs, Span<Scalar> bnd_offs ) :
+        bnd_dirs( bnd_dirs), bnd_offs( bnd_offs), weights( std::move( weights_ ) ), points( std::move( points_ ) ) {
+
+    //
+    indices.resize( points.size() );
+    for( PI i = 0; i < points.size(); ++i )
+        indices[ i ] = i;
+
+    // make the point tree
     point_tree = PtPtr{ PointTree<Scalar,nb_dims>::New( cp, points, weights, indices, nullptr, 0 ) };
-    this->bnd_dirs = bnd_dirs;
-    this->bnd_offs = bnd_offs;
 
     // limits
     min_box_pos = point_tree->min_point();

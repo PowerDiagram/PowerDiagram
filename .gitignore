@@ -10,6 +10,7 @@ compile_flags.txt
 modules
 callgrind.*
 *.bin
+perf.data*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -21,14 +21,14 @@ DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
 
     auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
 
-    _cut( Cut<Scalar,nb_dims>::Dirac, dir, off, p1, w1, i1 );
+    _cut( CutType::Dirac, dir, off, p1, w1, i1 );
 }
 
 DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
-    _cut( Cut<Scalar,nb_dims>::Boundary, dir, off, {}, {}, num_boundary );
+    _cut( CutType::Boundary, dir, off, {}, {}, num_boundary );
 }
 
-DTP void UTP::_cut( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
+DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
         if ( sp( vertices[ num_vertex ].pos, dir ) > off ) {

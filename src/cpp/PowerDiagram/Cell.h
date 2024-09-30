@@ -76,7 +76,7 @@ private:
     Point                       compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
     auto                        compute_pos        ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                       compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
-    void                        _cut               ( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 );
+    void                        _cut               ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 );
 
     FaceToInt                   waiting_vertices;  ///<
     Vec<int>                    vertex_corr;       ///<

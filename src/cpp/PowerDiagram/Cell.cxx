@@ -1,12 +1,14 @@
 #pragma once
 
+#include <tl/support/containers/operators/determinant.h>
+#include <tl/support/containers/operators/lu_solve.h>
 #include <tl/support/containers/operators/norm_2.h>
 #include <tl/support/containers/operators/sp.h>
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
 #include "Cell.h"
  
-#include <eigen3/Eigen/LU>
+// #include <eigen3/Eigen/LU>
 
 #define DTP template<class Scalar,int nb_dims>
 #define UTP Cell<Scalar,nb_dims>
@@ -36,11 +38,11 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
     for( int d = 0; d < nb_dims; ++d ) {
         Point dir( FromItemValue(), 0 );
         dir[ d ] = -1;
-        cuts.push_back( Cut<Scalar,nb_dims>::Infinity, dir, sp( min_pos, dir ), Point{}, Scalar{}, point_index++ );
+        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Point{}, Scalar{}, point_index++ );
     }
 
     Point dir( FromItemValue(), 1 );
-    cuts.push_back( Cut<Scalar,nb_dims>::Infinity, dir, sp( max_pos, dir ), Point{}, Scalar{}, point_index++ );
+    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Point{}, Scalar{}, point_index++ );
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
@@ -111,43 +113,39 @@ DTP UTP::Point UTP::compute_pos( const Point &p0, const Point &p1, Scalar s0, Sc
 }
 
 DTP auto UTP::compute_pos( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const {
-    using NScalar = DECAYED_TYPE_OF( get_w( w0, i0 ) );
+    using NScalar = DECAYED_TYPE_OF( get_w( w0, CutType::Dirac, i0 ) );
     using NPoint = Vec<NScalar,nb_dims>;
 
     if constexpr ( nb_dims == 0 ) {
         return NPoint{};
     } else {
-        using TM = Eigen::Matrix<NScalar,nb_dims,nb_dims>;
-        using TV = Eigen::Matrix<NScalar,nb_dims,1>;
+        using TM = Vec<Vec<NScalar,nb_dims>,nb_dims>;
+        using TV = Vec<NScalar,nb_dims>;
+
+        const auto nw0 = get_w( w0, CutType::Dirac, i0 );
 
         TM m;
         TV v;
         for( PI i = 0; i < nb_dims; ++i ) {
             const auto &cut = cuts[ num_cuts[ i ] ];
             for( PI j = 0; j < nb_dims; ++j )
-                m( i, j ) = cut.dir[ j ];
+                m[ i ][ j ] = cut.dir[ j ];
 
-            if ( cut.type == Cut<Scalar,nb_dims>::Dirac ) {
+            if ( cut.type == CutType::Dirac ) {
                 auto dir = cut.p1 - p0;
                 auto n = norm_2_p2( dir );
                 auto s0 = sp( dir, p0 );
                 auto s1 = sp( dir, cut.p1 );
-                auto w1 = get_w( cut.w1, cut.i1 );
 
-                v( i ) = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+                auto nw1 = get_w( cut.w1, cut.type, cut.i1 );
+
+                v[ i ] = s0 + ( 1 + ( nw0 - nw1 ) / n ) / 2 * ( s1 - s0 );
             } else {
-                v( i ) = cut.sp;
+                v[ i ] = cut.sp;
             }
         }
 
-        Eigen::PartialPivLU<TM> lu( m );
-        TV x = lu.solve( v );
-
-        NPoint res;
-        for( PI i = 0; i < nb_dims; ++i )
-            res[ i ] = x[ i ];
-
-        return res;
+        return lu_solve( m, v );
     }
 }
 
@@ -155,30 +153,23 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
-        using TM = Eigen::Matrix<Scalar,nb_dims,nb_dims>;
-        using TV = Eigen::Matrix<Scalar,nb_dims,1>;
+        using TM = Vec<Vec<Scalar,nb_dims>,nb_dims>;
+        using TV = Vec<Scalar,nb_dims>;
 
         TM m;
         TV v;
         for( PI i = 0; i < nb_dims; ++i ) {
             for( PI j = 0; j < nb_dims; ++j )
-                m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-            v( i ) = cuts[ num_cuts[ i ] ].sp;
+                m[ i ][ j ] = cuts[ num_cuts[ i ] ].dir[ j ];
+            v[ i ] = cuts[ num_cuts[ i ] ].sp;
         }
 
-        Eigen::PartialPivLU<TM> lu( m );
-        TV x = lu.solve( v );
-
-        Point res;
-        for( PI i = 0; i < nb_dims; ++i )
-            res[ i ] = x[ i ];
-
-        return res;
+        return lu_solve( m, v );
     }
 }
 
 DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
-    _cut( Cut<Scalar,nb_dims>::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
+    _cut( CutType::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
 }
 
 DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
@@ -189,10 +180,10 @@ DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
 
     auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
 
-    _cut( Cut<Scalar,nb_dims>::Dirac, dir, off, p1, w1, i1 );
+    _cut( CutType::Dirac, dir, off, p1, w1, i1 );
 }
 
-DTP void UTP::_cut( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
+DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
     // scalar product for each vertex
     bool has_ext = false;
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex )
@@ -370,7 +361,7 @@ DTP void UTP::for_each_edge( const std::function<void( Vec<PI,nb_dims-1> num_cut
 
 DTP bool UTP::vertex_has_cut( const Vertex<Scalar,nb_dims> &vertex, const std::function<bool( SI point_index )> &outside_cut ) const {
     for( auto num_cut : vertex.num_cuts )
-        if ( outside_cut( cuts[ num_cut ].n_index ) )
+        if ( outside_cut( cuts[ num_cut ].i1 ) )
             return true;
     return false;
 }
@@ -392,7 +383,7 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, auto &item_to_vertex, const a
             const auto &last_pos = positions[ last_vertex ];
             const auto &next_pos = positions[ next_vertex ];
             for( int d = 0; d < nb_dims; ++d )
-                M.coeffRef( d, c - 1 ) = next_pos[ d ] - last_pos[ d ];
+                M[ d ][ c - 1 ] = next_pos[ d ] - last_pos[ d ];
 
             // recursion
             add_measure_rec( res, M, item_to_vertex, next_num_cuts, next_vertex );
@@ -420,14 +411,14 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, auto &item_to_vertex, const a
             const auto &last_pos = vertices[ last_vertex ].pos;
             const auto &next_pos = vertices[ next_vertex ].pos;
             for( int d = 0; d < nb_dims; ++d )
-                M.coeffRef( d, c - 1 ) = next_pos[ d ] - last_pos[ d ];
+                M[ d ][ c - 1 ] = next_pos[ d ] - last_pos[ d ];
 
             // recursion
             add_measure_rec( res, M, item_to_vertex, next_num_cuts, next_vertex );
         }
     } else {
         using std::abs;
-        res += abs( M.determinant() );
+        res += abs( determinant( M ) );
     }
 }
 
@@ -435,14 +426,14 @@ DTP auto UTP::measure( const auto &get_w ) const {
     MapOfUniquePISortedArray<PI,0,nb_dims-1,int> item_to_vertex;
     item_to_vertex.init( cuts.size(), -1 );
 
-    using NScalar = DECAYED_TYPE_OF( get_w( w0, i0 ) );
+    using NScalar = DECAYED_TYPE_OF( get_w( w0, CutType::Dirac, i0 ) );
     using NPoint = Vec<NScalar,nb_dims>;
     Vec<NPoint> positions( FromReservationSize(), vertices.size() );
     for( PI i = 0; i < vertices.size(); ++i )
-        positions[ i ] = compute_pos( vertices[ i ].num_cuts, get_w );
+        positions << compute_pos( vertices[ i ].num_cuts, get_w );
 
     NScalar res = 0;
-    Eigen::Matrix<NScalar,nb_dims,nb_dims> M;
+    Vec<Vec<NScalar,nb_dims>,nb_dims> M;
     for( PI i = 0; i < vertices.size(); ++i ) {
         auto num_cuts = vertices[ i ].num_cuts;
         std::sort( num_cuts.begin(), num_cuts.end() );
@@ -461,7 +452,7 @@ DTP Scalar UTP::measure() const {
     item_to_vertex.init( cuts.size(), -1 );
 
     Scalar res = 0;
-    Eigen::Matrix<Scalar,nb_dims,nb_dims> M;
+    Vec<Vec<Scalar,nb_dims>,nb_dims> M;
     for( PI i = 0; i < vertices.size(); ++i ) {
         auto num_cuts = vertices[ i ].num_cuts;
         std::sort( num_cuts.begin(), num_cuts.end() );
@@ -499,10 +490,10 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( Vec<Scalar,3
             is_outside << vertex_has_cut( *vertex, []( SI v ) { return v < 0; } );
             points << to_vtk( vertex->pos );
         }
-        if ( p0 && w0 )
-            vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } );
-        else
-            vo.add_polygon( points, { { "is_outside", is_outside } } );
+        vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } );
+        //if ( p0 && w0 )
+        //else
+        //    vo.add_polygon( points, { { "is_outside", is_outside } } );
     };
 
     // edges
