@@ -1,5 +1,6 @@
 #include <tl/support/containers/operators/argmin.h>
 #include <tl/support/containers/operators/mean.h>
+#include <boost/math/differentiation/autodiff.hpp>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
 
@@ -23,10 +24,14 @@ public:
         Vec<Scalar> res( FromSize(), nb_cells() );
         for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int ) {
             // P( cell.measure() );
-            P( cell.measure( [&]( Scalar w, PI index ) { return w; } ) );
+            using AD = boost::math::differentiation::autodiff_fvar<Scalar,3>;
+            auto m = cell.measure( [&]( Scalar w, PI i ) -> AD {
+                return { w, i == cell.i0 };
+            } );
+            P( m );
 
             const Scalar target_measure = Scalar( 1 ) / nb_cells();
-            res[ cell.orig_index ] = target_measure - cell.measure();
+            res[ cell.i0 ] = target_measure - cell.measure();
         }, weights );
         return res;
     }

@@ -12,9 +12,9 @@
 #define UTP Cell<Scalar,nb_dims>
 
 DTP UTP::Cell() {
-    vertex_list_size = 0;
-    vertex_list_capa = 128;
-    vertex_coords.resize( vertex_list_capa * nb_dims );
+    // vertex_list_size = 0;
+    // vertex_list_capa = 128;
+    // vertex_coords.resize( vertex_list_capa * nb_dims );
 }
 
 DTP void UTP::init_geometry_from( const Cell &that ) {
@@ -32,15 +32,15 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
     cuts.clear();
 
     // cuts
-    SI point_index = 0;
+    PI point_index = 0;
     for( int d = 0; d < nb_dims; ++d ) {
         Point dir( FromItemValue(), 0 );
         dir[ d ] = -1;
-        cuts.push_back( --point_index, dir, sp( min_pos, dir ) );
+        cuts.push_back( Cut<Scalar,nb_dims>::Infinity, dir, sp( min_pos, dir ), Point{}, Scalar{}, point_index++ );
     }
 
     Point dir( FromItemValue(), 1 );
-    cuts.push_back( --point_index, dir, sp( max_pos, dir ) );
+    cuts.push_back( Cut<Scalar,nb_dims>::Infinity, dir, sp( max_pos, dir ), Point{}, Scalar{}, point_index++ );
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
@@ -111,7 +111,7 @@ DTP UTP::Point UTP::compute_pos( const Point &p0, const Point &p1, Scalar s0, Sc
 }
 
 DTP auto UTP::compute_pos( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const {
-    using NScalar = DECAYED_TYPE_OF( get_w( *orig_weight, orig_index ) );
+    using NScalar = DECAYED_TYPE_OF( get_w( w0, i0 ) );
     using NPoint = Vec<NScalar,nb_dims>;
 
     if constexpr ( nb_dims == 0 ) {
@@ -123,9 +123,21 @@ DTP auto UTP::compute_pos( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const {
         TM m;
         TV v;
         for( PI i = 0; i < nb_dims; ++i ) {
+            const auto &cut = cuts[ num_cuts[ i ] ];
             for( PI j = 0; j < nb_dims; ++j )
-                m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-            v( i ) = cuts[ num_cuts[ i ] ].sp;
+                m( i, j ) = cut.dir[ j ];
+
+            if ( cut.type == Cut<Scalar,nb_dims>::Dirac ) {
+                auto dir = cut.p1 - p0;
+                auto n = norm_2_p2( dir );
+                auto s0 = sp( dir, p0 );
+                auto s1 = sp( dir, cut.p1 );
+                auto w1 = get_w( cut.w1, cut.i1 );
+
+                v( i ) = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+            } else {
+                v( i ) = cut.sp;
+            }
         }
 
         Eigen::PartialPivLU<TM> lu( m );
@@ -165,7 +177,22 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 }
 
-DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
+DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
+    _cut( Cut<Scalar,nb_dims>::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
+}
+
+DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
+    const Point dir = p1 - p0;
+    auto n = norm_2_p2( dir );
+    auto s0 = sp( dir, p0 );
+    auto s1 = sp( dir, p1 );
+
+    auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+
+    _cut( Cut<Scalar,nb_dims>::Dirac, dir, off, p1, w1, i1 );
+}
+
+DTP void UTP::_cut( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
     // scalar product for each vertex
     bool has_ext = false;
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex )
@@ -187,7 +214,7 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
 
     // add the new cut
     PI new_cut = cuts.size();
-    cuts.push_back( point_index, dir, off );
+    cuts.push_back( type, dir, off, p1, w1, i1 );
 
     //
     if constexpr ( nb_dims >= 2 )
@@ -408,7 +435,7 @@ DTP auto UTP::measure( const auto &get_w ) const {
     MapOfUniquePISortedArray<PI,0,nb_dims-1,int> item_to_vertex;
     item_to_vertex.init( cuts.size(), -1 );
 
-    using NScalar = DECAYED_TYPE_OF( get_w( *orig_weight, orig_index ) );
+    using NScalar = DECAYED_TYPE_OF( get_w( w0, i0 ) );
     using NPoint = Vec<NScalar,nb_dims>;
     Vec<NPoint> positions( FromReservationSize(), vertices.size() );
     for( PI i = 0; i < vertices.size(); ++i )
@@ -468,12 +495,11 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( Vec<Scalar,3
         VtkOutput::VTF convex_function;
         VtkOutput::VTF is_outside;
         for( const Vertex<Scalar,nb_dims> *vertex : vertices ) {
-            if ( orig_point && orig_weight )
-                convex_function << conv( CtType<VtkOutput::TF>(), sp( vertex->pos, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2 );
+            convex_function << conv( CtType<VtkOutput::TF>(), sp( vertex->pos, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2 );
             is_outside << vertex_has_cut( *vertex, []( SI v ) { return v < 0; } );
             points << to_vtk( vertex->pos );
         }
-        if ( orig_point && orig_weight )
+        if ( p0 && w0 )
             vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } );
         else
             vo.add_polygon( points, { { "is_outside", is_outside } } );
@@ -515,7 +541,7 @@ DTP void UTP::add_cut_types( CountOfCutTypes &cct, const auto &num_cuts, SI nb_b
 
 DTP void UTP::get_used_fbs( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds ) const {
     if ( ! empty() )
-        used_fs[ orig_index ] = true;
+        used_fs[ i0 ] = true;
     for_each_vertex( [&]( const Vertex<Scalar,nb_dims> &v ) {
         for( PI num_cut : v.num_cuts ) {
             SI ind = cuts[ num_cut ].n_index;
@@ -529,7 +555,7 @@ DTP void UTP::get_used_fbs( Vec<bool> &used_fs, Vec<bool> &used_bs, PI nb_bnds )
 
 DTP bool UTP::has_inf_cut( const Vertex<Scalar,nb_dims> &vertex ) const {
     for( const PI num_cut : vertex.num_cuts )
-        if ( cuts[ num_cut ].n_index < 0 )
+        if ( cuts[ num_cut ].is_inf() )
             return true;
     return false;
 }
@@ -551,7 +577,7 @@ DTP bool UTP::contains( const Point &x ) const {
 }
 
 DTP Scalar UTP::height( const Point &point ) const {
-    return sp( point, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
+    return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 
 DTP bool UTP::empty() const {

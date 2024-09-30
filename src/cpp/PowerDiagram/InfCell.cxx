@@ -13,7 +13,22 @@
 #define DTP template<class Scalar,int nb_dims>
 #define UTP InfCell<Scalar,nb_dims>
 
-DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
+DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
+    const Point dir = p1 - p0;
+    auto n = norm_2_p2( dir );
+    auto s0 = sp( dir, p0 );
+    auto s1 = sp( dir, p1 );
+
+    auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+
+    _cut( Cut<Scalar,nb_dims>::Dirac, dir, off, p1, w1, i1 );
+}
+
+DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
+    _cut( Cut<Scalar,nb_dims>::Boundary, dir, off, {}, {}, num_boundary );
+}
+
+DTP void UTP::_cut( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
         if ( sp( vertices[ num_vertex ].pos, dir ) > off ) {
@@ -23,7 +38,7 @@ DTP void UTP::cut( const Point &dir, Scalar off, SI point_index ) {
     }
 
     // add the new cut
-    PI new_cut = cuts.push_back_ind( point_index, dir, off );
+    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1 );
 
     // create the new vertices (from all the new cut combinations)
     if ( nb_dims && new_cut >= PI( nb_dims - 1 ) ) {
@@ -217,7 +232,7 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
 }
 
 DTP Scalar UTP::height( const Point &point ) const {
-    return sp( point, *orig_point ) - ( norm_2_p2( *orig_point ) - *orig_weight ) / 2;
+    return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 
 #undef DTP

@@ -30,49 +30,34 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Span<Point> points, Span<Sc
     // base cell
     base_cell.make_init_simplex( min_box_pos, max_box_pos );
     for( PI i = 0; i < bnd_offs.size(); ++i )
-        base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
+        base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 
     // base inf cell
     for( PI i = 0; i < bnd_offs.size(); ++i )
-        base_inf_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
+        base_inf_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 }
 
 DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
-    const Scalar &w0 = *cell.orig_weight;
-    const Point &p0 = *cell.orig_point;
-    const PI i0 = cell.orig_index;
-
-    const PI nb_bnds = bnd_offs.size();
-
-    // helper
-    auto cut = [&]( const Point &p1, const Scalar &w1, PI i1 ) {
-        const Point dir = p1 - p0;
-        auto n = norm_2_p2( dir );
-        auto s0 = sp( dir, p0 );
-        auto s1 = sp( dir, p1 );
-        auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
-
-        cell.cut( dir, off, nb_bnds + i1 );
-    };
+    const PI i0 = cell.i0;
 
     // intersections with the points in the same box
-    rb_base.leaf->for_each_point( [&]( const Point &p1, const Scalar &w1, const PI i1 ) {
+    rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
         if ( i1 != i0 )
-            cut( p1, w1, i1 );
+            cell.cut_dirac( p1, w1, i1 );
     } );
 
     // helper to test if a bow may contain a dirac that can create a new cut
     const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
         for( const Vertex<Scalar,nb_dims> &vertex : cell.vertices )
-            if ( point_tree->may_intersect( vertex.pos, p0, w0 ) )
+            if ( point_tree->may_intersect( vertex.pos, cell.p0, cell.w0 ) )
                 return true;
         return false;
     };
 
     // intersections with the points other boxes that may create intersections
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-        rb.leaf->for_each_point( [&]( const Point &p1, const Scalar &w1, const PI i1 ) {
-            cut( p1, w1, i1 );
+        rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+            cell.cut_dirac( p1, w1, i1 );
         } );
     }
 }
@@ -109,9 +94,9 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
 
                         // make a base cell
                         cell.init_geometry_from( base_cell );
-                        cell.orig_weight = &w0;
-                        cell.orig_point = &p0;
-                        cell.orig_index = i0;
+                        cell.w0 = w0;
+                        cell.p0 = p0;
+                        cell.i0 = i0;
 
                         // make the cuts
                         make_intersections( cell, rb_base );
@@ -210,9 +195,9 @@ DTP Str UTP::type_name() {
 DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
     // make the inf cell (i.e. without the inf bounds)
     InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
-    inf_cell.orig_weight = cell.orig_weight;
-    inf_cell.orig_point = cell.orig_point;
-    inf_cell.orig_index = cell.orig_index;
+    inf_cell.w0 = cell.w0;
+    inf_cell.p0 = cell.p0;
+    inf_cell.i0 = cell.i0;
 
     make_intersections( inf_cell, rb_base );
 
@@ -232,7 +217,7 @@ DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb
     if ( has_outside_vertex ) {
         base_cell.make_init_simplex( min_box_pos, max_box_pos );
         for( PI i = 0; i < bnd_offs.size(); ++i )
-            base_cell.cut( bnd_dirs[ i ], bnd_offs[ i ], i );
+            base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
     }
 
     return has_outside_vertex;

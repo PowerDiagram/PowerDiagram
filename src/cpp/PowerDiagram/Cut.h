@@ -11,11 +11,18 @@ template<class Scalar,int nb_dims>
 class Cut { // STD_TL_TYPE_INFO( Cut, "", n_index, dir, sp )
 public:
     using  Point    = Vec<Scalar,nb_dims>;
+    enum   Type     { Dirac, Boundary, Infinity };
 
-    /**/   Cut      ( SI n_index = -1, Point dir = {}, Scalar sp = {} ) : n_index( n_index ), dir( dir ), sp( sp ) {}
-    bool   is_inf   () const { return n_index < 0; }
+    /**/   Cut      ( Type type, const Point &dir, Scalar sp, const Point &p1, Scalar w1, PI i1 ) : type( type ), dir( dir ), sp( sp ), p1( p1 ), w1( w1 ), i1( i1 ) {}
+    /**/   Cut      () {}
 
-    SI     n_index;
+    bool   is_inf   () const { return type == Infinity; }
+
+    Type   type;
     Point  dir;
     Scalar sp;
+
+    Point  p1;
+    Scalar w1;
+    PI     i1;
 };

@@ -29,7 +29,8 @@ public:
 
     void                        init_geometry_from ( const Cell &that );
     void                        make_init_simplex  ( const Point &min_pos, const Point &max_pos );
-    void                        cut                ( const Point &dir, Scalar off, SI point_index );
+    void                        cut_boundary       ( const Point &dir, Scalar off, PI num_boundary );
+    void                        cut_dirac          ( const Point &p1, Scalar w1, PI i1 );
 
     void                        display_vtk        ( VtkOutput &vo, const std::function<void( Vec<Scalar,3> &pt )> &coord_change ) const; ///<
     void                        display_vtk        ( VtkOutput &vo ) const; ///<
@@ -48,23 +49,21 @@ public:
     Scalar                      height             ( const Point &point ) const;
     bool                        empty              () const;
 
-    PI                          vertex_list_size;  ///<
-    PI                          vertex_list_capa;  ///<
-    AlignedVec                  vertex_coords;     ///< x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 ...
-    Vec<Vec<int,nb_dims>>       vertex_cuts;       ///<
+    // PI                          vertex_list_size;  ///<
+    // PI                          vertex_list_capa;  ///<
+    // AlignedVec                  vertex_coords;     ///< x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 ...
+    // Vec<Vec<int,nb_dims>>       vertex_cuts;       ///<
 
     Vec<Vertex<Scalar,nb_dims>> vertices;          ///<
     Vec<Edge<Scalar,nb_dims>>   edges;             ///<
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
 
-    const Scalar*               orig_weight        = nullptr; ///<
-    const Point*                orig_point         = nullptr; ///<
-    SI                          orig_index;        ///<
+    Scalar                      w0;                ///<
+    Point                       p0;                ///<
+    SI                          i0;                ///<
 
 private:
     using                       FaceToInt          = MapOfUniquePISortedArray<PI,nb_dims-2,nb_dims-2,int>;
-
-
 
     T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
     T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );
@@ -77,7 +76,7 @@ private:
     Point                       compute_pos        ( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const;
     auto                        compute_pos        ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                       compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
-
+    void                        _cut               ( Cut<Scalar,nb_dims>::Type type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 );
 
     FaceToInt                   waiting_vertices;  ///<
     Vec<int>                    vertex_corr;       ///<
