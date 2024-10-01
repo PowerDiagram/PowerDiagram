@@ -74,6 +74,6 @@ void test_astro( std::string filename, PI mp ) {
 TEST_CASE( "Astro 3D", "" ) {
     //prof = new amgcl::profiler<>( "sdot" );
     // test_astro<double,3>( "/home/leclerc/test_amg/16M.xyz32.bin" );
-    for( PI i = 13; i <= 28; i += 2 )
+    for( PI i = 16; i <= 16; i += 1 )
         test_astro<double,3>( "/home/leclerc/test_amg/Points_1000000.xyz", i );
 }
