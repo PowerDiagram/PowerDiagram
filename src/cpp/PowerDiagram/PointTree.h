@@ -3,6 +3,7 @@
 #include <tl/support/memory/UniquePtr.h>
 #include <tl/support/containers/Vec.h>
 #include "PointTreeCtorParms.h"
+#include "SimdTensor.h"
 
 #ifndef AVOID_DISPLAY
 #include <tl/support/Displayer.h>
@@ -29,7 +30,8 @@ public:
     virtual void         for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
-    virtual bool         may_intersect ( const Point &vertex, const Point &p0, Scalar w0 ) const = 0;
+    virtual bool         may_intersect ( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const = 0;
+    virtual bool         may_intersect ( const Vec<Point> &vertices, const Point &p0, Scalar w0 ) const = 0;
     PointTree*           first_leaf    (); ///<
     PointTree*           next_leaf     (); ///<
     virtual Point        min_point     () const = 0;

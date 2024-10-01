@@ -30,10 +30,13 @@ DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
 
 DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
     // remove vertices that are outside the cut
-    for( PI num_vertex = 0; num_vertex < vertices.size(); ++num_vertex ) {
-        if ( sp( vertices[ num_vertex ].pos, dir ) > off ) {
-            auto repl = vertices.pop_back_val();
-            vertices[ num_vertex-- ] = repl;
+    for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
+        if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
+            auto rco = vertex_coords.pop_back_val();
+            auto rcu = vertex_cuts.pop_back_val();
+            vertex_coords[ num_vertex ] = rco;
+            vertex_cuts[ num_vertex ] = rcu;
+            --num_vertex;
         }
     }
 
@@ -50,17 +53,18 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
             num_cuts[ nb_dims - 1 ] = new_cut;
 
             // early return if parallel cuts
-            Opt<Point> pos = compute_pos( num_cuts );
-            if ( ! pos )
+            Opt<Point> coords = compute_pos( num_cuts );
+            if ( ! coords )
                 return;
 
             // early return if the new vertex is outside
             for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
-                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *pos, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
+                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
                     return;
 
             // else, register the new vertex
-            vertices.push_back( num_cuts, *pos );
+            vertex_coords << *coords;
+            vertex_cuts << num_cuts;
         }, nb_dims - 1, new_cut );
     }
 
@@ -71,8 +75,8 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
 DTP void UTP::clean_inactive_cuts() {
     // mark cuts used by actives vertices
     Vec<int> keep( FromSizeAndItemValue(), cuts.size(), 0 );
-    for( const Vertex<Scalar,nb_dims> &vertex : vertices )
-        for( PI num_cut : vertex.num_cuts )
+    for( const auto &num_cuts : vertex_cuts )
+        for( PI num_cut : num_cuts )
             keep[ num_cut ] = true;
 
     // "inactive" cuts may actually be used
@@ -84,8 +88,8 @@ DTP void UTP::clean_inactive_cuts() {
     apply_corr( cuts, keep );
 
     // update the vertex list
-    for( Vertex<Scalar,nb_dims> &vertex : vertices )
-        for( PI &num_cut : vertex.num_cuts )
+    for( auto &num_cuts : vertex_cuts )
+        for( PI &num_cut : num_cuts )
             num_cut = keep[ num_cut ];
 }
 
@@ -214,13 +218,13 @@ DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const 
 }
 
 DTP void UTP::for_each_repr_point( const std::function<void( const Point &pos )> &f ) const {
-    for( const Vertex<Scalar,nb_dims> &v : vertices )
-        f( v.pos );
+    for( const auto &v : vertex_coords )
+        f( v );
 }
 
-DTP void UTP::for_each_vertex( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const {
-    for( const Vertex<Scalar,nb_dims> &v : vertices )
-        f( v );
+DTP void UTP::for_each_vertex( const std::function<void( const Point &coords, const Vec<PI,nb_dims> &cuts )> &f ) const {
+    for( PI i = 0; i < nb_vertices(); ++i )
+        f( vertex_coords[ i ], vertex_cuts[ i ] );
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const { //

@@ -54,15 +54,6 @@
 //     for( PI n = 4; n < 50; ++n )
 //         test_rand<double,3>( 500, n );
 // }
-template<class Scalar,int nb_dims>
-class SdotSolver {
-public:
-    using Pd        = PowerDiagram<Scalar,nb_dims>;
-
-    /**/  SdotSolver( Pd &pd ) : pd( pd ) {}
-
-    Pd&   pd;
-};
 
 template<class Scalar,int nb_dims>
 void test_speed( PI nb_cells, std::string filename = {} ) {
@@ -70,13 +61,11 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
     Vec<Scalar> weights;
     Vec<Point> points;
-    Vec<PI> indices;
     for( PI i = 0; i < nb_cells; ++i ) {
         Point p;
         for( PI d = 0; d < nb_dims; ++d )
             p[ d ] = Scalar( rand() ) / RAND_MAX;
         weights << 0;
-        indices << i;
         points  << p;
     }
 
@@ -92,19 +81,18 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     auto tStartSteady = std::chrono::steady_clock::now();
 
     PointTreeCtorParms cp;
-    PowerDiagram<Scalar,nb_dims> pd( cp, points, weights, indices, bnd_dirs, bnd_offs );
+    PowerDiagram<Scalar,nb_dims> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
 
+    Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    // Vec<Scalar> nb_points; 22 en moyenne
+    pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
+        volumes[ num_thread ] += cell.measure();
+        // nb_points << cell.vertices.size();
+    } );
 
-
-    // Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    // // Vec<Scalar> nb_points; 22 en moyenne
-    // pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
-    //     volumes[ num_thread ] += cell.measure();
-    //     // nb_points << cell.vertices.size();
-    // } );
-    // auto tEndSteady = std::chrono::steady_clock::now();
-    // std::chrono::nanoseconds diff = tEndSteady - tStartSteady;
-    // std::cout << "Time taken = " << diff.count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
+    auto tEndSteady = std::chrono::steady_clock::now();
+    std::chrono::nanoseconds diff = tEndSteady - tStartSteady;
+    std::cout << "Time taken = " << diff.count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
 
     // P( mean( nb_points ) );
 
@@ -119,5 +107,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 2D", "" ) {
-    test_speed<double,2>( 50, "out.vtk" );
+    test_speed<double,2>( 100, "out.vtk" );
 }

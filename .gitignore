@@ -11,6 +11,9 @@ modules
 callgrind.*
 *.bin
 perf.data*
+*.dblite
+*.exe
+*.o
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

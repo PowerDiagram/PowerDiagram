@@ -54,10 +54,7 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
 
     // helper to test if a bow may contain a dirac that can create a new cut
     const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
-        for( const Vertex<Scalar,nb_dims> &vertex : cell.vertices )
-            if ( point_tree->may_intersect( vertex.pos, cell.p0, cell.w0 ) )
-                return true;
-        return false;
+        return point_tree->may_intersect( cell.vertex_coords, cell.p0, cell.w0 );
     };
 
     // intersections with the points other boxes that may create intersections

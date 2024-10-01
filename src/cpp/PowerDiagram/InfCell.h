@@ -22,15 +22,18 @@ public:
     void                        display_vtk        ( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const; ///<
     void                        display_vtk        ( VtkOutput &vo ) const; ///<
 
-    void                        for_each_repr_point( const std::function<void( const Point &pos )> &f ) const;
-    void                        for_each_vertex    ( const std::function<void( const Vertex<Scalar,nb_dims> &v )> &f ) const;
+    void                        for_each_repr_point( const std::function<void( const Point &coords )> &f ) const;
+    void                        for_each_vertex    ( const std::function<void( const Point &coords, const Vec<PI,nb_dims> &cuts )> &f ) const;
+    PI                          nb_vertices        () const { return vertex_coords.size(); }
     Scalar                      height             ( const Point &point ) const;
+
 
     Scalar                      w0;                ///<
     Point                       p0;                ///<
     SI                          i0;                ///<
 
-    Vec<Vertex<Scalar,nb_dims>> vertices;          ///<
+    Vec<Point>                  vertex_coords;     ///<
+    Vec<Vec<PI,nb_dims>>        vertex_cuts;       ///<
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
 
 private:

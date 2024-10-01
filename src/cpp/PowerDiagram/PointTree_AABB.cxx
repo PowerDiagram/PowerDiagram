@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tl/support/containers/operators/argmax.h>
+#include <tl/support/containers/operators/argmin.h>
 #include <tl/support/TODO.h>
 #include <tl/support/P.h>
 
@@ -32,6 +33,8 @@ DTP void UTP::display( Displayer &ds ) const {
 #endif
 
 DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
+    using namespace std;
+
     const PI n = this->points.size();
     if ( n <= cp.max_nb_points ) {
         // if we have cells sharing the same point, we keep the one with the largest weight
@@ -66,32 +69,95 @@ DTP void UTP::init_children( const PointTreeCtorParms &cp ) {
         return;
     }
 
-    // inplace swap
-    PI dd = argmax( max_pos - min_pos );
-    Scalar sep = ( max_pos[ dd ] + min_pos[ dd ] ) / 2;
-    PI i = 0;
-    for( PI j = n - 1; ; ) {
-        // while we have points at the right place
-        while ( this->points[ i ][ dd ] <= sep )
+    if ( cp.divide_by_nd ) { // create 2^d children
+        Point sep = ( max_pos + min_pos ) / 2;
+
+        const auto ind = [&]( const Point &point ) {
+            PI res = 0;
+            for( PI d = 0, o = 1; d < nb_dims; ++d, o *= 2 )
+                res += o * ( point[ d ] > sep[ d ] );
+            return res;
+        };
+
+        constexpr PI ns = ( 1 << nb_dims );
+        Vec<PI,ns + 1> nb_points_per_sub_box( FromItemValue(), 0 );
+        for( PI i = 0; i < n; ++i )
+            ++nb_points_per_sub_box[ ind( this->points[ i ] ) ];
+
+        for( PI s = 0, a = 0; s <= ns; ++s )
+            nb_points_per_sub_box[ s ] = exchange( a, a + nb_points_per_sub_box[ s ] );
+
+        const Vec<PI,ns + 1> ends = nb_points_per_sub_box;
+        for( PI s = 0; s < ns; ++s ) {
+            for( PI i = nb_points_per_sub_box[ s ]; i < ends[ s + 1 ]; ) {
+                PI t = ind( this->points[ i ] );
+                if ( t == s ) {
+                    ++nb_points_per_sub_box[ s ];
+                    ++i;
+                } else {
+                    PI j = nb_points_per_sub_box[ t ];
+                    swap( this->indices[ i ], this->indices[ j ] );
+                    swap( this->weights[ i ], this->weights[ j ] );
+                    swap( this->points [ i ], this->points [ j ] );
+
+                    ++nb_points_per_sub_box[ t ];
+                }
+            }
+        }
+
+        for( PI s = 0; s < ns; ++s ) {
+            this->children << new PointTree_AABB( cp,
+                this->points .subspan( ends[ s + 0 ], ends[ s + 1 ] ),
+                this->weights.subspan( ends[ s + 0 ], ends[ s + 1 ] ),
+                this->indices.subspan( ends[ s + 0 ], ends[ s + 1 ] ),
+                this,
+                s
+            );
+        }
+    } else { // create 2 children
+        PI dd = argmax( max_pos - min_pos );
+        Scalar sep = ( max_pos[ dd ] + min_pos[ dd ] ) / 2;
+
+        if ( cp.make_histogram ) {
+            constexpr PI histo_size = 60;
+            Vec<PI,histo_size + 1> histo( FromItemValue(), 0 );
+            Scalar coeff = histo_size / ( max_pos[ dd ] - min_pos[ dd ] ) * ( 1 - 10 * numeric_limits<Scalar>::epsilon() );
+            for( PI i = 0; i < n; ++i )
+                ++histo[ int( ( this->points[ i ][ dd ] - min_pos[ dd ] ) * coeff ) ];
+            // P( n, histo );
+
+            for( PI s = 0, a = 0; s <= histo_size; ++s )
+                histo[ s ] = abs( exchange( a, a + histo[ s ] ) - n / 2.0 );
+            // P( histo );
+
+            PI num = max( 2, min( histo_size - 3, argmin( histo ) ) );
+            sep = min_pos[ dd ] + num * ( max_pos[ dd ] - min_pos[ dd ] ) / histo_size;
+        }
+
+        // inplace swap
+        PI i = 0;
+        for( PI j = n - 1; ; ) {
+            // while we have points at the right place
+            while ( this->points[ i ][ dd ] <= sep )
+                ++i;
+            while ( this->points[ j ][ dd ] > sep )
+                --j;
+            if ( j < i )
+                break;
+
+            // swap the 2 points that are at the wrong places
+            swap( this->indices[ i ], this->indices[ j ] );
+            swap( this->weights[ i ], this->weights[ j ] );
+            swap( this->points [ i ], this->points [ j ] );
             ++i;
-        while ( this->points[ j ][ dd ] > sep )
             --j;
-        if ( j < i )
-            break;
+            if ( j < i )
+                break;
+        }
 
-        // swap the 2 points that are at the wrong places
-        std::swap( this->indices[ i ], this->indices[ j ] );
-        std::swap( this->weights[ i ], this->weights[ j ] );
-        std::swap( this->points [ i ], this->points [ j ] );
-        ++i;
-        --j;
-        if ( j < i )
-            break;
+        this->children << new PointTree_AABB( cp, this->points.subspan( 0, i ), this->weights.subspan( 0, i ), this->indices.subspan( 0, i ), this, 0 );
+        this->children << new PointTree_AABB( cp, this->points.subspan( i, n ), this->weights.subspan( i, n ), this->indices.subspan( i, n ), this, 1 );
     }
-
-    // create 2 children
-    this->children << new PointTree_AABB( cp, this->points.subspan( 0, i ), this->weights.subspan( 0, i ), this->indices.subspan( 0, i ), this, 0 );
-    this->children << new PointTree_AABB( cp, this->points.subspan( i, n ), this->weights.subspan( i, n ), this->indices.subspan( i, n ), this, 1 );
 }
 
 DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
@@ -154,10 +220,55 @@ DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
     }
 }
 
-DTP bool UTP::may_intersect( const Point &vertex, const Point &p0, Scalar w0 ) const {
-    Point q1 = min( max_pos, max( min_pos, vertex + Scalar( 1 ) / 2 * coeff_weights ) );
-    Point p1 = inv_sym( q1, this->num_sym );
-    return norm_2_p2( vertex - p0 ) - w0 > norm_2_p2( vertex - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;
+DTP bool UTP::may_intersect( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const {
+    using namespace xsimd;
+    using namespace std;
+
+    using SimdVec = SimdTensor<Scalar,nb_dims>::SimdVec;
+    constexpr PI simd_size = SimdVec::size;
+
+    //return norm_2_p2( vertex - p0 ) > norm_2_p2( vertex - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights - w0;
+    // Point p1 = min( max_pos, max( min_pos, vertex + Scalar( 1 ) / 2 * coeff_weights ) );
+    const PI floor_of_nb_vertices = vertices.size() / simd_size * simd_size;
+    for( PI n = 0; n < floor_of_nb_vertices; n += simd_size ) {
+        // return norm_2_p2( vertex - p0 ) - norm_2_p2( vertex - p1 ) + sp( coeff_weights, p1 ) + max_offset_weights - w0 > 0;        
+        SimdVec res = max_offset_weights - w0;
+        for( int d = 0; d < nb_dims; ++d ) {
+            SimdVec pos = SimdVec::load_aligned( vertices.data() + vertices.offset( n, d ) );
+      
+            SimdVec p1d = xsimd::min( SimdVec( max_pos[ d ] ), xsimd::max( SimdVec( min_pos[ d ] ), pos + Scalar( 1 ) / 2 * coeff_weights[ d ] ) );
+            SimdVec vp0 = pos - p0[ d ];
+            SimdVec vp1 = pos - p1d;
+
+            res += vp0 * vp0;
+            res -= vp1 * vp1;
+            res -= coeff_weights[ d ] * p1d;
+        }
+
+        if ( xsimd::any( res > 0 ) )
+            return true;
+    }
+
+    for( PI n = floor_of_nb_vertices; n < vertices.size(); ++n ) {
+        // Point p1 = inv_sym( q1, this->num_sym );
+        Point vp = vertices[ n ];
+        Point p1 = min( max_pos, max( min_pos, vp + Scalar( 1 ) / 2 * coeff_weights ) );
+        if ( norm_2_p2( vp - p0 ) - w0 > norm_2_p2( vp - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights )
+            return true;
+    }
+
+    return false;
+}
+
+DTP bool UTP::may_intersect( const Vec<Point> &vertices, const Point &p0, Scalar w0 ) const {
+    for( PI n = 0; n < vertices.size(); ++n ) {
+        Point vp = vertices[ n ];
+     
+        Point p1 = min( max_pos, max( min_pos, vp + Scalar( 1 ) / 2 * coeff_weights ) );
+        if ( norm_2_p2( vp - p0 ) - w0 > norm_2_p2( vp - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights )
+            return true;
+    }
+    return false;
 }
 
 DTP Str UTP::type_name() {

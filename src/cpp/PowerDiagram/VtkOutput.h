@@ -32,7 +32,7 @@ public:
     void            add_pyramid          ( Vec<Pt,5> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
     void            add_wedge            ( Vec<Pt,6> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
     void            add_tetra            ( Vec<Pt,4> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
-    void            add_point            ( Pt pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
+    void            add_point            ( Pt pt, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
     void            add_hexa             ( Vec<Pt,8> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
     void            add_quad             ( Vec<Pt,4> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
     void            add_edge             ( Vec<Pt,2> pts, const std::map<std::string,VTF> &point_data = {}, const std::map<std::string,TF> &cell_data = {} );
