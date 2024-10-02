@@ -1,78 +1,63 @@
 #pragma once
 
 #include <tl/support/containers/Vec.h>
+#include <tl/support/Displayer.h>
 #include <tl/support/compare.h>
 #include <map>
 
 /**
 
 */
-template<class T,int s_min,int s_max,class Val>
+template<int s_min,int s_max>
 struct MapOfUniquePISortedArray {
-    using Tail      = MapOfUniquePISortedArray<T,s_min,s_max-1,Val>;
-    using Head      = MapOfUniquePISortedArray<T,s_max,s_max,Val>;
+    using Tail            = MapOfUniquePISortedArray<s_min,s_max-1>;
+    using Head            = MapOfUniquePISortedArray<s_max,s_max>;
 
-    void  init      ( PI max_PI_value, const Val &default_value = {} ) { head.init( max_PI_value, default_value ); tail.init( max_PI_value, default_value ); }
+    void  set_max_PI_value( PI max_PI_value ) { head.set_max_PI_value( max_PI_value ); tail.set_max_PI_value( max_PI_value ); }
 
-    Val&  operator[]( const Vec<T,s_max> &a ) { return head[ a ]; }
-    Val&  operator[]( const auto &a ) { return tail[ a ]; }
+    PI&   operator[]      ( const Vec<PI,s_max> &a ) { return head[ a ]; }
+    PI&   operator[]      ( const auto &a ) { return tail[ a ]; }
 
-    void  display   ( Displayer &ds, bool make_array = true ) const { if ( make_array ) ds.start_array(); ds << head; tail.display( ds, false ); if ( make_array ) ds.end_array();}
+    void  display         ( Displayer &ds, bool make_array = true ) const { if ( make_array ) ds.start_array(); ds << head; tail.display( ds, false ); if ( make_array ) ds.end_array();}
 
     Head  head;
     Tail  tail;
 };
 
 /// single dim, generic case
-template<class T,int s,class Val>
-struct MapOfUniquePISortedArray<T,s,s,Val> {
-    using Vals           = std::map<Vec<T,s>,Val,Less>;
+template<int s>
+struct MapOfUniquePISortedArray<s,s> {
+    using Map             = std::map<Vec<PI,s>,PI,Less>;
 
-    void  init           ( PI max_PI_value, const Val &default_value = {} ) { this->default_value = default_value; }
+    void  set_max_PI_value( PI max_PI_value ) { values.clear(); }
 
-    Val&  operator[]     ( Vec<T,s> a ) { auto iter = values.find( a ); if ( iter == values.end() ) iter = values.insert( iter, { a, default_value } ); return iter->second; }
+    PI&   operator[]      ( Vec<PI,s> a ) { auto iter = values.find( a ); if ( iter == values.end() ) iter = values.insert( iter, { a, 0 } ); return iter->second; }
 
-    void  display        ( Displayer &ds, bool make_array = true ) const { ds << values; }
+    void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 
-    Val   default_value; ///<
-    Vals  values;        ///<
-};
-
-
-/// single dim, s == -1
-template<class T,class Val>
-struct MapOfUniquePISortedArray<T,-1,-1,Val> {
-    void init             ( PI /*max_PI_value*/, const Val &default_value = {} ) {}
-    // Val& operator[]    ( Vec<T,0> ) { TODO; }
-};
-
-/// single dim, s == -2
-template<class T,class Val>
-struct MapOfUniquePISortedArray<T,-2,-2,Val> {
-    void init             ( PI /*max_PI_value*/, const Val &default_value = {} ) {}
-    // Val& operator[]    ( Vec<T,0> ) { TODO; }
+    Map   values;         ///<
 };
 
 /// single dim, s == 0
-template<class T,class Val>
-struct MapOfUniquePISortedArray<T,0,0,Val> {
-    void init             ( PI /*max_PI_value*/, const Val &default_value = {} ) { value = default_value; }
+template<>
+struct MapOfUniquePISortedArray<0,0> {
+    void set_max_PI_value ( PI /*max_PI_value*/ ) {}
 
-    Val& operator[]       ( Vec<T,0> ) { return value; }
+    PI&  operator[]       ( Vec<PI,0> ) { return value; }
 
     void display          ( Displayer &ds, bool make_array = true ) const { ds << value; }
 
-    Val  value;           ///<
+    PI   value;           ///<
 };
 
 /// single dim, s == 1
-template<class T,class Val>
-struct MapOfUniquePISortedArray<T,1,1,Val> {
-    using Vals            = Vec<Val>;
+template<>
+struct MapOfUniquePISortedArray<1,1> {
+    using Vals            = Vec<PI>;
 
-    void  init            ( PI max_PI_value, const Val &default_value = {} ) { values.resize( max_PI_value ); for( Val &val : values ) val = default_value; }
+    void  set_max_PI_value( PI max_PI_value ) { values.resize( max_PI_value, 0 ); }
 
-    Val&  operator[]      ( Vec<T,1> a ) { return values[ a[ 0 ] ]; }
+    PI&   operator[]      ( Vec<PI,1> a ) { return values[ a[ 0 ] ]; }
 
     void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 
@@ -80,13 +65,13 @@ struct MapOfUniquePISortedArray<T,1,1,Val> {
 };
 
 /// single dim, s == 2
-template<class T,class Val>
-struct MapOfUniquePISortedArray<T,2,2,Val> {
-    using Vals            = Vec<Val>;
+template<>
+struct MapOfUniquePISortedArray<2,2> {
+    using Vals            = Vec<PI>;
 
-    void  init            ( PI max_PI_value, const Val &default_value = {} ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2 ); for( Val &val : values ) val = default_value; }
+    void  set_max_PI_value( PI max_PI_value ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2, 0 ); }
 
-    Val&  operator[]      ( Vec<T,2> a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
+    PI&   operator[]      ( Vec<PI,2> a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
 
     void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 

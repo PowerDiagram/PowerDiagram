@@ -4,6 +4,6 @@
 
 struct PointTreeCtorParms {
     PI   max_nb_points  = 20;
-    bool make_histogram = 1;
+    bool make_histogram = 0;
     bool divide_by_nd   = 0;
 };

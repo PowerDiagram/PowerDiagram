@@ -36,6 +36,8 @@ public:
     Vec<Vec<PI,nb_dims>>        vertex_cuts;       ///<
     Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
 
+    Vec<std::tuple<Point,Scalar,PI>> otps;
+
 private:
     T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
     T_Ti static auto            array_with_value   ( const Vec<T,i> &a, T value );

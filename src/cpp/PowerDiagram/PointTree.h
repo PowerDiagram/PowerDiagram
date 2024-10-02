@@ -28,6 +28,7 @@ public:
     #endif
 
     virtual void         for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) = 0;
+    virtual void         get_otps      ( Vec<std::tuple<Point,Scalar,PI>> &otps, const Point &p0, PI i0 ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
     virtual bool         may_intersect ( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const = 0;

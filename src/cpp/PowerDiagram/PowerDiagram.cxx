@@ -44,13 +44,17 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<S
 }
 
 DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
-    const PI i0 = cell.i0;
+    // const PI i0 = cell.i0;
 
     // intersections with the points in the same box
-    rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-        if ( i1 != i0 )
-            cell.cut_dirac( p1, w1, i1 );
-    } );
+    // rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+    //     if ( i1 != i0 )
+    //         cell.cut_dirac( p1, w1, i1 );
+    // } );
+
+    rb_base.leaf->get_otps( cell.otps, cell.p0, cell.i0 );
+    for( const auto &t : cell.otps )
+        cell.cut_dirac( std::get<0>( t ), std::get<1>( t ), std::get<2>( t ) );
 
     // helper to test if a bow may contain a dirac that can create a new cut
     const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
@@ -59,9 +63,12 @@ DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dim
 
     // intersections with the points other boxes that may create intersections
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-        rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-            cell.cut_dirac( p1, w1, i1 );
-        } );
+        rb.leaf->get_otps( cell.otps, cell.p0, -1 );
+        for( const auto &t : cell.otps )
+            cell.cut_dirac( std::get<0>( t ), std::get<1>( t ), std::get<2>( t ) );
+        // rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        //     cell.cut_dirac( p1, w1, i1 );
+        // } );
     }
 }
 

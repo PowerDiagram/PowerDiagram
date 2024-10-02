@@ -17,10 +17,6 @@
 DTP UTP::Cell() {
     vertex_coords.reserve( 128 );
     sps.reserve( 128 );
-    
-    otps.reserve( 32 );
-
-    curr_op_id = 1;
 }
 
 DTP void UTP::init_geometry_from( const Cell &that ) {
@@ -61,6 +57,22 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
         vertex_coords << compute_pos( num_cuts );
         vertex_cuts << num_cuts;
     }
+
+    // edges
+    for( int nc_0 = 0; nc_0 < nb_dims; ++nc_0 ) {
+        Vec<PI,nb_dims-1> num_cuts;
+        for( int i = 0; i < nc_0; ++i )
+            num_cuts[ i ] = i;
+
+        for( int nc_1 = nc_0 + 1; nc_1 < nb_dims + 1; ++nc_1 ) {
+            for( int i = nc_0 + 1; i < nc_1; ++i )
+                num_cuts[ i - 1 ] = i;
+            for( int i = nc_1 + 1; i < nb_dims + 1; ++i )
+                num_cuts[ i - 2 ] = i;
+
+            edges.push_back( num_cuts, Vec<PI,2>{ PI( nc_0 ), PI( nc_1 ) } );
+        }
+    }
 }
 
 DTP void UTP::apply_corr( auto &v0, auto &v1, Vec<int> &keep ) {
@@ -84,7 +96,7 @@ DTP void UTP::apply_corr( auto &v0, auto &v1, Vec<int> &keep ) {
     v1.resize( last_keep );
 }
 
-DTP void UTP::apply_corr( Vec<int> &keep, auto &vec ) {
+DTP void UTP::apply_corr( auto &vec, Vec<int> &keep ) {
     int last_keep = vec.size();
     for( int i = 0; i < last_keep; ++i ) {
         if ( keep[ i ] ) {
@@ -163,18 +175,33 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 }
 
-DTP bool UTP::_inside_test( const Point &dir, Scalar off ) {
+DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
+    _cut( CutType::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
+}
+
+DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
+    const Point dir = p1 - p0;
+    auto n = norm_2_p2( dir );
+    auto s0 = sp( dir, p0 );
+    auto s1 = sp( dir, p1 );
+
+    auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
+
+    _cut( CutType::Dirac, dir, off, p1, w1, i1 );
+}
+
+DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
-    // if all vertices are inside, return true
+    // test if at least one vertex is outside
     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
     for( PI num_vertex = 0; ; num_vertex += simd_size ) {
         // end of the loop with individual items
         if ( num_vertex == floor_of_nb_vertices ) {
             for( ; ; ++num_vertex ) {
                 if ( num_vertex == nb_vertices() )
-                    return true;
+                    return;
                 if ( sp( vertex_coords[ num_vertex ], dir ) > off )
                     break;
             }
@@ -189,172 +216,117 @@ DTP bool UTP::_inside_test( const Point &dir, Scalar off ) {
             break;
     }
 
-    // else, store the scalar product for each vertex
+    // store scalar product for each vertex
+    vertex_corr.resize( vertex_coords.size() );
     sps.resize( vertex_coords.size() );
-    cut_corr.resize( cuts.size() );
-    cut_corr.fill( 0 );
     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
         Scalar *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
-        SimdVec sp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
+        SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
         for( int d = 1; d < nb_dims; ++d )
-            sp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
-        sp -= off;
+            csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
+        SimdVec ext = csp - off;
 
-        sp.store_aligned( sps.data() + num_vertex );
-
-        for( PI n = 0; n < simd_size; ++n )
-            if ( ! ( sp.get( n ) > 0 ) )
-                for( const PI &num_cut : vertex_cuts[ num_vertex + n ] )
-                    cut_corr[ num_cut ] = 1;
+        ext.store_aligned( sps.data() + num_vertex );
+        for( int n = 0; n < simd_size; ++n )
+            vertex_corr[ num_vertex + n ] = ! ( ext.get( n ) > 0 );
     }
     for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex ) {
-        Scalar sp = sp( vertex_coords[ num_vertex ], dir ) - off;
-
-        sps[ num_vertex ] = sp;
-
-        if ( ! ( sp > 0 ) )
-            for( const PI &num_cut : vertex_cuts[ num_vertex ] )
-                cut_corr[ num_cut ] = 1;
+        Scalar ext = sp( vertex_coords[ num_vertex ], dir ) - off;
+        vertex_corr[ num_vertex ] = ! ( ext > 0 );
+        sps[ num_vertex ] = ext;
     }
-
-    return false;
-}
-
-DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
-    // test if all points are inside, make the scalar products and get used cuts
-    if ( _inside_test( dir, off ) )
-        return;
-
-    // remove unused cuts
-    apply_corr( cut_corr, cuts );
-    for( auto &num_cuts : vertex_cuts )
-        for( PI &num_cut : num_cuts )
-            num_cut = cut_corr[ num_cut ];
 
     // add the new cut
     PI new_cut = cuts.size();
     cuts.push_back( type, dir, off, p1, w1, i1 );
 
-    // add the new vertices
-    edge_map.set_max_PI_value( new_cut );
-    PI op_id = std::exchange( curr_op_id, curr_op_id + nb_vertices() );
-    for( PI num_vertex = 0, nv = nb_vertices(); num_vertex < nv; ++num_vertex ) {
-        const bool ext_0 = sps[ num_vertex ] > 0;
-        for( PI ind_cut = 0; ind_cut < nb_dims; ++ind_cut ) {
-            auto edge_cuts = vertex_cuts[ num_vertex ].without_index( ind_cut );
-            PI &edge_op_id = edge_map[ edge_cuts ];
-            if ( edge_op_id >= op_id ) {
-                const PI &oth_vertex = edge_op_id - op_id;
-                const bool ext_1 = sps[ num_vertex ] > 0;
+    //
+    if constexpr ( nb_dims >= 2 )
+        waiting_vertices.init( cuts.size(), -1 );
 
-                if ( )
+    // for each edge
+    edge_corr.resize( edges.size() );
+    for( PI num_edge = 0, nb_edges = edges.size(); num_edge < nb_edges; ++num_edge ) {
+        Edge<Scalar,nb_dims> *edge = &edges[ num_edge ];
+
+        // helper to create the new edges (on faces that have a cut)
+        auto add_to_waiting_vertices = [&]( auto face, PI vertex ) {
+            int &wv = waiting_vertices[ face ];
+            if ( wv >= 0 ) {
+                edges.push_back( face.with_pushed_value( new_cut ), Vec<PI,2>{ PI( wv ), vertex } );
+                edge = &edges[ num_edge ];
+                wv = -1;
             } else
-                edge_op_id = op_id + num_vertex;
+                wv = vertex;
+        };
+
+        // all ext => remove it
+        const PI o0 = edge->vertices[ 0 ];
+        const PI o1 = edge->vertices[ 1 ];
+        const Scalar s0 = sps[ o0 ];
+        const Scalar s1 = sps[ o1 ];
+        const bool e0 = s0 > 0;
+        const bool e1 = s1 > 0;
+        if ( e0 && e1 ) {
+            edge_corr[ num_edge ] = 0;
+            continue;
+        }
+
+        // => we're going to keep this edge (potentially with a modification)
+        edge_corr[ num_edge ] = 1;
+
+        // only v0 is ext
+        if ( e0 ) {
+            const PI nv = vertex_coords.size();
+            edge->vertices[ 0 ] = nv;
+
+            // new point
+            Point new_pos = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
+            auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
+            vertex_coords << new_pos;
+            vertex_cuts << num_cuts;
+
+            // add a waiting vertex for each face
+            if constexpr ( nb_dims >= 2 )
+                for( int d = 0; d < nb_dims - 1; ++d )
+                    add_to_waiting_vertices( edge->num_cuts.without_index( d ), nv );
+
+            continue;
+        }
+
+        // only v1 is ext
+        if ( e1 ) {
+            const PI nv = vertex_coords.size();
+            edge->vertices[ 1 ] = nv;
+
+            Point new_coords = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
+            auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
+            vertex_coords << new_coords;
+            vertex_cuts << num_cuts;
+
+            // add a waiting vertex for each face
+            if constexpr ( nb_dims >= 2 )
+                for( int d = 0; d < nb_dims - 1; ++d )
+                    add_to_waiting_vertices( edge->num_cuts.without_index( d ), nv );
+
+            continue;
         }
     }
 
-    // //
-    // if constexpr ( nb_dims >= 2 )
-    //     waiting_vertices.init( cuts.size(), -1 );
+    // move vertices to the new positions
+    while ( vertex_corr.size() < nb_vertices() )
+        vertex_corr.push_back( 1 );
+    apply_corr( vertex_coords, vertex_cuts, vertex_corr );
 
-    // // for each edge
-    // edge_corr.resize( edges.size() );
-    // for( PI num_edge = 0, nb_edges = edges.size(); num_edge < nb_edges; ++num_edge ) {
-    //     Edge<Scalar,nb_dims> *edge = &edges[ num_edge ];
+    // move edges to the new positions
+    while ( edge_corr.size() < edges.size() )
+        edge_corr.push_back( 1 );
+    apply_corr( edges, edge_corr );
 
-    //     // helper to create the new edges (on faces that have a cut)
-    //     auto add_to_waiting_vertices = [&]( auto face, PI vertex ) {
-    //         int &wv = waiting_vertices[ face ];
-    //         if ( wv >= 0 ) {
-    //             edges.push_back( face.with_pushed_value( new_cut ), Vec<PI,2>{ PI( wv ), vertex } );
-    //             edge = &edges[ num_edge ];
-    //             wv = -1;
-    //         } else
-    //             wv = vertex;
-    //     };
-
-    //     // all ext => remove it
-    //     const PI o0 = edge->vertices[ 0 ];
-    //     const PI o1 = edge->vertices[ 1 ];
-    //     const Scalar s0 = sps[ o0 ];
-    //     const Scalar s1 = sps[ o1 ];
-    //     const bool e0 = s0 > 0;
-    //     const bool e1 = s1 > 0;
-    //     if ( e0 && e1 ) {
-    //         edge_corr[ num_edge ] = 0;
-    //         continue;
-    //     }
-
-    //     // => we're going to keep this edge (potentially with a modification)
-    //     edge_corr[ num_edge ] = 1;
-
-    //     // only v0 is ext
-    //     if ( e0 ) {
-    //         const PI nv = vertex_coords.size();
-    //         edge->vertices[ 0 ] = nv;
-
-    //         // new point
-    //         Point new_pos = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
-    //         auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
-    //         vertex_coords << new_pos;
-    //         vertex_cuts << num_cuts;
-
-    //         // add a waiting vertex for each face
-    //         if constexpr ( nb_dims >= 2 )
-    //             for( int d = 0; d < nb_dims - 1; ++d )
-    //                 add_to_waiting_vertices( edge->num_cuts.without_index( d ), nv );
-
-    //         continue;
-    //     }
-
-    //     // only v1 is ext
-    //     if ( e1 ) {
-    //         const PI nv = vertex_coords.size();
-    //         edge->vertices[ 1 ] = nv;
-
-    //         Point new_coords = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
-    //         auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
-    //         vertex_coords << new_coords;
-    //         vertex_cuts << num_cuts;
-
-    //         // add a waiting vertex for each face
-    //         if constexpr ( nb_dims >= 2 )
-    //             for( int d = 0; d < nb_dims - 1; ++d )
-    //                 add_to_waiting_vertices( edge->num_cuts.without_index( d ), nv );
-
-    //         continue;
-    //     }
-    // }
-
-    // // move vertices to the new positions
-    // while ( vertex_corr.size() < nb_vertices() )
-    //     vertex_corr.push_back( 1 );
-    // apply_corr( vertex_coords, vertex_cuts, vertex_corr );
-
-    // // move edges to the new positions
-    // while ( edge_corr.size() < edges.size() )
-    //     edge_corr.push_back( 1 );
-    // apply_corr( edges, edge_corr );
-
-    // // update vertex refs
-    // for( Edge<Scalar,nb_dims> &edge : edges )
-    //     for( PI i = 0; i < 2; ++i )
-    //         edge.vertices[ i ] = vertex_corr[ edge.vertices[ i ] ];
-}
-
-DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
-    _cut( CutType::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
-}
-
-DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
-    const Point dir = p1 - p0;
-    auto n = norm_2_p2( dir );
-    auto s0 = sp( dir, p0 );
-    auto s1 = sp( dir, p1 );
-
-    auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
-
-    _cut( CutType::Dirac, dir, off, p1, w1, i1 );
+    // update vertex refs
+    for( Edge<Scalar,nb_dims> &edge : edges )
+        for( PI i = 0; i < 2; ++i )
+            edge.vertices[ i ] = vertex_corr[ edge.vertices[ i ] ];
 }
 
 DTP void UTP::for_each_vertex( const std::function<void( const Point &pos, const Vec<int,nb_dims> &num_cuts )> &f ) const {
