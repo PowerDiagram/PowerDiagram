@@ -12,11 +12,12 @@ TEST_CASE( "Cell", "" ) {
     cell.p0 = { 0, 0 };
     cell.w0 = 0;
 
-    cell.cut_boundary( { 1.0, 0.0 }, 1.0, 10 );
-    cell.cut_boundary( { 0.1, 1.0 }, 1.0, 11 );
-    P( cell );
+    cell.cut_boundary( { 1.0, 1.0 }, 0.5, 10 );
 
-    VtkOutput vo;
-    cell.display_vtk( vo );
-    vo.save( "out.vtk" );
+    // cell.cut_boundary( { 0.1, 1.0 }, 1.0, 11 );
+    // P( cell );
+
+    // VtkOutput vo;
+    // cell.display_vtk( vo );
+    // vo.save( "out.vtk" );
 }

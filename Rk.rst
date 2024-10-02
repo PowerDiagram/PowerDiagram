@@ -5,4 +5,5 @@ Prop: on ne stocke pas les edges. On va plutôt les chercher à la volée, en pa
     Prop: on fait une table edge => numéro de noeud (qui démarre à -1)
     Lorsqu'on fait tous les edges attachés à un noeud, s'il y a déjà un noeud attaché, on a notre edge.
 
-  Comment faire pour diminuer les mouvements du Cut et vertex
+  Comment faire pour diminuer les mouvements du Cut et vertex ?
+  

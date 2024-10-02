@@ -14,17 +14,17 @@ class Cut { // STD_TL_TYPE_INFO( Cut, "", n_index, dir, sp )
 public:
     using      Point    = Vec<Scalar,nb_dims>;
 
-    /**/       Cut      ( CutType type, const Point &dir, Scalar sp, const Point &p1, Scalar w1, PI i1 ) : type( type ), dir( dir ), sp( sp ), p1( p1 ), w1( w1 ), i1( i1 ) {}
-    /**/       Cut      () {}
-
-    void       display  ( Displayer &ds ) const { ds.start_object(); ds << dir << sp; ds.end_object(); }
+    void       display  ( Displayer &ds ) const { ds.start_object(); ds << dir << off; ds.end_object(); }
     bool       is_inf   () const { return type == CutType::Infinity; }
 
     CutType    type;
+    int        prev;    ///< in active_cuts or inactive_cuts
     Point      dir;
-    Scalar     sp;
+    Scalar     off;
 
     Point      p1;
     Scalar     w1;
     PI         i1;
+
+    mutable PI op_id    = 0; ///<
 };
