@@ -78,14 +78,14 @@ private:
     auto                         compute_pos           ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                        compute_pos           ( Vec<PI,nb_dims> num_cuts ) const;
 
-    void                         _get_sps_and_used_cuts( const Point &dir, Scalar off, const PI op_id );
-    void                         _move_inactive_cuts   ( const PI op_id );
-    int                          _new_unused_cut       ();
+    void                         _remove_ext_vertices  ( PI old_nb_vertices );
+    void                         _add_new_vertices     ( PI new_cut );
     bool                         _all_inside           ( const Point &dir, Scalar off );
+    void                         _get_sps              ( const Point &dir, Scalar off );
     void                         _cut                  ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 );
 
-    int                          last_inactive_cut;    ///<
-    int                          last_active_cut;      ///<
+    // int                       last_inactive_cut;    ///<
+    // int                       last_active_cut;      ///<
     AlignedVec                   sps;                  ///< scalar products for each new cut
 
     mutable PI                   curr_op_id;           ///<

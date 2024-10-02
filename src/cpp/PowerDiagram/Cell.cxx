@@ -23,14 +23,14 @@ DTP UTP::Cell() {
     
     otps.reserve( 32 );
 
-    last_inactive_cut = -1;
-    last_active_cut = -1;
+    // last_inactive_cut = -1;
+    // last_active_cut = -1;
     curr_op_id = 0;
 }
 
 DTP void UTP::init_geometry_from( const Cell &that ) {
-    last_inactive_cut = that.last_inactive_cut;
-    last_active_cut = that.last_active_cut;
+    // last_inactive_cut = that.last_inactive_cut;
+    // last_active_cut = that.last_active_cut;
     vertex_coords = that.vertex_coords;
     vertex_cuts = that.vertex_cuts;
     cuts = that.cuts;
@@ -206,17 +206,21 @@ DTP bool UTP::_all_inside( const Point &dir, Scalar off ) {
     }
 }
 
-DTP void UTP::_get_sps_and_used_cuts( const Point &dir, Scalar off, const PI op_id ) {
-    sps.resize( vertex_coords.size() );
-    for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
-        Scalar s = sp( vertex_coords[ num_vertex ], dir ) - off;
-        sps[ num_vertex ] = s;
-        bool ext = s > 0;
+DTP void UTP::_get_sps( const Point &dir, Scalar off ) {
+    const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
 
-        if ( ! ext )
-            for( const PI &num_cut : vertex_cuts[ num_vertex ] )
-                cuts[ num_cut ].op_id = op_id;
+    for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
+        Scalar *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+        SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ];
+        for( int d = 1; d < nb_dims; ++d )
+            s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
+        s -= off;
+
+        s.store_aligned( sps.data() + num_vertex );
     }
+
+    for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex )
+        sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
 }
 
 DTP void UTP::_move_inactive_cuts( const PI op_id ) {
@@ -240,137 +244,72 @@ DTP int UTP::_new_unused_cut() {
     return cuts.push_back_ind();
 }
 
+DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
+    int nb_vertices_to_keep = nb_vertices();
+    for( int i = 0; i < old_nb_vertices; ++i ) {
+        if ( sps[ i ] > 0 ) {
+            while ( true ) {
+                if ( --nb_vertices_to_keep <= i ) {
+                    vertex_coords.resize( nb_vertices_to_keep );
+                    vertex_cuts.resize( nb_vertices_to_keep );
+                    return;
+                }
+                if ( ! ( sps[ nb_vertices_to_keep ] > 0 ) )
+                    break;
+            }
+            vertex_coords.set_item( i, vertex_coords[ nb_vertices_to_keep ] );
+            vertex_cuts.set_item( i, vertex_cuts[ nb_vertices_to_keep ] );
+        }
+    }
+    
+    vertex_coords.resize( nb_vertices_to_keep );
+    vertex_cuts.resize( nb_vertices_to_keep );
+}
+
+DTP void UTP::_add_new_vertices( PI new_cut ) {
+    // prepare an edge map to get the first vertex the second time one sees a given edge
+    PI op_id = std::exchange( ++curr_op_id, curr_op_id + nb_vertices() );
+    edge_map.set_max_PI_value( new_cut );
+
+    // add the new vertices
+    const PI old_nb_vertices = nb_vertices();
+    for( PI n0 = 0; n0 < old_nb_vertices; ++n0 ) {
+        const bool ext_0 = sps[ n0 ] > 0;
+        for( PI ind_cut = 0; ind_cut < nb_dims; ++ind_cut ) {
+            auto edge_cuts = vertex_cuts[ n0 ].without_index( ind_cut );
+            PI &edge_op_id = edge_map[ edge_cuts ];
+            if ( edge_op_id >= op_id ) {
+                const PI n1 = edge_op_id - op_id;
+                const bool ext_1 = sps[ n1 ] > 0;
+
+                if ( ext_0 != ext_1 ) {
+                    vertex_coords << compute_pos( vertex_coords[ n0 ], vertex_coords[ n1 ], sps[ n0 ], sps[ n1 ] );
+                    vertex_cuts << edge_cuts.with_pushed_value( new_cut );
+                    sps.push_back( 1 );
+                }
+            } else
+                edge_op_id = op_id + n0;
+        }
+    }
+}
+
 DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
     // test if all points are inside, make the scalar products and get used cuts
     if ( _all_inside( dir, off ) )
         return;
 
     // else, compute and store the scalar product for each vertex. Mark the used cuts
-    const PI op_id = ++curr_op_id;
-    _get_sps_and_used_cuts( dir, off, op_id );
+    _get_sps( dir, off );
 
-    for( int curr = last_active_cut; curr >= 0; curr = cuts[ curr ].prev )
-        P( "active", curr );
-    for( int curr = last_inactive_cut; curr >= 0; curr = cuts[ curr ].prev )
-        P( "inactive", curr );
+    // add the new cut
+    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1 );
 
-    P( sps );
+    // add the new vertices
+    const PI old_nb_vertices = nb_vertices();
+    _add_new_vertices( new_cut );
 
-    // upate active and inactive cuts
-    _move_inactive_cuts( op_id );
-
-    for( int curr = last_active_cut; curr >= 0; curr = cuts[ curr ].prev )
-        P( "active", curr );
-    for( int curr = last_inactive_cut; curr >= 0; curr = cuts[ curr ].prev )
-        P( "inactive", curr );
-
-    // choose where to place the new cut
-    PI new_cut = _new_unused_cut();
-
-    TODO;
-    //
-
-    // used_cuts.resize( cuts.size() );
-    // used_cuts.fill( false );
-    // for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
-    //     Scalar *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
-    //     SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ];
-    //     for( int d = 1; d < nb_dims; ++d )
-    //         s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
-    //     s -= off;
-
-    //     s.store_aligned( sps.data() + num_vertex );
-
-    //     for( PI n = 0; n < simd_size; ++n )
-    //         if ( ! ( s.get( n ) > 0 ) )
-    //             for( const PI &num_cut : vertex_cuts[ num_vertex + n ] )
-    //                 used_cuts[ num_cut ] = true;
-    // }
-    // for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex ) {
-    //     Scalar s = sp( vertex_coords[ num_vertex ], dir ) - off;
-
-    //     sps[ num_vertex ] = s;
-
-    //     if ( ! ( s > 0 ) )
-    //         for( const PI &num_cut : vertex_cuts[ num_vertex ] )
-    //             used_cuts[ num_cut ] = true;
-    // }
-
-
-    // // add the new cut
-    // PI new_cut;
-    // if ( free_cuts.empty() ) {
-    //     new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1 );
-    //     edge_map.set_max_PI_value( new_cut );
-
-    //     used_cuts << true;
-    // } else {
-    //     new_cut = free_cuts.pop_back_val();
-
-    //     cuts.set_item( new_cut, Cut<Scalar,nb_dims>( type, dir, off, p1, w1, i1 ) );
-    //     used_cuts[ new_cut ] = true;
-
-    //     edge_map.set_max_PI_value( cuts.size() );
-    // }
-
-    // // prepare an edge map to get the first vertex the second time one sees a given edge
-    // PI op_id = std::exchange( curr_op_id, curr_op_id + nb_vertices() );
-
-    // // add the new vertices
-    // const PI old_nb_vertices = nb_vertices();
-    // for( PI n0 = 0; n0 < old_nb_vertices; ++n0 ) {
-    //     const bool ext_0 = sps[ n0 ] > 0;
-    //     for( PI ind_cut = 0; ind_cut < nb_dims; ++ind_cut ) {
-    //         auto edge_cuts = vertex_cuts[ n0 ].without_index( ind_cut );
-    //         PI &edge_op_id = edge_map[ edge_cuts ];
-    //         if ( edge_op_id >= op_id ) {
-    //             const PI n1 = edge_op_id - op_id;
-    //             const bool ext_1 = sps[ n1 ] > 0;
-
-    //             if ( ext_0 != ext_1 ) {
-    //                 vertex_coords << compute_pos( vertex_coords[ n0 ], vertex_coords[ n1 ], sps[ n0 ], sps[ n1 ] );
-    //                 vertex_cuts << edge_cuts.with_pushed_value( new_cut );
-    //                 sps.push_back( 1 );
-    //             }
-    //         } else
-    //             edge_op_id = op_id + n0;
-    //     }
-    // }
-
-    // // remove ext vertices
-    // auto remove_ext_vertices = [&]() {
-    //     int nb_vertices_to_keep = nb_vertices();
-    //     for( int i = 0; i < old_nb_vertices; ++i ) {
-    //         if ( sps[ i ] > 0 ) {
-    //             while ( true ) {
-    //                 if ( --nb_vertices_to_keep <= i ) {
-    //                     vertex_coords.resize( nb_vertices_to_keep );
-    //                     vertex_cuts.resize( nb_vertices_to_keep );
-    //                     return;
-    //                 }
-    //                 if ( ! ( sps[ nb_vertices_to_keep ] > 0 ) )
-    //                     break;
-    //             }
-    //             vertex_coords.set_item( i, vertex_coords[ nb_vertices_to_keep ] );
-    //             vertex_cuts.set_item( i, vertex_cuts[ nb_vertices_to_keep ] );
-    //         }
-    //     }
-    //     vertex_coords.resize( nb_vertices_to_keep );
-    //     vertex_cuts.resize( nb_vertices_to_keep );
-    // };
-    // remove_ext_vertices();
-
-    // // push the new cut
-    // auto &cut = cuts[ new_cut ];
-    // cut.prev = last_active_cut;
-    // cut.type = type;
-    // cut.dir = dir;
-    // cut.sp = off;
-    // cut.p1 = p1;
-    // cut.w1 = w1;
-    // cut.i1 = i1;
-
-    // last_active_cut = new_cut;
+    // remove ext ones
+    _remove_ext_vertices( old_nb_vertices );
 }
 
 DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {

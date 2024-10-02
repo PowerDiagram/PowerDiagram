@@ -18,6 +18,8 @@ public:
 
     /**/                SimdTensor ();
 
+    SimdTensor&         operator=  ( const SimdTensor &that );
+
     PI                  capacity   () const { return _data.size() / nb_dims; }
     PI                  size       () const { return _size; }
 
@@ -47,6 +49,13 @@ private:
 
 DTP UTP::SimdTensor() : _size( 0 ) {
     reserve( 128 );
+}
+
+DTP UTP &UTP::operator=( const SimdTensor &that ) {
+    resize( that.size() );
+    for( PI i = 0; i < that.size(); ++i )
+        set_item( i, that.get_item( i ) );
+    return *this;
 }
 
 DTP UTP &UTP::operator<<( const Point &p ) {
