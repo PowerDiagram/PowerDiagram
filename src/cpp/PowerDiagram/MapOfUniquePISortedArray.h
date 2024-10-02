@@ -41,39 +41,36 @@ struct MapOfUniquePISortedArray<s,s> {
 /// single dim, s == 0
 template<>
 struct MapOfUniquePISortedArray<0,0> {
-    void set_max_PI_value ( PI /*max_PI_value*/ ) {}
+    /**/ MapOfUniquePISortedArray() : value( 0 ) {}
+    void set_max_PI_value        ( PI /*max_PI_value*/ ) {}
+    PI&  operator[]              ( Vec<PI,0> ) { return value; }
+    void display                 ( Displayer &ds, bool make_array = true ) const { ds << value; }
 
-    PI&  operator[]       ( Vec<PI,0> ) { return value; }
-
-    void display          ( Displayer &ds, bool make_array = true ) const { ds << value; }
-
-    PI   value;           ///<
+    PI   value;                  ///<
 };
 
 /// single dim, s == 1
 template<>
 struct MapOfUniquePISortedArray<1,1> {
-    using Vals            = Vec<PI>;
+    void    set_max_PI_value( PI max_PI_value ) { values.resize( max_PI_value, 0 ); }
+    PI&     operator[]      ( Vec<PI,1> a ) { return values[ a[ 0 ] ]; }
+    void    display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 
-    void  set_max_PI_value( PI max_PI_value ) { values.resize( max_PI_value, 0 ); }
-
-    PI&   operator[]      ( Vec<PI,1> a ) { return values[ a[ 0 ] ]; }
-
-    void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
-
-    Vals  values;          ///<
+    Vec<PI> values;          ///<
 };
 
 /// single dim, s == 2
 template<>
 struct MapOfUniquePISortedArray<2,2> {
-    using Vals            = Vec<PI>;
+    void    set_max_PI_value( PI max_PI_value ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2, 0 ); }
+    PI&     operator[]      ( Vec<PI,2> a ) {
+        // if ( ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] >= values.size() ) {
+        //     P( a, values.size() );
+        //     TODO;
+        // }
+        return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ];
+    }
+    void    display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 
-    void  set_max_PI_value( PI max_PI_value ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2, 0 ); }
-
-    PI&   operator[]      ( Vec<PI,2> a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
-
-    void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
-
-    Vals  values;          ///<
+    Vec<PI> values;          ///<
 };

@@ -3,5 +3,5 @@
 enum class CutType {
     Dirac,
     Boundary,
-    Infinity
+    Infinity,
 };

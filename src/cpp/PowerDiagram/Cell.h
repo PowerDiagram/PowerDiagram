@@ -19,9 +19,8 @@ class Cell { STD_TL_TYPE_INFO( Cell, "", vertices, edges, cuts )
 public: 
     using                        VertexCoords       = SimdTensor<Scalar,nb_dims>;  ///<
     using                        VertexCuts         = Vec<Vec<PI,nb_dims>>;        ///<
-    using                        AlignedVec         = VertexCoords::AlignedVec;
     using                        Point              = Vec<Scalar,nb_dims>;
-    using                        Otps               = Vec<std::tuple<Point,Scalar,PI>>
+    using                        Otps               = Vec<std::tuple<Point,Scalar,PI>>;
 
     /**/                         Cell               ();
  
@@ -32,6 +31,8 @@ public:
  
     void                         display_vtk        ( VtkOutput &vo, const std::function<void( Vec<Scalar,3> &pt )> &coord_change ) const; ///<
     void                         display_vtk        ( VtkOutput &vo ) const; ///<
+
+    void                         display            ( Displayer &ds ) const; ///<
  
     void                         for_each_vertex    ( const std::function<void( const Point &pos, const Vec<int,nb_dims> &num_cuts )> &f ) const;
     void                         for_each_edge      ( const std::function<void( const Vec<PI,nb_dims-1> &num_cuts, Span<PI,2> vertices )> &f ) const;
@@ -52,17 +53,18 @@ public:
     Vec<Vec<PI,nb_dims>>         vertex_cuts;       ///< sorted num cuts for each vertex
     Vec<Cut<Scalar,nb_dims>>     cuts;              ///<
 
-    Otps                         otps;
+    Otps                         otps;              ///< buffer
     Scalar                       w0;                ///<
     Point                        p0;                ///<
     SI                           i0;                ///<
 
 
 private:
-    using                        EdgeMap            = MapOfUniquePISortedArray<PI,nb_dims-1,nb_dims-1,int>;
+    using                        AlignedVec         = VertexCoords::AlignedVec;
+    using                        EdgeMap            = MapOfUniquePISortedArray<nb_dims-1,nb_dims-1>;
 
-    void                         add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, const auto &positions ) const;
-    void                         add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex ) const;
+    void                         add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, const auto &positions, PI op_id ) const;
+    void                         add_measure_rec    ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, PI op_id ) const;
  
     static void                  apply_corr         ( auto &v0, auto &v1, Vec<int> &keep );
     static void                  apply_corr         ( Vec<int> &keep, auto &v0 );
@@ -76,13 +78,14 @@ private:
     auto                         compute_pos        ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                        compute_pos        ( Vec<PI,nb_dims> num_cuts ) const;
     bool                         _inside_test       ( const Point &dir, Scalar off );
-    void                         _cut               ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 );
+    void                         _cut               ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 );
 
-    EdgeMap                      edge_map;          ///<
-    Vec<int>                     cut_corr;          ///<
+    Vec<bool>                    used_cuts;         ///<
+    Vec<bool>                    free_cuts;         ///<
     AlignedVec                   sps;               ///< scalar products for each new cut
- 
-    mutable PI                   curr_op_id = 0;    ///<
+
+    mutable PI                   curr_op_id;        ///<
+    mutable EdgeMap              edge_map;          ///<
 };
 
 #include "Cell.cxx" // IWYU pragma: export
