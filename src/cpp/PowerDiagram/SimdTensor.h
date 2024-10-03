@@ -54,7 +54,7 @@ DTP UTP::SimdTensor() : _size( 0 ) {
 DTP UTP &UTP::operator=( const SimdTensor &that ) {
     resize( that.size() );
     for( PI i = 0; i < that.size(); ++i )
-        set_item( i, that.get_item( i ) );
+        set_item( i, that[ i ] );
     return *this;
 }
 

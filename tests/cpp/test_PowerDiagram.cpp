@@ -107,5 +107,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
-    test_speed<double,3>( 4, "out.vtk" );
+    test_speed<double,3>( 400, "out.vtk" );
 }

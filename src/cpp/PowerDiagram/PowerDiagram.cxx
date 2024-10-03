@@ -215,7 +215,7 @@ DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb
     bool has_outside_vertex = false;
     inf_cell.for_each_repr_point( [&]( const Point &pos ) {
         for( const Cut<Scalar,nb_dims> &cut : base_cell.cuts ) {
-            if ( cut.is_inf() && ( sp( pos, cut.dir ) - cut.sp ) >= 0 ) {
+            if ( cut.is_inf() && ( sp( pos, cut.dir ) - cut.off ) >= 0 ) {
                 min_box_pos = min( min_box_pos, pos );
                 max_box_pos = max( max_box_pos, pos );
                 has_outside_vertex = true;

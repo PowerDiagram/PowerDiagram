@@ -1,5 +1,6 @@
 #include "PowerDiagram/Cell.h"
 #include "catch_main.h"
+#include <cstdlib>
 
 TEST_CASE( "Cell", "" ) {
     constexpr PI nb_dims = 2;
@@ -8,16 +9,19 @@ TEST_CASE( "Cell", "" ) {
     using Point = Vec<Scalar,nb_dims>;
 
     Cell<Scalar,nb_dims> cell;
-    cell.make_init_simplex( { FromItemValue(), 0 }, { FromItemValue(), 1 } );
+    cell.make_init_simplex( { FromItemValue(), -1 }, { FromItemValue(), 1 } );
     cell.p0 = { 0, 0 };
     cell.w0 = 0;
 
-    cell.cut_boundary( { 1.0, 1.0 }, 0.5, 10 );
+    auto r = []() { return Scalar( rand() ) / RAND_MAX; };
 
-    // cell.cut_boundary( { 0.1, 1.0 }, 1.0, 11 );
+    for( PI i = 0; i < 50; ++i ) {
+        Scalar a = r() * 2 * M_PI;
+        cell.cut_boundary( { cos( a ), sin( a ) }, 1.0, i );
+    }
     // P( cell );
 
-    // VtkOutput vo;
-    // cell.display_vtk( vo );
-    // vo.save( "out.vtk" );
+    VtkOutput vo;
+    cell.display_vtk( vo );
+    vo.save( "out.vtk" );
 }

@@ -51,7 +51,6 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
 
         auto *cut = cuts.push_back();
         cut->type = CutType::Infinity;
-        cut->prev = d - 1;
         cut->dir = dir;
         cut->off = sp( min_pos, dir );
         cut->i1 = d;
@@ -59,13 +58,9 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
 
     auto *cut = cuts.push_back();
     cut->type = CutType::Infinity;
-    cut->prev = nb_dims - 1;
     cut->dir = { FromItemValue(), 1 };
     cut->off = sp( max_pos, cut->dir );
     cut->i1 = nb_dims;
-
-    // last_active_cut
-    last_active_cut = nb_dims;
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
@@ -207,8 +202,12 @@ DTP bool UTP::_all_inside( const Point &dir, Scalar off ) {
 }
 
 DTP void UTP::_get_sps( const Point &dir, Scalar off ) {
-    const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
+    constexpr PI simd_size = VertexCoords::simd_size;
+    using SimdVec = VertexCoords::SimdVec;
 
+    sps.resize( nb_vertices() );
+
+    const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
         Scalar *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
         SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ];
@@ -223,50 +222,60 @@ DTP void UTP::_get_sps( const Point &dir, Scalar off ) {
         sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
 }
 
-DTP void UTP::_move_inactive_cuts( const PI op_id ) {
-    // sweep the active cuts, and check if it can stay in it this list
-    for( int *curr = &last_active_cut; ; curr = &cuts[ *curr ].prev ) {
-        // while we're on an inactive cut
-        while ( true ) {
-            if ( *curr < 0 )
-                return;
-            if ( cuts[ *curr ].op_id == op_id )
+DTP PI UTP::_remove_ext_vertices( PI old_nb_vertices ) {
+    // if no new vertex, there's no hole (should not happen, excepted if every vertices are wipped)
+    if ( nb_vertices() == old_nb_vertices )
+        return old_nb_vertices;
+
+    // find a first unused vertex
+    PI i = 0;
+    for( ; ; ++i ) {
+        if ( i == old_nb_vertices )
+            return nb_vertices();
+        if ( sps[ i ] > 0 )
+            break;
+        ++i;
+    }
+
+    // find a first active vertex
+    PI j = nb_vertices() - 1;
+    if ( j < old_nb_vertices ) {
+        for( ; ; --j ) {
+            if ( j == i )
+                return j;
+            if ( ! ( sps[ j ] > 0 ) )
                 break;
-            // place curr in the inactive set
-            last_inactive_cut = std::exchange( *curr, std::exchange( cuts[ *curr ].prev, last_inactive_cut ) );
         }
     }
-}
 
-DTP int UTP::_new_unused_cut() {
-    if ( last_inactive_cut >= 0 )
-        return std::exchange( last_inactive_cut, cuts[ last_inactive_cut ].prev );
-    return cuts.push_back_ind();
-}
 
-DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
-    int nb_vertices_to_keep = nb_vertices();
-    for( int i = 0; i < old_nb_vertices; ++i ) {
-        if ( sps[ i ] > 0 ) {
-            while ( true ) {
-                if ( --nb_vertices_to_keep <= i ) {
-                    vertex_coords.resize( nb_vertices_to_keep );
-                    vertex_cuts.resize( nb_vertices_to_keep );
-                    return;
-                }
-                if ( ! ( sps[ nb_vertices_to_keep ] > 0 ) )
+    //
+    while ( true ) {
+        // fill the hole
+        vertex_coords.set_item( i, vertex_coords[ j ] );
+        vertex_cuts.set_item( i, vertex_cuts[ j ] );
+
+        // find the next unused vertex
+        while ( true ) {
+            if  ( ++i == old_nb_vertices )
+                return j;
+            if ( sps[ i ] > 0 )
+                break;
+        }
+
+        // find the next active vertex
+        if ( --j < old_nb_vertices ) {
+            for( ; ; --j ) {
+                if ( j <= i )
+                    return j;
+                if ( ! ( sps[ j ] > 0 ) )
                     break;
             }
-            vertex_coords.set_item( i, vertex_coords[ nb_vertices_to_keep ] );
-            vertex_cuts.set_item( i, vertex_cuts[ nb_vertices_to_keep ] );
         }
     }
-    
-    vertex_coords.resize( nb_vertices_to_keep );
-    vertex_cuts.resize( nb_vertices_to_keep );
 }
 
-DTP void UTP::_add_new_vertices( PI new_cut ) {
+DTP void UTP::_add_cut_vertices( PI new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     PI op_id = std::exchange( ++curr_op_id, curr_op_id + nb_vertices() );
     edge_map.set_max_PI_value( new_cut );
@@ -285,7 +294,6 @@ DTP void UTP::_add_new_vertices( PI new_cut ) {
                 if ( ext_0 != ext_1 ) {
                     vertex_coords << compute_pos( vertex_coords[ n0 ], vertex_coords[ n1 ], sps[ n0 ], sps[ n1 ] );
                     vertex_cuts << edge_cuts.with_pushed_value( new_cut );
-                    sps.push_back( 1 );
                 }
             } else
                 edge_op_id = op_id + n0;
@@ -306,10 +314,19 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
 
     // add the new vertices
     const PI old_nb_vertices = nb_vertices();
-    _add_new_vertices( new_cut );
+    _add_cut_vertices( new_cut );
 
     // remove ext ones
-    _remove_ext_vertices( old_nb_vertices );
+    PI new_nb_vertices = _remove_ext_vertices( old_nb_vertices );
+    vertex_coords.resize( new_nb_vertices );
+    vertex_cuts.resize( new_nb_vertices );
+
+    // Vec<int> keep;
+    // for( Scalar v : sps )
+    //     keep << ( v <= 0 );
+    // for( PI i = old_nb_vertices; i < nb_vertices(); ++i )
+    //     keep << 1;
+    // apply_corr( vertex_coords, vertex_cuts, keep );
 }
 
 DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {

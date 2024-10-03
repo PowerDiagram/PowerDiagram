@@ -78,8 +78,8 @@ private:
     auto                         compute_pos           ( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const;
     Point                        compute_pos           ( Vec<PI,nb_dims> num_cuts ) const;
 
-    void                         _remove_ext_vertices  ( PI old_nb_vertices );
-    void                         _add_new_vertices     ( PI new_cut );
+    PI                           _remove_ext_vertices  ( PI old_nb_vertices ); ///< return new size
+    void                         _add_cut_vertices     ( PI new_cut );
     bool                         _all_inside           ( const Point &dir, Scalar off );
     void                         _get_sps              ( const Point &dir, Scalar off );
     void                         _cut                  ( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 );

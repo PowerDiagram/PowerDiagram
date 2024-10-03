@@ -59,7 +59,7 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
 
             // early return if the new vertex is outside
             for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
-                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].sp )
+                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].off )
                     return;
 
             // else, register the new vertex
@@ -106,7 +106,7 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
         for( PI i = 0; i < nb_dims; ++i ) {
             for( PI j = 0; j < nb_dims; ++j )
                 m( i, j ) = cuts[ num_cut ].dir[ i ] * cuts[ num_cut ].dir[ j ];
-            v( i ) = cuts[ num_cut ].dir[ i ] * ( cuts[ num_cut ].sp + 1 );
+            v( i ) = cuts[ num_cut ].dir[ i ] * ( cuts[ num_cut ].off + 1 );
         }
 
         // constraints
@@ -115,7 +115,7 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
                 m( nb_dims + i, j ) = cuts[ constraints[ i ] ].dir[ j ];
                 m( j, nb_dims + i ) = cuts[ constraints[ i ] ].dir[ j ];
             }
-            v( nb_dims + i ) = cuts[ constraints[ i ] ].sp;
+            v( nb_dims + i ) = cuts[ constraints[ i ] ].off;
         }
 
         // zeros
@@ -134,7 +134,7 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
         for( PI n = 0; n < cuts.size(); ++n ) {
             if ( n == num_cut || constraints.contains( n ) )
                 continue;
-            if ( sp( x, cuts[ n ].dir ) > cuts[ n ].sp )
+            if ( sp( x, cuts[ n ].dir ) > cuts[ n ].off )
                 return { n };
         }
         return {};
@@ -144,7 +144,7 @@ DTP bool UTP::cut_is_useful( PI num_cut ) {
     while ( true ) {
         // impossible to find a point at the exterior of the cut, we can say that this cut is not useful
         Point x = get_prop_point();
-        if ( sp( x, cuts[ num_cut ].dir ) <= cuts[ num_cut ].sp )
+        if ( sp( x, cuts[ num_cut ].dir ) <= cuts[ num_cut ].off )
             return false;
 
         // if we have to add a constraint, loop again
@@ -206,7 +206,7 @@ DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const 
         for( PI i = 0; i < nb_dims; ++i ) {
             for( PI j = 0; j < nb_dims; ++j )
                 m( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-            v( i ) = cuts[ num_cuts[ i ] ].sp;
+            v( i ) = cuts[ num_cuts[ i ] ].off;
         }
 
         Eigen::FullPivLU<TM> lu( m );
