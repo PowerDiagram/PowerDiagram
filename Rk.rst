@@ -7,3 +7,6 @@ Prop: on ne stocke pas les edges. On va plutôt les chercher à la volée, en pa
 
   Comment faire pour diminuer les mouvements du Cut et vertex ?
   
+  Si on passe à une liste de vertex actifs, est-ce qu'on aurait intérêt à aggréger les données ?
+    Ça pourrait être bon pour le cache...
+    Il faudrait à ce compte là mettre aussi les num_cuts

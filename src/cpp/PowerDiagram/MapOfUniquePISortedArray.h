@@ -63,13 +63,8 @@ struct MapOfUniquePISortedArray<1,1> {
 template<>
 struct MapOfUniquePISortedArray<2,2> {
     void    set_max_PI_value( PI max_PI_value ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2, 0 ); }
-    PI&     operator[]      ( Vec<PI,2> a ) {
-        // if ( ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] >= values.size() ) {
-        //     P( a, values.size() );
-        //     TODO;
-        // }
-        return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ];
-    }
+    T_i PI& at_without_index( const Vec<PI,3> &a, CtInt<i> ) { constexpr PI i1 = 1 + ( i <= 1 ), i0 = ( i <= 0 );  return values[ ( a[ i1 ] - 1 ) * a[ i1 ] / 2 + a[ i0 ] ]; }
+    PI&     operator[]      ( const Vec<PI,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
     void    display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
 
     Vec<PI> values;          ///<

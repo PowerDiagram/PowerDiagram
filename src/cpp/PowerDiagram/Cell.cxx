@@ -4,6 +4,7 @@
 #include <tl/support/containers/operators/lu_solve.h>
 #include <tl/support/containers/operators/norm_2.h>
 #include <tl/support/containers/operators/sp.h>
+#include <tl/support/containers/CtRange.h>
 #include <tl/support/containers/Opt.h>
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
@@ -284,20 +285,25 @@ DTP void UTP::_add_cut_vertices( PI new_cut ) {
     const PI old_nb_vertices = nb_vertices();
     for( PI n0 = 0; n0 < old_nb_vertices; ++n0 ) {
         const bool ext_0 = sps[ n0 ] > 0;
-        for( PI ind_cut = 0; ind_cut < nb_dims; ++ind_cut ) {
-            auto edge_cuts = vertex_cuts[ n0 ].without_index( ind_cut );
-            PI &edge_op_id = edge_map[ edge_cuts ];
+        CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
+            PI &edge_op_id = edge_map.at_without_index( vertex_cuts[ n0 ], ind_cut );
             if ( edge_op_id >= op_id ) {
                 const PI n1 = edge_op_id - op_id;
                 const bool ext_1 = sps[ n1 ] > 0;
 
                 if ( ext_0 != ext_1 ) {
                     vertex_coords << compute_pos( vertex_coords[ n0 ], vertex_coords[ n1 ], sps[ n0 ], sps[ n1 ] );
-                    vertex_cuts << edge_cuts.with_pushed_value( new_cut );
+
+                    // auto edge_cuts = vertex_cuts[ n0 ].without_index( ind_cut );
+                    auto &cut = *vertex_cuts.push_back(); // << edge_cuts.with_pushed_value( new_cut );
+                    CtRange<0,nb_dims-1>::for_each_item( [&]( auto j ) {
+                        cut[ j ] = vertex_cuts[ n0 ][ PI( j ) + ( PI( j ) >= ind_cut ) ];
+                    } );
+                    cut[ nb_dims-1 ] = new_cut;
                 }
             } else
                 edge_op_id = op_id + n0;
-        }
+        } );
     }
 }
 
@@ -317,16 +323,16 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
     _add_cut_vertices( new_cut );
 
     // remove ext ones
-    PI new_nb_vertices = _remove_ext_vertices( old_nb_vertices );
-    vertex_coords.resize( new_nb_vertices );
-    vertex_cuts.resize( new_nb_vertices );
+    // PI new_nb_vertices = _remove_ext_vertices( old_nb_vertices );
+    // vertex_coords.resize( new_nb_vertices );
+    // vertex_cuts.resize( new_nb_vertices );
 
-    // Vec<int> keep;
-    // for( Scalar v : sps )
-    //     keep << ( v <= 0 );
-    // for( PI i = old_nb_vertices; i < nb_vertices(); ++i )
-    //     keep << 1;
-    // apply_corr( vertex_coords, vertex_cuts, keep );
+    keep.clear();
+    for( Scalar v : sps )
+        keep << ( v <= 0 );
+    for( PI i = old_nb_vertices; i < nb_vertices(); ++i )
+        keep << 1;
+    apply_corr( vertex_coords, vertex_cuts, keep );
 }
 
 DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
