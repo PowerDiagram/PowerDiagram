@@ -1,3 +1,15 @@
+v.num_cuts: [ 3, 6 ]
+v.num_cuts: [ 3, 7 ]
+v.num_cuts: [ 4, 13 ]
+v.num_cuts: [ 4, 9 ]
+v.num_cuts: [ 5, 10 ]
+v.num_cuts: [ 5, 6 ]
+v.num_cuts: [ 7, 8 ]
+v.num_cuts: [ 8, 11 ]
+v.num_cuts: [ 9, 11 ]
+v.num_cuts: [ 10, 12 ]
+v.num_cuts: [ 12, 13 ]
+
 Prop: on ne stocke pas les edges. On va plutôt les chercher à la volée, en partant des points extérieurs.
   Rq: on pourra filtrer la liste des cuts dès le démarrage (sauf si on a besoin des recalculer les positions avec sys linéaire)
   => a priori, on n'aura plus besoin de faire de correction sur les numéros de vertices :)

@@ -9,7 +9,7 @@
  * 
  */
 template<class TS,int nb_dims>
-class CellCut { STD_TL_TYPE_INFO( Cut, "", type, dir, off, p1, w1, i1 )
+class CellCut { STD_TL_TYPE_INFO( Cut, "", type, dir, off, i1 ) // , p1, w1
 public:
     using      Point    = Vec<TS,nb_dims>;
 

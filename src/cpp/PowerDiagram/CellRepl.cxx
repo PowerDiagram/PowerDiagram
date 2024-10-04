@@ -26,9 +26,9 @@ DTP void UTP::init_geometry_from( const Cell &that ) {
     cuts = that.cuts;
 }
 
-DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
-    Point min_pos = ( mi + ma ) / 2 - ( ma - mi );
-    Point max_pos = ( mi + ma ) / 2 + ( ma - mi );
+DTP void UTP::make_init_simplex( const Pt &mi, const Pt &ma ) {
+    Pt min_pos = ( mi + ma ) / 2 - ( ma - mi );
+    Pt max_pos = ( mi + ma ) / 2 + ( ma - mi );
 
     vertex_coords.clear();
     vertex_cuts.clear();
@@ -38,13 +38,13 @@ DTP void UTP::make_init_simplex( const Point &mi, const Point &ma ) {
     // cuts
     PI point_index = 0;
     for( int d = 0; d < nb_dims; ++d ) {
-        Point dir( FromItemValue(), 0 );
+        Pt dir( FromItemValue(), 0 );
         dir[ d ] = -1;
-        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Point{}, Scalar{}, point_index++ );
+        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Pt{}, Scalar{}, point_index++ );
     }
 
-    Point dir( FromItemValue(), 1 );
-    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Point{}, Scalar{}, point_index++ );
+    Pt dir( FromItemValue(), 1 );
+    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Pt{}, Scalar{}, point_index++ );
 
     // vertices
     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
@@ -115,7 +115,7 @@ DTP void UTP::apply_corr( auto &vec, Vec<int> &keep ) {
     vec.resize( last_keep );
 }
 
-DTP UTP::Point UTP::compute_pos( const Point &p0, const Point &p1, Scalar s0, Scalar s1 ) const {
+DTP UTP::Pt UTP::compute_pos( const Pt &p0, const Pt &p1, Scalar s0, Scalar s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
@@ -156,7 +156,7 @@ DTP auto UTP::compute_pos( Vec<PI,nb_dims> num_cuts, const auto &get_w ) const {
     }
 }
 
-DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
+DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
@@ -175,12 +175,12 @@ DTP UTP::Point UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 }
 
-DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
-    _cut( CutType::Boundary, dir, off, Point{}, Scalar{}, num_boundary );
+DTP void UTP::cut_boundary( const Pt &dir, Scalar off, PI num_boundary ) {
+    _cut( CutType::Boundary, dir, off, Pt{}, Scalar{}, num_boundary );
 }
 
-DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
-    const Point dir = p1 - p0;
+DTP void UTP::cut_dirac( const Pt &p1, Scalar w1, PI i1 ) {
+    const Pt dir = p1 - p0;
     auto n = norm_2_p2( dir );
     auto s0 = sp( dir, p0 );
     auto s1 = sp( dir, p1 );
@@ -190,7 +190,7 @@ DTP void UTP::cut_dirac( const Point &p1, Scalar w1, PI i1 ) {
     _cut( CutType::Dirac, dir, off, p1, w1, i1 );
 }
 
-DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, SI i1 ) {
+DTP void UTP::_cut( CutType type, const Pt &dir, Scalar off, const Pt &p1, Scalar w1, SI i1 ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
@@ -281,7 +281,7 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
             edge->vertices[ 0 ] = nv;
 
             // new point
-            Point new_pos = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
+            Pt new_pos = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
             auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
             vertex_coords << new_pos;
             vertex_cuts << num_cuts;
@@ -299,7 +299,7 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
             const PI nv = vertex_coords.size();
             edge->vertices[ 1 ] = nv;
 
-            Point new_coords = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
+            Pt new_coords = compute_pos( vertex_coords[ o0 ], vertex_coords[ o1 ], s0, s1 );
             auto num_cuts = edge->num_cuts.with_pushed_value( new_cut );
             vertex_coords << new_coords;
             vertex_cuts << num_cuts;
@@ -329,7 +329,7 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
             edge.vertices[ i ] = vertex_corr[ edge.vertices[ i ] ];
 }
 
-DTP void UTP::for_each_vertex( const std::function<void( const Point &pos, const Vec<int,nb_dims> &num_cuts )> &f ) const {
+DTP void UTP::for_each_vertex( const std::function<void( const Pt &pos, const Vec<int,nb_dims> &num_cuts )> &f ) const {
     for( PI i = 0; i < nb_vertices(); ++i )
         f( vertex_coords[ i ], vertex_cuts[ i ] );
 }
@@ -586,14 +586,14 @@ DTP bool UTP::is_inf() const {
     return false;
 }
 
-DTP bool UTP::contains( const Point &x ) const {
+DTP bool UTP::contains( const Pt &x ) const {
     for( const auto &cut : cuts )
         if ( sp( cut.dir, x ) > cut.sp )
             return false;
     return true;
 }
 
-DTP Scalar UTP::height( const Point &point ) const {
+DTP Scalar UTP::height( const Pt &point ) const {
     return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 
