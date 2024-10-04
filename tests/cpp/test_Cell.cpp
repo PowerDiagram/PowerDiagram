@@ -9,19 +9,23 @@ TEST_CASE( "Cell", "" ) {
     using Point = Vec<Scalar,nb_dims>;
 
     Cell<Scalar,nb_dims> cell;
-    cell.make_init_simplex( { FromItemValue(), -1 }, { FromItemValue(), 1 } );
+    cell.init_geometry_to_encompass( { FromItemValue(), -1 }, { FromItemValue(), 1 } );
     cell.p0 = { 0, 0 };
     cell.w0 = 0;
 
-    auto r = []() { return Scalar( rand() ) / RAND_MAX; };
+    cell.for_each_face( [&]( auto nc, auto vs ) {
+        P( nc, vs );
+    } );
 
-    for( PI i = 0; i < 50; ++i ) {
-        Scalar a = r() * 2 * M_PI;
-        cell.cut_boundary( { cos( a ), sin( a ) }, 1.0, i );
-    }
-    // P( cell );
+    // auto r = []() { return Scalar( rand() ) / RAND_MAX; };
 
-    VtkOutput vo;
-    cell.display_vtk( vo );
-    vo.save( "out.vtk" );
+    // for( PI i = 0; i < 50; ++i ) {
+    //     Scalar a = r() * 2 * M_PI;
+    //     cell.cut_boundary( { cos( a ), sin( a ) }, 1.0, i );
+    // }
+    // // P( cell );
+
+    // VtkOutput vo;
+    // cell.display_vtk( vo );
+    // vo.save( "out.vtk" );
 }

@@ -6,66 +6,58 @@
 #include <map>
 
 /**
-
+ * map[ Vec<PII>(...) ] => ... where items in Vec<PII>(...) are strictly increasing
+ *
+ * This version is for the generic case (it uses std::map which may be slow).
 */
-template<int s_min,int s_max>
-struct MapOfUniquePISortedArray {
-    using Tail            = MapOfUniquePISortedArray<s_min,s_max-1>;
-    using Head            = MapOfUniquePISortedArray<s_max,s_max>;
+template<int s,class PII=PI32,class PIO=PI32>
+class MapOfUniquePISortedArray {
+public:
+    void  prepare_for( PII max_PI_value ) { values.clear(); }
+    PIO&  operator[] ( Vec<PII,s> a ) { auto iter = values.find( a ); if ( iter == values.end() ) iter = values.insert( iter, { a, 0 } ); return iter->second; }
+    void  display    ( Displayer &ds ) const { ds << values; }
 
-    void  set_max_PI_value( PI max_PI_value ) { head.set_max_PI_value( max_PI_value ); tail.set_max_PI_value( max_PI_value ); }
+private:
+    using Map        = std::map<Vec<PII,s>,PIO,Less>;
 
-    PI&   operator[]      ( const Vec<PI,s_max> &a ) { return head[ a ]; }
-    PI&   operator[]      ( const auto &a ) { return tail[ a ]; }
-
-    void  display         ( Displayer &ds, bool make_array = true ) const { if ( make_array ) ds.start_array(); ds << head; tail.display( ds, false ); if ( make_array ) ds.end_array();}
-
-    Head  head;
-    Tail  tail;
-};
-
-/// single dim, generic case
-template<int s>
-struct MapOfUniquePISortedArray<s,s> {
-    using Map             = std::map<Vec<PI,s>,PI,Less>;
-
-    void  set_max_PI_value( PI max_PI_value ) { values.clear(); }
-
-    PI&   operator[]      ( Vec<PI,s> a ) { auto iter = values.find( a ); if ( iter == values.end() ) iter = values.insert( iter, { a, 0 } ); return iter->second; }
-
-    void  display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
-
-    Map   values;         ///<
+    Map   values;    ///<
 };
 
 /// single dim, s == 0
-template<>
-struct MapOfUniquePISortedArray<0,0> {
-    /**/ MapOfUniquePISortedArray() : value( 0 ) {}
-    void set_max_PI_value        ( PI /*max_PI_value*/ ) {}
-    PI&  operator[]              ( Vec<PI,0> ) { return value; }
-    void display                 ( Displayer &ds, bool make_array = true ) const { ds << value; }
+template<class PII,class PIO>
+class MapOfUniquePISortedArray<0,PII,PIO> {
+public:
+    void  prepare_for ( PII /*max_PII_value*/ ) {}
+    PIO&  operator[]  ( Vec<PII,0> ) { return value; }
+    void  display     ( Displayer &ds ) const { ds << value; }
 
-    PI   value;                  ///<
+private:
+    PIO   value = 0;  ///<
 };
 
 /// single dim, s == 1
-template<>
-struct MapOfUniquePISortedArray<1,1> {
-    void    set_max_PI_value( PI max_PI_value ) { values.resize( max_PI_value, 0 ); }
-    PI&     operator[]      ( Vec<PI,1> a ) { return values[ a[ 0 ] ]; }
-    void    display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
+template<class PII,class PIO>
+class MapOfUniquePISortedArray<1,PII,PIO> {
+public:
+    void   prepare_for( PII max_PII_value ) { values.resize( max_PII_value, 0 ); }
+    PIO&   operator[] ( Vec<PII,1> a ) { return values[ a[ 0 ] ]; }
+    void   display    ( Displayer &ds ) const { ds << values; }
 
-    Vec<PI> values;          ///<
+private:
+    using  Map        = Vec<PIO>;
+
+    Map    values;    ///<
 };
 
 /// single dim, s == 2
-template<>
-struct MapOfUniquePISortedArray<2,2> {
-    void    set_max_PI_value( PI max_PI_value ) { values.resize( ( max_PI_value - 1 ) * max_PI_value / 2, 0 ); }
-    T_i PI& at_without_index( const Vec<PI,3> &a, CtInt<i> ) { constexpr PI i1 = 1 + ( i <= 1 ), i0 = ( i <= 0 );  return values[ ( a[ i1 ] - 1 ) * a[ i1 ] / 2 + a[ i0 ] ]; }
-    PI&     operator[]      ( const Vec<PI,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
-    void    display         ( Displayer &ds, bool make_array = true ) const { ds << values; }
+template<class PII,class PIO>
+struct MapOfUniquePISortedArray<2,PII,PIO> {
+    void   prepare_for( PI max_PII_value ) { values.resize( ( max_PII_value - 1 ) * max_PII_value / 2, 0 ); }
+    PI&    operator[] ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
+    void   display    ( Displayer &ds ) const { ds << values; }
 
-    Vec<PI> values;          ///<
+private:
+    using  Map        = Vec<PIO>;
+
+    Map    values;    ///<
 };

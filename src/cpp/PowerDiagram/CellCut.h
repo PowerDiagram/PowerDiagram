@@ -16,7 +16,6 @@ public:
     /**/       CellCut  ( CutType type, const Point &dir, TS off, const Point &p1, TS w1, PI i1 ) : type( type ), dir( dir ), off( off ), p1( p1 ), w1( w1 ), i1( i1 ) {}
     /**/       CellCut  () {}
 
-    void       display  ( Displayer &ds ) const { ds.start_object(); ds << dir << off; ds.end_object(); }
     bool       is_inf   () const { return type == CutType::Infinity; }
 
     CutType    type;
