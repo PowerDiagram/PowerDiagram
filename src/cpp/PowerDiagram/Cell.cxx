@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <tl/support/operators/determinant.h>
 #include <tl/support/operators/lu_solve.h>
 #include <tl/support/operators/norm_2.h>
@@ -212,9 +213,13 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
     // vertex_indices will contain:
     //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
     //                          l1                      l2                        l3
+    PI l1 = nb_active_vertices, l2 = l1, l3 = vertex_indices.size();
+
+    // preparation for the new bounds 
+    max_pos = { FromItemValue(), std::numeric_limits<TS>::lowest() };
+    min_pos = { FromItemValue(), std::numeric_limits<TS>::max   () };
 
     // add the new vertices
-    PI l1 = nb_active_vertices, l2 = l1, l3 = vertex_indices.size();
     for( PI na = 0; na < l1; ) {
         const PI32 n0 = vertex_indices[ na ];
         const Pt   p0 = vertices[ n0 ].pos;
@@ -227,29 +232,38 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
             --l1;
             --l2;
             --l3;
-            vertex_indices[ na ] = vertex_indices[ l1 ];
-            vertex_indices[ l1 ] = vertex_indices[ l2 ];
-            vertex_indices[ l2 ] = vertex_indices[ l3 ];
-            vertex_indices[ l3 ] = n0;
-        } else
+            //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
+            //                     l1                      l2                        l3
+            if ( na != l1 ) vertex_indices[ na ] = vertex_indices[ l1 ];
+            if ( l1 != l2 ) vertex_indices[ l1 ] = vertex_indices[ l2 ];
+            if ( l2 != l3 ) vertex_indices[ l2 ] = vertex_indices[ l3 ];
+            if ( l3 != na ) vertex_indices[ l3 ] = n0;
+        } else {
+            max_pos = max( max_pos, p0 );
+            min_pos = min( min_pos, p0 );
             ++na;
+        }
 
         // helper to get room for a new vertex
-        const auto new_vertex = [&]() -> PI32 {
+        const auto insert_vertex = [&]( const auto &cn, const auto &pn ) {
             // if we have an old inactive vertex, use it
             // if ( l2 < l3 )
             //     return vertex_indices[ l2++ ];
 
             // else, make room in [ new active vertices ]
-            const PI32 res = vertices.push_back_ind();
+
+            //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
+            //                            l1                      l2                        l3
+            //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
+            //                            l1                             l2                        l3
 
             vertex_indices.push_back( vertex_indices[ l3 ] );
             vertex_indices[ l3 ] = vertex_indices[ l2 ];
-            vertex_indices[ l2 ] = res;
+            vertex_indices[ l2 ] = vertices.size();
             ++l3;
             ++l2;
 
-            return res;
+            vertices.push_back( cn, pn );
         };
 
         //
@@ -264,12 +278,16 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
                 const bool e1 = s1 > 0;
 
                 if ( e0 != e1 ) {
-                    // get room
-                    PI32 nv = new_vertex();
+                    // data for the new vertex
+                    auto cn = edge_cuts.with_pushed_value( new_cut );
+                    auto pn = compute_pos( p0, p1, s0, s1 );
 
-                    // vertex data
-                    vertices[ nv ].num_cuts = edge_cuts.with_pushed_value( new_cut );
-                    vertices[ nv ].pos = compute_pos( p0, p1, s0, s1 );
+                    // bounds
+                    max_pos = max( max_pos, pn );
+                    min_pos = min( min_pos, pn );
+
+                    // append/insert the new
+                    insert_vertex( cn, pn );
                 }
             } else
                 edge_op_id = op_id + n0;
@@ -359,7 +377,7 @@ DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2>
 
     // for each face
     Vec<const Vertex *> vs;
-    for( auto &p: face_map ) {
+    for( const auto &p: face_map ) {
         const Vec<PI32,nb_dims-2> &face_cuts = p.first;
         const FaceInfo &fi = p.second;
 
