@@ -1,4 +1,4 @@
-#include <tl/support/containers/operators/mean.h>
+#include <tl/support/operators/mean.h>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
 
@@ -86,7 +86,7 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     // Vec<Scalar> nb_points; 22 en moyenne
     pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        volumes[ num_thread ] += cell.measure();
+        // volumes[ num_thread ] += cell.measure();
         // nb_points << cell.vertices.size();
     } );
 

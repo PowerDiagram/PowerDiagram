@@ -21,8 +21,7 @@ public:
 
     Point                inv_sym       ( const Point &pt, int ) const { return pt; }
 
-    virtual bool         may_intersect ( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const override;
-    virtual bool         may_intersect ( const Vec<Point> &vertices, const Point &p0, Scalar w0 ) const override;
+    virtual bool         may_intersect ( const Cell<Scalar,nb_dims> &cell ) const override;
     virtual Point        min_point     () const override { return min_pos; }
     virtual Point        max_point     () const override { return max_pos; }
 

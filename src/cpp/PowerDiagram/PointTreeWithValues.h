@@ -11,9 +11,9 @@ public:
 
     /**/                 PointTreeWithValues( Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree<Scalar,nb_dims> *parent, PI num_in_parent ) : PointTree<Scalar,nb_dims>( parent, num_in_parent ), indices( indices ), weights( weights ), points( points ) {}
 
+    virtual void         for_each_point     ( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f, Vec<PI32> &buffer, const Point &center );
     virtual void         for_each_point     ( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) { for( PI n0 = 0, nc = points.size(); n0 < nc; ++n0 ) f( points[ n0 ], weights[ n0 ], indices[ n0 ] ); }
     virtual PI           nb_seed_points     () const { return indices.size(); }
-    virtual void         get_otps           ( Vec<std::tuple<Point,Scalar,PI>> &otps, const Point &p0, PI i0 ) override;
 
     Span<PI>             indices;
     Span<Scalar>         weights;
@@ -23,14 +23,17 @@ public:
 #define DTP template<class Scalar,int nb_dims>
 #define UTP PointTreeWithValues<Scalar,nb_dims>
 
-DTP void UTP::get_otps( Vec<std::tuple<Point,Scalar,PI>> &otps, const Point &p0, PI i0 ) {
-    otps.clear();
-    for( PI n1 = 0, nc = points.size(); n1 < nc; ++n1 )
-        if ( indices[ n1 ] != i0 )
-            otps << std::tuple<Point,Scalar,PI>{ points[ n1 ], weights[ n1 ], indices[ n1 ] };
-    std::sort( otps.begin(), otps.end(), [&]( const auto &a, const auto &b ) {
-        return norm_2_p2( std::get<0>( a ) - p0 ) < norm_2_p2( std::get<0>( b ) - p0 );
+DTP void UTP::for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f, Vec<PI32> &buffer, const Point &center ) {
+    buffer.clear();
+    for( PI ni = 0, nc = points.size(); ni < nc; ++ni )
+        buffer << ni;
+
+    std::sort( buffer.begin(), buffer.end(), [&]( const auto &a, const auto &b ) {
+        return norm_2_p2( points[ a ] - center ) < norm_2_p2( points[ a ] - center );
     } );
+
+    for( PI n : buffer )
+        f( points[ n ], weights[ n ], indices[ n ] );
 }
 
 

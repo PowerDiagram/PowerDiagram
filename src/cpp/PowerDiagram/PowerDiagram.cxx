@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tl/support/containers/operators/all.h>
 #include <tl/support/containers/Pair.h>
+#include <tl/support/operators/all.h>
 #include "PowerDiagram.h"
 #include <thread>
 
@@ -34,41 +34,34 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<S
     //     v = +1e7;
 
     // base cell
-    base_cell.make_init_simplex( min_box_pos, max_box_pos );
+    base_cell.init_geometry_to_encompass( min_box_pos, max_box_pos );
     for( PI i = 0; i < bnd_offs.size(); ++i )
         base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 
-    // base inf cell
-    for( PI i = 0; i < bnd_offs.size(); ++i )
-        base_inf_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
+    // base inf cell. WARN INF
+    // for( PI i = 0; i < bnd_offs.size(); ++i )
+    //     base_inf_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 }
 
-DTP void UTP::make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
+DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
     // const PI i0 = cell.i0;
 
     // intersections with the points in the same box
-    // rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-    //     if ( i1 != i0 )
-    //         cell.cut_dirac( p1, w1, i1 );
-    // } );
-
-    rb_base.leaf->get_otps( cell.otps, cell.p0, cell.i0 );
-    for( const auto &t : cell.otps )
-        cell.cut_dirac( std::get<0>( t ), std::get<1>( t ), std::get<2>( t ) );
+    rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        if ( i1 != cell.i0 )
+            cell.cut_dirac( p1, w1, i1 );
+    }, buffer, cell.p0 );
 
     // helper to test if a bow may contain a dirac that can create a new cut
     const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
-        return point_tree->may_intersect( cell.vertex_coords, cell.p0, cell.w0 );
+        return point_tree->may_intersect( cell );
     };
 
     // intersections with the points other boxes that may create intersections
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-        rb.leaf->get_otps( cell.otps, cell.p0, -1 );
-        for( const auto &t : cell.otps )
-            cell.cut_dirac( std::get<0>( t ), std::get<1>( t ), std::get<2>( t ) );
-        // rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-        //     cell.cut_dirac( p1, w1, i1 );
-        // } );
+        rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+            cell.cut_dirac( p1, w1, i1 );
+        }, buffer, cell.p0 );
     }
 }
 
@@ -95,6 +88,7 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
     Vec<std::thread> threads( FromSizeAndInitFunctionOnIndex(), nb_threads, [&]( std::thread *th, PI num_thread ) {
         new ( th ) std::thread( [&f,&leave_bounds,num_thread,this]() {
             Cell<Scalar,nb_dims> cell;
+            Vec<PI32> buffer( FromReservationSize(), 32 );
             for( PointTree<Scalar,nb_dims> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
                 leaf->for_each_point( [&]( const Point &p0, const Scalar &w0, const PI i0 ) {
                     // we may have to redo the cell if the base one is not large enough
@@ -109,10 +103,10 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
                         cell.i0 = i0;
 
                         // make the cuts
-                        make_intersections( cell, rb_base );
+                        make_intersections( cell, buffer, rb_base );
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
-                        bool inf_cut = cell.is_inf() && outside_cell( cell, rb_base );
+                        bool inf_cut = false; // cell.is_inf() && outside_cell( cell, rb_base ); WARN inf
                         if ( ! inf_cut ) {
                             f( cell, num_thread );
                             break;
@@ -203,34 +197,35 @@ DTP Str UTP::type_name() {
 }
 
 DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
-    // make the inf cell (i.e. without the inf bounds)
-    InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
-    inf_cell.w0 = cell.w0;
-    inf_cell.p0 = cell.p0;
-    inf_cell.i0 = cell.i0;
+    return false;
+    // // make the inf cell (i.e. without the inf bounds)
+    // InfCell<Scalar,nb_dims> inf_cell = base_inf_cell;
+    // inf_cell.w0 = cell.w0;
+    // inf_cell.p0 = cell.p0;
+    // inf_cell.i0 = cell.i0;
 
-    make_intersections( inf_cell, rb_base );
+    // make_intersections( inf_cell, rb_base );
 
-    // check that the vertices of the inf_cell are inside the inf bounds
-    bool has_outside_vertex = false;
-    inf_cell.for_each_repr_point( [&]( const Point &pos ) {
-        for( const Cut<Scalar,nb_dims> &cut : base_cell.cuts ) {
-            if ( cut.is_inf() && ( sp( pos, cut.dir ) - cut.off ) >= 0 ) {
-                min_box_pos = min( min_box_pos, pos );
-                max_box_pos = max( max_box_pos, pos );
-                has_outside_vertex = true;
-            }
-        }
-    } );
+    // // check that the vertices of the inf_cell are inside the inf bounds
+    // bool has_outside_vertex = false;
+    // inf_cell.for_each_repr_point( [&]( const Point &pos ) {
+    //     for( const CellCut<Scalar,nb_dims> &cut : base_cell.cuts ) {
+    //         if ( cut.is_inf() && ( sp( pos, cut.dir ) - cut.off ) >= 0 ) {
+    //             min_box_pos = min( min_box_pos, pos );
+    //             max_box_pos = max( max_box_pos, pos );
+    //             has_outside_vertex = true;
+    //         }
+    //     }
+    // } );
 
-    // update base cell if necessary
-    if ( has_outside_vertex ) {
-        base_cell.make_init_simplex( min_box_pos, max_box_pos );
-        for( PI i = 0; i < bnd_offs.size(); ++i )
-            base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
-    }
+    // // update base cell if necessary
+    // if ( has_outside_vertex ) {
+    //     base_cell.make_init_simplex( min_box_pos, max_box_pos );
+    //     for( PI i = 0; i < bnd_offs.size(); ++i )
+    //         base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
+    // }
 
-    return has_outside_vertex;
+    // return has_outside_vertex;
 }
 
 #undef DTP

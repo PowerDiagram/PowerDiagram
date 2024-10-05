@@ -37,7 +37,7 @@ public:
 private:
     using                   PtPtr             = UniquePtr<PointTree<Scalar,nb_dims>>;
 
-    void                    make_intersections( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base );
+    void                    make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Scalar,nb_dims> &rb_base );
     bool                    outside_cell      ( auto &cell, const RemainingBoxes<Scalar,nb_dims> &rb_base );
 
     InfCell<Scalar,nb_dims> base_inf_cell;    ///<

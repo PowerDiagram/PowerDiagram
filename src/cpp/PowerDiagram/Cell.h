@@ -29,6 +29,7 @@ public:
     void                         cut_boundary              ( const Pt &dir, TS off, PI num_boundary );
     void                         cut_dirac                 ( const Pt &p1, TS w1, PI i1 );
  
+    bool                         test_each_vertex          ( const std::function<bool( const Vertex &vertex )> &f ) const; ///< return true to stop
     void                         for_each_vertex           ( const std::function<void( const Vertex &vertex )> &f ) const;
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<const Vertex *,2> vertices )> &f ) const;
     void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<const Vertex *> vertices )> &f ) const;

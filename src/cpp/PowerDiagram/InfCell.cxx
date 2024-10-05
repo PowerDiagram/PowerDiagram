@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tl/support/containers/operators/for_each_selection.h>
-#include <tl/support/containers/operators/sp.h>
+#include <tl/support/operators/for_each_selection.h>
+#include <tl/support/operators/sp.h>
 #include <tl/support/TODO.h>
 
 // #include "support/P.h"
@@ -31,11 +31,9 @@ DTP void UTP::cut_boundary( const Point &dir, Scalar off, PI num_boundary ) {
 DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1, Scalar w1, PI i1 ) {
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
-        if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
-            auto rco = vertex_coords.pop_back_val();
-            auto rcu = vertex_cuts.pop_back_val();
-            vertex_coords[ num_vertex ] = rco;
-            vertex_cuts[ num_vertex ] = rcu;
+        if ( sp( vertices[ num_vertex ].pos, dir ) > off ) {
+            auto pve = vertices.pop_back_val();
+            vertices[ num_vertex ] = pve;
             --num_vertex;
         }
     }
@@ -63,8 +61,7 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
                     return;
 
             // else, register the new vertex
-            vertex_coords << *coords;
-            vertex_cuts << num_cuts;
+            vertices.push_back( num_cuts, *coords );
         }, nb_dims - 1, new_cut );
     }
 
@@ -75,8 +72,8 @@ DTP void UTP::_cut( CutType type, const Point &dir, Scalar off, const Point &p1,
 DTP void UTP::clean_inactive_cuts() {
     // mark cuts used by actives vertices
     Vec<int> keep( FromSizeAndItemValue(), cuts.size(), 0 );
-    for( const auto &num_cuts : vertex_cuts )
-        for( PI num_cut : num_cuts )
+    for( const auto &vertex : vertices )
+        for( PI num_cut : vertex.num_cuts )
             keep[ num_cut ] = true;
 
     // "inactive" cuts may actually be used
@@ -88,8 +85,8 @@ DTP void UTP::clean_inactive_cuts() {
     apply_corr( cuts, keep );
 
     // update the vertex list
-    for( auto &num_cuts : vertex_cuts )
-        for( PI &num_cut : num_cuts )
+    for( auto &vertex : vertices )
+        for( PI &num_cut : vertex.num_cuts )
             num_cut = keep[ num_cut ];
 }
 
@@ -218,13 +215,13 @@ DTP Opt<typename UTP::Point> UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const 
 }
 
 DTP void UTP::for_each_repr_point( const std::function<void( const Point &pos )> &f ) const {
-    for( const auto &v : vertex_coords )
-        f( v );
+    for( const auto &v : vertices )
+        f( v.pos );
 }
 
 DTP void UTP::for_each_vertex( const std::function<void( const Point &coords, const Vec<PI,nb_dims> &cuts )> &f ) const {
-    for( PI i = 0; i < nb_vertices(); ++i )
-        f( vertex_coords[ i ], vertex_cuts[ i ] );
+    for( const auto &v : vertices )
+        f( v.pos, v.num_cuts );
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo, const std::function<void( VtkOutput::Pt &pt )> &coord_change ) const { //

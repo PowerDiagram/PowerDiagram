@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tl/support/containers/operators/argmax.h>
-#include <tl/support/containers/operators/argmin.h>
+#include <tl/support/operators/argmax.h>
+#include <tl/support/operators/argmin.h>
 #include <tl/support/TODO.h>
 #include <tl/support/P.h>
 
@@ -220,55 +220,51 @@ DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
     }
 }
 
-DTP bool UTP::may_intersect( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const {
-    using namespace xsimd;
-    using namespace std;
+// DTP bool UTP::may_intersect( const SimdTensor<Scalar,nb_dims> &vertices, const Point &p0, Scalar w0 ) const {
+//     using namespace xsimd;
+//     using namespace std;
 
-    using SimdVec = SimdTensor<Scalar,nb_dims>::SimdVec;
-    constexpr PI simd_size = SimdVec::size;
+//     using SimdVec = SimdTensor<Scalar,nb_dims>::SimdVec;
+//     constexpr PI simd_size = SimdVec::size;
 
-    //return norm_2_p2( vertex - p0 ) > norm_2_p2( vertex - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights - w0;
-    // Point p1 = min( max_pos, max( min_pos, vertex + Scalar( 1 ) / 2 * coeff_weights ) );
-    const PI floor_of_nb_vertices = vertices.size() / simd_size * simd_size;
-    for( PI n = 0; n < floor_of_nb_vertices; n += simd_size ) {
-        // return norm_2_p2( vertex - p0 ) - norm_2_p2( vertex - p1 ) + sp( coeff_weights, p1 ) + max_offset_weights - w0 > 0;        
-        SimdVec res = max_offset_weights - w0;
-        for( int d = 0; d < nb_dims; ++d ) {
-            SimdVec pos = SimdVec::load_aligned( vertices.data() + vertices.offset( n, d ) );
+//     //return norm_2_p2( vertex - p0 ) > norm_2_p2( vertex - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights - w0;
+//     // Point p1 = min( max_pos, max( min_pos, vertex + Scalar( 1 ) / 2 * coeff_weights ) );
+//     const PI floor_of_nb_vertices = vertices.size() / simd_size * simd_size;
+//     for( PI n = 0; n < floor_of_nb_vertices; n += simd_size ) {
+//         // return norm_2_p2( vertex - p0 ) - norm_2_p2( vertex - p1 ) + sp( coeff_weights, p1 ) + max_offset_weights - w0 > 0;        
+//         SimdVec res = max_offset_weights - w0;
+//         for( int d = 0; d < nb_dims; ++d ) {
+//             SimdVec pos = SimdVec::load_aligned( vertices.data() + vertices.offset( n, d ) );
       
-            SimdVec p1d = xsimd::min( SimdVec( max_pos[ d ] ), xsimd::max( SimdVec( min_pos[ d ] ), pos + Scalar( 1 ) / 2 * coeff_weights[ d ] ) );
-            SimdVec vp0 = pos - p0[ d ];
-            SimdVec vp1 = pos - p1d;
+//             SimdVec p1d = xsimd::min( SimdVec( max_pos[ d ] ), xsimd::max( SimdVec( min_pos[ d ] ), pos + Scalar( 1 ) / 2 * coeff_weights[ d ] ) );
+//             SimdVec vp0 = pos - p0[ d ];
+//             SimdVec vp1 = pos - p1d;
 
-            res += vp0 * vp0;
-            res -= vp1 * vp1;
-            res -= coeff_weights[ d ] * p1d;
-        }
+//             res += vp0 * vp0;
+//             res -= vp1 * vp1;
+//             res -= coeff_weights[ d ] * p1d;
+//         }
 
-        if ( xsimd::any( res > 0 ) )
-            return true;
-    }
+//         if ( xsimd::any( res > 0 ) )
+//             return true;
+//     }
 
-    for( PI n = floor_of_nb_vertices; n < vertices.size(); ++n ) {
-        // Point p1 = inv_sym( q1, this->num_sym );
-        Point vp = vertices[ n ];
-        Point p1 = min( max_pos, max( min_pos, vp + Scalar( 1 ) / 2 * coeff_weights ) );
-        if ( norm_2_p2( vp - p0 ) - w0 > norm_2_p2( vp - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights )
-            return true;
-    }
+//     for( PI n = floor_of_nb_vertices; n < vertices.size(); ++n ) {
+//         // Point p1 = inv_sym( q1, this->num_sym );
+//         Point vp = vertices[ n ];
+//         Point p1 = min( max_pos, max( min_pos, vp + Scalar( 1 ) / 2 * coeff_weights ) );
+//         if ( norm_2_p2( vp - p0 ) - w0 > norm_2_p2( vp - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights )
+//             return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-DTP bool UTP::may_intersect( const Vec<Point> &vertices, const Point &p0, Scalar w0 ) const {
-    for( PI n = 0; n < vertices.size(); ++n ) {
-        Point vp = vertices[ n ];
-     
-        Point p1 = min( max_pos, max( min_pos, vp + Scalar( 1 ) / 2 * coeff_weights ) );
-        if ( norm_2_p2( vp - p0 ) - w0 > norm_2_p2( vp - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights )
-            return true;
-    }
-    return false;
+DTP bool UTP::may_intersect( const Cell<Scalar,nb_dims> &cell ) const {
+    return cell.test_each_vertex( [&]( const CellVertex<Scalar,nb_dims> &vertex ) -> bool {
+        Point p1 = min( max_pos, max( min_pos, vertex.pos + Scalar( 1 ) / 2 * coeff_weights ) );
+        return norm_2_p2( vertex.pos - cell.p0 ) - cell.w0 > norm_2_p2( vertex.pos - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;
+    } );
 }
 
 DTP Str UTP::type_name() {

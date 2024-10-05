@@ -11,6 +11,8 @@
 #include <tl/support/containers/CtRange.h>
 #include <tl/support/containers/Opt.h>
 
+#include <tl/support/ASSERT.h>
+
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
 #include "Cell.h"
@@ -247,16 +249,18 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
         // helper to get room for a new vertex
         const auto insert_vertex = [&]( const auto &cn, const auto &pn ) {
             // if we have an old inactive vertex, use it
-            // if ( l2 < l3 )
-            //     return vertex_indices[ l2++ ];
+            if ( l2 < l3 ) {
+                const PI ind = vertex_indices[ l2++ ];
+                vertices[ ind ].num_cuts = cn;
+                vertices[ ind ].pos = pn;
+                return;
+            }
 
             // else, make room in [ new active vertices ]
-
             //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
             //                            l1                      l2                        l3
             //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
             //                            l1                             l2                        l3
-
             vertex_indices.push_back( vertex_indices[ l3 ] );
             vertex_indices[ l3 ] = vertex_indices[ l2 ];
             vertex_indices[ l2 ] = vertices.size();
@@ -325,8 +329,14 @@ DTP void UTP::cut_dirac( const Pt &p1, TS w1, PI i1 ) {
     _cut( CutType::Dirac, dir, off, p1, w1, i1 );
 }
 
+DTP bool UTP::test_each_vertex( const std::function<bool( const Vertex &vertex )> &f ) const {
+    for( PI32 i = 0; i < nb_active_vertices; ++i )
+        if ( f( vertices[ vertex_indices[ i ] ] ) )
+            return true;
+    return false;
+}
+
 DTP void UTP::for_each_vertex( const std::function<void( const Vertex &vertex )> &f ) const {
-    //for( PI32 ind : vertex_indices )
     for( PI32 i = 0; i < nb_active_vertices; ++i )
         f( vertices[ vertex_indices[ i ] ] );
 }
@@ -356,7 +366,7 @@ DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1>
 }
 
 DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<const Vertex *> vertices )> &f ) const {
-    // sibling for each vertex, for each face
+    // sibling for each vertex (index in `vertices`), for each face
     struct FaceInfo { Vec<SmallVec<PI,2>> siblings; PI start; };
     std::map<Vec<PI32,nb_dims-2>,FaceInfo,Less> face_map;
     for_each_edge( [&]( const Vec<PI32,nb_dims-1> &edge_cuts, auto vs ) {
@@ -383,7 +393,7 @@ DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2>
 
         // get the loop
         vs.clear();
-        for( PI n = fi.start, j = 0; j < 10; ++j ) {
+        for( PI n = fi.start, j = 0; ; ++j ) {
             vs << &vertices[ n ];
 
             const PI s = vs.size() > 1 && vs[ vs.size() - 2 ] == &vertices[ fi.siblings[ n ][ 0 ] ];

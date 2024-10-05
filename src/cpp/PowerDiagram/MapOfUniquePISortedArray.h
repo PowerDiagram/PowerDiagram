@@ -53,7 +53,7 @@ private:
 template<class PII,class PIO>
 struct MapOfUniquePISortedArray<2,PII,PIO> {
     void   prepare_for( PI max_PII_value ) { values.resize( ( max_PII_value - 1 ) * max_PII_value / 2, 0 ); }
-    PI&    operator[] ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
+    PIO&   operator[] ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
     void   display    ( Displayer &ds ) const { ds << values; }
 
 private:

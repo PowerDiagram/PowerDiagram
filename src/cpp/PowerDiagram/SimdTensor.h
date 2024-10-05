@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tl/support/containers/operators/ceil.h>
 #include <tl/support/containers/Vec.h>
+#include <tl/support/operators/ceil.h>
 #include <xsimd/xsimd.hpp>
 #include <vector>
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <tl/support/containers/Opt.h>
+#include "CellVertex.h"
 #include "VtkOutput.h"
-#include "Vertex.h"
-#include "Cut.h"
+#include "CellCut.h"
 
 /**
  * @brief Like a Cell<...> that does not need initial bounds
@@ -14,7 +14,9 @@
 template<class Scalar,int nb_dims>
 class InfCell { STD_TL_TYPE_INFO( InfCell, "", vertices, cuts )
 public:
+    using                       Vertex             = CellVertex<Scalar,nb_dims>;
     using                       Point              = Vec<Scalar,nb_dims>;
+    using                       Cut                = CellCut<Scalar,nb_dims>;
 
     void                        cut_boundary       ( const Point &dir, Scalar off, PI num_boundary );
     void                        cut_dirac          ( const Point &p1, Scalar w1, PI i1 );
@@ -24,7 +26,7 @@ public:
 
     void                        for_each_repr_point( const std::function<void( const Point &coords )> &f ) const;
     void                        for_each_vertex    ( const std::function<void( const Point &coords, const Vec<PI,nb_dims> &cuts )> &f ) const;
-    PI                          nb_vertices        () const { return vertex_coords.size(); }
+    PI                          nb_vertices        () const { return vertices.size(); }
     Scalar                      height             ( const Point &point ) const;
 
 
@@ -32,11 +34,8 @@ public:
     Point                       p0;                ///<
     SI                          i0;                ///<
 
-    Vec<Point>                  vertex_coords;     ///<
-    Vec<Vec<PI,nb_dims>>        vertex_cuts;       ///<
-    Vec<Cut<Scalar,nb_dims>>    cuts;              ///<
-
-    Vec<std::tuple<Point,Scalar,PI>> otps;
+    Vec<Vertex>                 vertices;          ///<
+    Vec<Cut>                    cuts;              ///<
 
 private:
     T_Ti static auto            array_without_index( const Vec<T,i> &values, PI index );
