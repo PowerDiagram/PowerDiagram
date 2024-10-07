@@ -106,6 +106,11 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     auto t1 = std::chrono::steady_clock::now();
     std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
 
+    P( mean( nv0 ) );
+    P( mean( nv1 ) );
+    P( mean( nc0 ) );
+    P( mean( nc1 ) );
+
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
         nv0[ cell.i0 ] = cell.capa_vertices();
         nc0[ cell.i0 ] = cell.capa_cuts();
