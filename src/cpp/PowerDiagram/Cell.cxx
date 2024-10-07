@@ -144,7 +144,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
     //         return false;
     // }
 
-    return false;
+    return true;
 }
 
 // DTP void UTP::_get_sps( const Point &dir, TS off ) {

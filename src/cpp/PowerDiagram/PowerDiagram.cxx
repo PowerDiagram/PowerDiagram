@@ -48,42 +48,63 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
     //
     if ( prev_cuts ) {
         for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
-            cell.cut_dirac( ci.p1, ci.w1 + 1e-3, ci.i1 );
+            cell.cut_dirac( ci.p1, ci.w1, ci.i1 );
 
         // intersections with the points in the same box
-        rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-            if ( i1 == cell.i0 )
-                return;
-            // for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
-            //     if ( ci.i1 == i1 )
-            //         return;
-            cell.cut_dirac( p1, w1, i1 );
-        }, buffer, cell.p0 );
+        // rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        //     if ( i1 == cell.i0 )
+        //         return;
+        //     for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+        //         if ( ci.i1 == i1 )
+        //             return;
+        //     cell.cut_dirac( p1, w1, i1 );
+        // } );
 
-        // intersections with the points other boxes that may create intersections
-        for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-            rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-                // for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
-                //     if ( ci.i1 == i1 )
-                //         return;
-                cell.cut_dirac( p1, w1, i1 );
-            }, buffer, cell.p0 );
-        }
+        // // intersections with the points other boxes that may create intersections
+        // for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+        //     rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        //         for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+        //             if ( ci.i1 == i1 )
+        //                 return;
+        //         cell.cut_dirac( p1, w1, i1 );
+        //     } );
+        // }
 
         return;
     }
 
     // intersections with the points in the same box
-    rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-        if ( i1 != cell.i0 )
-            cell.cut_dirac( p1, w1, i1 );
-    }, buffer, cell.p0 );
+    rb_base.leaf->for_each_point( [&]( Span<Point> p1s, Span<Scalar> w1s, Span<PI> i1s ) {
+        buffer.resize( p1s.size() );
+        for( PI n = 0; n < p1s.size(); ++n )
+            buffer[ n ] = n;
+        std::sort( buffer.begin(), buffer.end(), [&]( PI32 a, PI32 b ) {
+            return norm_2_p2( p1s[ a ] - cell.p0 ) < norm_2_p2( p1s[ b ] - cell.p0 );
+        } );
+
+        for( PI n : buffer ) {
+            const Scalar &w1 = w1s[ n ];
+            const Point &p1 = p1s[ n ];
+            PI i1 = i1s[ n ];
+
+            if ( i1 != cell.i0 )
+                cell.cut_dirac( p1, w1, i1 );
+        }
+    } );
 
     // intersections with the points other boxes that may create intersections
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-        rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-            cell.cut_dirac( p1, w1, i1 );
-        }, buffer, cell.p0 );
+        rb.leaf->for_each_point( [&]( Span<Point> p1s, Span<Scalar> w1s, Span<PI> i1s ) {
+            // buffer.resize( p1s.size() );
+            // for( PI n = 0; n < p1s.size(); ++n )
+            //     buffer[ n ] = n;
+            // std::sort( buffer.begin(), buffer.end(), [&]( PI32 a, PI32 b ) {
+            //     return norm_2_p2( p1s[ a ] - cell.p0 ) < norm_2_p2( p1s[ b ] - cell.p0 );
+            // } );
+
+            for( PI n = 0; n < p1s.size(); ++n )
+                cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ] );
+        } );
     }
 }
 
@@ -112,27 +133,22 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
             Cell<Scalar,nb_dims> cell;
             Vec<PI32> buffer( FromReservationSize(), 32 );
             for( PointTree<Scalar,nb_dims> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
-                leaf->for_each_point( [&]( const Point &p0, const Scalar &w0, const PI i0 ) {
-                    // we may have to redo the cell if the base one is not large enough
-                    while ( true ) {
+                leaf->for_each_point( [&]( Span<Point> p0s, Span<Scalar> w0s, Span<PI> i0s ) {
+                    for( PI np = 0; np < p0s.size(); ++np ) {
                         // get a list of unexplored boxes
                         auto rb_base = RemainingBoxes<Scalar,nb_dims>::from_leaf( leaf );
 
                         // make a base cell
                         cell.init_geometry_from( base_cell );
-                        cell.w0 = w0;
-                        cell.p0 = p0;
-                        cell.i0 = i0;
+                        cell.p0 = p0s[ np ];
+                        cell.w0 = w0s[ np ];
+                        cell.i0 = i0s[ np ];
 
                         // make the cuts
                         make_intersections( cell, buffer, rb_base, prev_cuts );
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
-                        bool inf_cut = false; // cell.is_inf() && outside_cell( cell, rb_base ); WARN inf
-                        if ( ! inf_cut ) {
-                            f( cell, num_thread );
-                            break;
-                        }
+                        f( cell, num_thread );
                     }
                 } );
             }

@@ -41,11 +41,10 @@ DTP UTP *UTP::next_leaf() {
 }
 
 DTP Vec<UTP *> UTP::split( PI nb_sub_lists ) {
+    Vec<PointTree *> res( FromSizeAndItemValue(), nb_sub_lists + 1, nullptr );
     const PI np = nb_seed_points();
     if ( np == 0 )
-        return {};
-
-    Vec<PointTree *> res( FromSizeAndItemValue(), nb_sub_lists + 1, nullptr );
+        return res;
 
     PointTree *pt = first_leaf();
     res[ 0 ] = pt;

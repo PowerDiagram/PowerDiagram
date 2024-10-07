@@ -27,8 +27,7 @@ public:
     virtual void         display       ( TL_NAMESPACE::Displayer &df ) const = 0;
     #endif
 
-    virtual void         for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f, Vec<PI32> &buffer, const Point &center ) = 0;
-    virtual void         for_each_point( const std::function<void( const Point &p0, const Scalar &w0, const PI i0 )> &f ) = 0;
+    virtual void         for_each_point( const std::function<void( Span<Point> p0s, Span<Scalar> w0s, Span<PI> i0s )> &f ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
     virtual bool         may_intersect ( const Cell<Scalar,nb_dims> &cell ) const = 0;
