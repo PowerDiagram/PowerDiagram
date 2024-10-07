@@ -39,19 +39,45 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<S
     //     base_inf_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 }
 
-DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Scalar,nb_dims> &rb_base ) {
-    // const PI i0 = cell.i0;
+DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Scalar,nb_dims> &rb_base, const Vec<CutInfo> *prev_cuts ) {
+    // helper to test if a bow may contain a dirac that can create a new cut
+    const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
+        return point_tree->may_intersect( cell );
+    };
+
+    //
+    if ( prev_cuts ) {
+        for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+            cell.cut_dirac( ci.p1, ci.w1, ci.i1 );
+
+        // intersections with the points in the same box
+        rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+            if ( i1 == cell.i0 )
+                return;
+            for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+                if ( ci.i1 == i1 )
+                    return;
+            cell.cut_dirac( p1, w1, i1 );
+        }, buffer, cell.p0 );
+
+        // intersections with the points other boxes that may create intersections
+        for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+            rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+                for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+                    if ( ci.i1 == i1 )
+                        return;
+                cell.cut_dirac( p1, w1, i1 );
+            }, buffer, cell.p0 );
+        }
+
+        return;
+    }
 
     // intersections with the points in the same box
     rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
         if ( i1 != cell.i0 )
             cell.cut_dirac( p1, w1, i1 );
     }, buffer, cell.p0 );
-
-    // helper to test if a bow may contain a dirac that can create a new cut
-    const auto may_intersect = [&]( PointTree<Scalar,nb_dims> *point_tree ) -> bool {
-        return point_tree->may_intersect( cell );
-    };
 
     // intersections with the points other boxes that may create intersections
     for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
@@ -62,7 +88,7 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
 }
 
 DTP int UTP::max_nb_threads() {
-    return 1; // std::thread::hardware_concurrency();
+    return std::thread::hardware_concurrency();
 }
 
 DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )> &f ) {
@@ -74,7 +100,7 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> & )>
     } );
 }
 
-DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, int )> &f ) {
+DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, int )> &f, const Vec<CutInfo> *prev_cuts ) {
     if ( ! point_tree )
         return;
 
@@ -82,7 +108,7 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
     Vec<PointTree<Scalar,nb_dims> *> leave_bounds = point_tree->split( nb_threads );
 
     Vec<std::thread> threads( FromSizeAndInitFunctionOnIndex(), nb_threads, [&]( std::thread *th, PI num_thread ) {
-        new ( th ) std::thread( [&f,&leave_bounds,num_thread,this]() {
+        new ( th ) std::thread( [&f,&leave_bounds,num_thread,this,prev_cuts]() {
             Cell<Scalar,nb_dims> cell;
             Vec<PI32> buffer( FromReservationSize(), 32 );
             for( PointTree<Scalar,nb_dims> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
@@ -99,7 +125,7 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Scalar,nb_dims> &, i
                         cell.i0 = i0;
 
                         // make the cuts
-                        make_intersections( cell, buffer, rb_base );
+                        make_intersections( cell, buffer, rb_base, prev_cuts );
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
                         bool inf_cut = false; // cell.is_inf() && outside_cell( cell, rb_base ); WARN inf

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <tl/support/operators/mean.h>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
@@ -78,7 +79,7 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
         bnd_dirs << p << q;
     }
 
-    auto tStartSteady = std::chrono::steady_clock::now();
+    auto t0 = std::chrono::steady_clock::now();
 
     PointTreeCtorParms cp;
     PowerDiagram<Scalar,nb_dims> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
@@ -86,21 +87,32 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     Vec<Scalar> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     Vec<Scalar> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
+    Vec<Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo>> prev_cuts( FromSize(), pd.nb_cells() );
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
         nv0[ cell.i0 ] = cell.capa_vertices();
         nc0[ cell.i0 ] = cell.capa_cuts();
 
         cell.memory_compaction();
         volumes[ num_thread ] += cell.measure();
-        // nb_points << cell.vertices.size();
 
         nv1[ cell.i0 ] = cell.capa_vertices();
         nc1[ cell.i0 ] = cell.capa_cuts();
+
+        for( const CellCut<Scalar,nb_dims> &cut : cell.cuts )
+            if ( cut.type == CutType::Dirac )
+                prev_cuts[ cell.i0 ].push_back( cut.p1, cut.w1, cut.i1 );
     } );
 
-    auto tEndSteady = std::chrono::steady_clock::now();
-    std::chrono::nanoseconds diff = tEndSteady - tStartSteady;
-    std::cout << "Time taken = " << diff.count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
+    auto t1 = std::chrono::steady_clock::now();
+    std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
+
+    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
+        //cell.memory_compaction();
+        volumes[ num_thread ] += cell.measure();
+    }, prev_cuts.data() );
+
+    auto t2 = std::chrono::steady_clock::now();
+    std::cout << "Time taken = " << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << std::endl;
 
     P( mean( nv0 ) );
     P( mean( nv1 ) );
@@ -119,5 +131,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
     // test_speed<double,3>( 10000, "out.vtk" );
-    test_speed<double,3>( 1000 );
+    test_speed<double,3>( 3000 );
 }

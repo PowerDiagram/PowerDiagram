@@ -53,6 +53,7 @@ public:
     Pt                           p0;                       ///<
     SI                           i0;                       ///<
 
+    Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
 private:
     template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
@@ -73,7 +74,6 @@ private:
     PI32                         nb_active_vertices;       ///<
     Vec<PI32>                    vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
     Vec<Vertex>                  vertices;                 ///< mix of active and inactive ones
-    Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<

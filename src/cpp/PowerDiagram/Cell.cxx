@@ -202,10 +202,10 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
             --l3;
             //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
             //                     l1                      l2                        l3
-            if ( na != l1 ) vertex_indices[ na ] = vertex_indices[ l1 ];
-            if ( l1 != l2 ) vertex_indices[ l1 ] = vertex_indices[ l2 ];
-            if ( l2 != l3 ) vertex_indices[ l2 ] = vertex_indices[ l3 ];
-            if ( l3 != na ) vertex_indices[ l3 ] = n0;
+            /*if ( na != l1 )*/ vertex_indices[ na ] = vertex_indices[ l1 ];
+            /*if ( l1 != l2 )*/ vertex_indices[ l1 ] = vertex_indices[ l2 ];
+            /*if ( l2 != l3 )*/ vertex_indices[ l2 ] = vertex_indices[ l3 ];
+            /*if ( l3 != na )*/ vertex_indices[ l3 ] = n0;
         } else {
             // max_pos = max( max_pos, p0 );
             // min_pos = min( min_pos, p0 );
@@ -223,28 +223,36 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
             }
 
             // else, make room in [ new active vertices ]
-            if ( l3 < vertex_indices.size() ) {
-                //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
-                //                            l1                      l2                        l3
-                //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
-                //                            l1                             l2                        l3
-                vertex_indices.push_back( vertex_indices[ l3 ] );
-                vertex_indices[ l3 ] = vertex_indices[ l2 ];
-                vertex_indices[ l2 ] = vertices.size();
-            } else if ( l2 < vertex_indices.size() ) {
-                //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ]
-                //                            l1                      l2                      l3
-                //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ]
-                //                            l1                             l2                      l3
-                vertex_indices.push_back( vertex_indices[ l2 ] );
-                vertex_indices[ l2 ] = vertices.size();
-            } else {
-                //  [ old active vertices ] [ new active vertices ]
-                //                            l1                      l2/l3
-                //  [ old active vertices ] [ new active vertices     nr ]
-                //                            l1                             l2/l3
-                vertex_indices.push_back( vertices.size() );
-            }
+            //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
+            //                            l1                      l2                        l3
+            //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
+            //                            l1                             l2                        l3
+            auto *ni = vertex_indices.push_back();
+            *ni = vertex_indices[ l3 ];
+            vertex_indices[ l3 ] = vertex_indices[ l2 ];
+            vertex_indices[ l2 ] = vertices.size();
+            // if ( l3 < vertex_indices.size() ) {
+            //     //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
+            //     //                            l1                      l2                        l3
+            //     //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
+            //     //                            l1                             l2                        l3
+            //     vertex_indices.push_back( vertex_indices[ l3 ] );
+            //     vertex_indices[ l3 ] = vertex_indices[ l2 ];
+            //     vertex_indices[ l2 ] = vertices.size();
+            // } else if ( l2 < vertex_indices.size() ) {
+            //     //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ]
+            //     //                            l1                      l2                      l3
+            //     //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ]
+            //     //                            l1                             l2                      l3
+            //     vertex_indices.push_back( vertex_indices[ l2 ] );
+            //     vertex_indices[ l2 ] = vertices.size();
+            // } else {
+            //     //  [ old active vertices ] [ new active vertices ]
+            //     //                            l1                      l2/l3
+            //     //  [ old active vertices ] [ new active vertices     nr ]
+            //     //                            l1                             l2/l3
+            //     vertex_indices.push_back( vertices.size() );
+            // }
             
             ++l3;
             ++l2;
