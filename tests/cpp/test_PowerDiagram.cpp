@@ -107,8 +107,13 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
 
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        //cell.memory_compaction();
-        volumes[ num_thread ] += cell.measure();
+        nv0[ cell.i0 ] = cell.capa_vertices();
+        nc0[ cell.i0 ] = cell.capa_cuts();
+
+        cell.memory_compaction();
+ 
+        nv1[ cell.i0 ] = cell.capa_vertices();
+        nc1[ cell.i0 ] = cell.capa_cuts();
     }, prev_cuts.data() );
 
     auto t2 = std::chrono::steady_clock::now();
@@ -131,5 +136,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
     // test_speed<double,3>( 10000, "out.vtk" );
-    test_speed<double,3>( 3000 );
+    test_speed<double,3>( 30000 );
 }

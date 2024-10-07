@@ -54,13 +54,14 @@ void test_astro( std::string filename, PI mp ) {
 
     // prof->tic( "cell" );
 
-    auto tStartSteady = std::chrono::steady_clock::now();
+    auto t0 = std::chrono::steady_clock::now();
 
     Vec<Scalar> nb_vertices( FromSizeAndItemValue(), pd.nb_cells() );
     Vec<Scalar> nb_cuts( FromSizeAndItemValue(), pd.nb_cells() );
     Vec<Scalar> nb_vertices_2( FromSizeAndItemValue(), pd.nb_cells() );
     Vec<Scalar> nb_cuts_2( FromSizeAndItemValue(), pd.nb_cells() );
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo>> prev_cuts( FromSize(), pd.nb_cells() );
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
         nb_vertices[ cell.i0 ] = cell.capa_vertices();
         nb_cuts[ cell.i0 ] = cell.capa_cuts();
@@ -71,12 +72,31 @@ void test_astro( std::string filename, PI mp ) {
         nb_cuts_2[ cell.i0 ] = cell.capa_cuts();
 
         volumes[ num_thread ] += cell.measure();
+
+        // for( const CellCut<Scalar,nb_dims> &cut : cell.cuts )
+        //     if ( cut.type == CutType::Dirac )
+        //         prev_cuts[ cell.i0 ].push_back( cut.p1, cut.w1, cut.i1 );
     } );
     // prof->toc( "cell" );
 
-    auto tEndSteady = std::chrono::steady_clock::now();
-    std::chrono::nanoseconds diff = tEndSteady - tStartSteady;
-    std::cout << diff.count() / 1e6 << "ms vol:" << sum( volumes ) << " mp:" << mp << std::endl;
+    auto t1 = std::chrono::steady_clock::now();
+    std::cout << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << "ms vol:" << sum( volumes ) << " mp:" << mp << std::endl;
+
+    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
+        nb_vertices[ cell.i0 ] = cell.capa_vertices();
+        nb_cuts[ cell.i0 ] = cell.capa_cuts();
+
+        cell.memory_compaction();
+
+        nb_vertices_2[ cell.i0 ] = cell.capa_vertices();
+        nb_cuts_2[ cell.i0 ] = cell.capa_cuts();
+
+        volumes[ num_thread ] += cell.measure();
+    }, prev_cuts.data() );
+    // prof->toc( "cell" );
+
+    auto t2 = std::chrono::steady_clock::now();
+    std::cout << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << "ms vol:" << sum( volumes ) << " mp:" << mp << std::endl;
 
     // std::cout << *prof << std::endl;
     // P( mp, sum( volumes ) );

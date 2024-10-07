@@ -50,25 +50,25 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
         for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
             cell.cut_dirac( ci.p1, ci.w1, ci.i1 );
 
-        // intersections with the points in the same box
-        rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-            if ( i1 == cell.i0 )
-                return;
-            for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
-                if ( ci.i1 == i1 )
-                    return;
-            cell.cut_dirac( p1, w1, i1 );
-        }, buffer, cell.p0 );
+        // // intersections with the points in the same box
+        // rb_base.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        //     if ( i1 == cell.i0 )
+        //         return;
+        //     for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+        //         if ( ci.i1 == i1 )
+        //             return;
+        //     cell.cut_dirac( p1, w1, i1 );
+        // }, buffer, cell.p0 );
 
-        // intersections with the points other boxes that may create intersections
-        for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
-            rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
-                for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
-                    if ( ci.i1 == i1 )
-                        return;
-                cell.cut_dirac( p1, w1, i1 );
-            }, buffer, cell.p0 );
-        }
+        // // intersections with the points other boxes that may create intersections
+        // for( RemainingBoxes<Scalar,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+        //     rb.leaf->for_each_point( [&]( const Point &p1, Scalar w1, const PI i1 ) {
+        //         for( const CutInfo &ci : prev_cuts[ cell.i0 ] )
+        //             if ( ci.i1 == i1 )
+        //                 return;
+        //         cell.cut_dirac( p1, w1, i1 );
+        //     }, buffer, cell.p0 );
+        // }
 
         return;
     }
