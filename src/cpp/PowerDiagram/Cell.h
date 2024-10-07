@@ -6,7 +6,6 @@
 #include "VtkOutput.h"
 #include "CellCut.h"
 
-//#include "Edge.h"
 // #include <amgcl/profiler.hpp>
 // extern amgcl::profiler<> *prof;
 
@@ -18,8 +17,8 @@ template<class TS,int nb_dims>
 class Cell { STD_TL_TYPE_INFO( Cell, "", min_pos, max_pos, nb_active_vertices, vertex_indices, vertices, cuts ) //
 public:
     using                        Vertex                    = CellVertex<TS,nb_dims>;
-    using                        Pt                     = Vec<TS,nb_dims>;
     using                        Cut                       = CellCut<TS,nb_dims>;
+    using                        Pt                        = Vec<TS,nb_dims>;
     
     /**/                         Cell                      ();
 

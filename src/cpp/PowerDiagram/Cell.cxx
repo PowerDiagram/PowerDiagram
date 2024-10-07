@@ -35,7 +35,7 @@ DTP UTP::Cell() {
 
     sps.reserve( 128 );
 
-    num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 1024 ); } );
+    num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 64 ); } );
     num_cut_oid = 0;
 }
 
@@ -91,46 +91,6 @@ DTP void UTP::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
         vertex_indices << nc_0;
     }
 }
-
-// DTP void UTP::apply_corr( auto &v0, auto &v1, Vec<int> &keep ) {
-//     int last_keep = v0.size();
-//     for( int i = 0; i < last_keep; ++i ) {
-//         if ( keep[ i ] ) {
-//             keep[ i ] = i;
-//             continue;
-//         }
-
-//         while( --last_keep > i && ! keep[ last_keep ] )
-//             keep[ last_keep ] = -1;
-
-//         v0.set_item( i, std::move( v0[ last_keep ] ) );
-//         v1.set_item( i, std::move( v1[ last_keep ] ) );
-//         keep[ last_keep ] = i;
-//         keep[ i ] = -1;
-//     }
-
-//     v0.resize( last_keep );
-//     v1.resize( last_keep );
-// }
-
-// DTP void UTP::apply_corr( Vec<int> &keep, auto &vec ) {
-//     int last_keep = vec.size();
-//     for( int i = 0; i < last_keep; ++i ) {
-//         if ( keep[ i ] ) {
-//             keep[ i ] = i;
-//             continue;
-//         }
-
-//         while( --last_keep > i && ! keep[ last_keep ] )
-//             keep[ last_keep ] = -1;
-
-//         vec.set_item( i, std::move( vec[ last_keep ] ) );
-//         keep[ last_keep ] = i;
-//         keep[ i ] = -1;
-//     }
-
-//     vec.resize( last_keep );
-// }
 
 DTP UTP::Pt UTP::compute_pos( const Pt &p0, const Pt &p1, TS s0, TS s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
@@ -263,13 +223,29 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
             }
 
             // else, make room in [ new active vertices ]
-            //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
-            //                            l1                      l2                        l3
-            //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
-            //                            l1                             l2                        l3
-            vertex_indices.push_back( vertex_indices[ l3 ] );
-            vertex_indices[ l3 ] = vertex_indices[ l2 ];
-            vertex_indices[ l2 ] = vertices.size();
+            if ( l3 < vertex_indices.size() ) {
+                //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
+                //                            l1                      l2                        l3
+                //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
+                //                            l1                             l2                        l3
+                vertex_indices.push_back( vertex_indices[ l3 ] );
+                vertex_indices[ l3 ] = vertex_indices[ l2 ];
+                vertex_indices[ l2 ] = vertices.size();
+            } else if ( l2 < vertex_indices.size() ) {
+                //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ]
+                //                            l1                      l2                      l3
+                //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ]
+                //                            l1                             l2                      l3
+                vertex_indices.push_back( vertex_indices[ l2 ] );
+                vertex_indices[ l2 ] = vertices.size();
+            } else {
+                //  [ old active vertices ] [ new active vertices ]
+                //                            l1                      l2/l3
+                //  [ old active vertices ] [ new active vertices     nr ]
+                //                            l1                             l2/l3
+                vertex_indices.push_back( vertices.size() );
+            }
+            
             ++l3;
             ++l2;
 

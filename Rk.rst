@@ -11,3 +11,10 @@ Prop: on ne stocke pas les edges. On va plutôt les chercher à la volée, en pa
   Si on passe à une liste de vertex actifs, est-ce qu'on aurait intérêt à aggréger les données ?
     Ça pourrait être bon pour le cache...
     Il faudrait à ce compte là mettre aussi les num_cuts
+
+
+Rq: on pourrait fonctionner avec par défaut des cellules "non-bornées". 
+  Tant qu'elles le restent, on fait des cuts avec M\V, pour ne rater aucun point.
+  Comment déterminer si les cellules sont bornées ?
+    => 
+  Lorsqu'elles sont bornées, on passe au cut par edge.

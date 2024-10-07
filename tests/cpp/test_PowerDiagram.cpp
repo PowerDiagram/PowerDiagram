@@ -84,18 +84,28 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     PowerDiagram<Scalar,nb_dims> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
 
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    // Vec<Scalar> nb_points; 22 en moyenne
+    Vec<Scalar> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
+    Vec<Scalar> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        // cell.memory_compaction();
+        nv0[ cell.i0 ] = cell.capa_vertices();
+        nc0[ cell.i0 ] = cell.capa_cuts();
+
+        cell.memory_compaction();
         volumes[ num_thread ] += cell.measure();
         // nb_points << cell.vertices.size();
+
+        nv1[ cell.i0 ] = cell.capa_vertices();
+        nc1[ cell.i0 ] = cell.capa_cuts();
     } );
 
     auto tEndSteady = std::chrono::steady_clock::now();
     std::chrono::nanoseconds diff = tEndSteady - tStartSteady;
     std::cout << "Time taken = " << diff.count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
 
-    // P( mean( nb_points ) );
+    P( mean( nv0 ) );
+    P( mean( nv1 ) );
+    P( mean( nc0 ) );
+    P( mean( nc1 ) );
 
     if ( filename.size() ) {
         VtkOutput vo;
@@ -108,5 +118,6 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
-    test_speed<double,3>( 1, "out.vtk" );
+    // test_speed<double,3>( 10000, "out.vtk" );
+    test_speed<double,3>( 1000 );
 }
