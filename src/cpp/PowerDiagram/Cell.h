@@ -56,7 +56,7 @@ public:
 
 
 private:
-    template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI32> map; };
+    template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
     using                        NumCutMap                 = RangeOfClasses<MapOfNumCuts,0,nb_dims>;
 
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
@@ -78,9 +78,9 @@ private:
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<
-    mutable PI32                 num_cut_oid;              ///< curr op id for num_cut_map
+    mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
     Vec<TS>                      sps;                      ///< scalar products for each vertex
-    
+
     int                          cut_count = 0;
 };
 

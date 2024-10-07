@@ -15,7 +15,7 @@
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
 
-#include <limits>
+// #include <limits>
 
 #include "Cell.h"
 
@@ -280,11 +280,11 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
             // PI &edge_op_id = edge_map.at_without_index( vertices[ n0 ].num_cuts, ind_cut );
             Vec<PI32,nb_dims-1> edge_cuts = c0.without_index( ind_cut );
-            PI32 &edge_op_id = edge_map[ edge_cuts ];
+            auto &edge_op_id = edge_map[ edge_cuts ];
             if ( edge_op_id >= op_id ) {
                 const PI32 n1 = edge_op_id - op_id;
                 const Pt   p1 = vertices[ n1 ].pos;
-                const TS   s1 = sps[ n1 ]; // sp( p1, dir ) - off;
+                const TS   s1 = sps[ n1 ];
                 const bool e1 = s1 > 0;
 
                 if ( e0 != e1 ) {
@@ -327,17 +327,18 @@ DTP void UTP::_cut( CutType type, const Pt &dir, TS off, const Pt &p1, TS w1, PI
 DTP void UTP::memory_compaction() {
     std::sort( vertex_indices.begin(), vertex_indices.begin() + nb_active_vertices );
 
-    // update vertices
+    // update vertices + active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
     Vec<PI32> vertex_corr( FromSize(), vertices.size() );
     for( PI i = 0; i < nb_active_vertices; ++i ) {
-        if ( i != vertex_indices[ i ] )
-            vertices[ i ] = std::move( vertices[ vertex_indices[ i ] ] );
-        vertex_corr[ vertex_indices[ i ] ] = i;
-        vertex_indices[ i ] = i;
-
-        for( auto num_cut : vertices[ i ].num_cuts )
+        const auto n = vertex_indices[ i ];
+        for( auto num_cut : vertices[ n ].num_cuts )
             active_cuts[ num_cut ] = true;
+        
+        if ( vertex_indices[ i ] != i )
+            vertices[ i ] = std::move( vertices[ n ] );
+        vertex_indices[ i ] = i;
+        vertex_corr[ n ] = i;
     }
 
     vertex_indices.resize( nb_active_vertices );
@@ -398,7 +399,7 @@ DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1>
 
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
             auto edge_cuts = vertex.num_cuts.without_index( ind_cut );
-            PI32 &edge_op_id = edge_map[ edge_cuts ];
+            PI &edge_op_id = edge_map[ edge_cuts ];
             if ( edge_op_id >= op_id ) {
                 const PI n1 = edge_op_id - op_id;
                 const Vertex *ns[] = {
@@ -464,7 +465,7 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
             auto next_num_cuts = num_cuts.without_index( n );
 
             // vertex choice for this item
-            PI32 &iv = num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
+            auto &iv = num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
             if ( iv < op_id ) {
                 iv = op_id + prev_vertex;
                 return;

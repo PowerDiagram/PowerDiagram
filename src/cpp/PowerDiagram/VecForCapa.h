@@ -18,7 +18,7 @@ struct VecForCapa {
 
     T&     operator[]( PI index ) { return values[ index ]; }
     void   reserve   ( PI size, const T &default_value );
-    T      suze      () const { return capa; }
+    T      size      () const { return capa; }
 
 private:
     T*     values    = nullptr;
