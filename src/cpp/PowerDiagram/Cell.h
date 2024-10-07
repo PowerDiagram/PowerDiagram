@@ -26,6 +26,7 @@ public:
     void                         init_geometry_to_encompass( const Pt &min_pos, const Pt &max_pos );
     void                         init_geometry_from        ( const Cell &that );
 
+    void                         memory_compaction         ();
     void                         cut_boundary              ( const Pt &dir, TS off, PI num_boundary );
     void                         cut_dirac                 ( const Pt &p1, TS w1, PI i1 );
  
@@ -37,7 +38,9 @@ public:
     void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &coord_change ) const; ///<
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
  
+    PI                           capa_vertices             () const { return vertices.size(); }
     PI                           nb_vertices               () const { return nb_active_vertices; }
+    PI                           capa_cuts                 () const { return cuts.size(); }
  
     bool                         contains                  ( const Pt &x ) const;
     TS                           measure                   () const;
@@ -56,8 +59,7 @@ private:
     template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI32> map; };
     using                        NumCutMap                 = RangeOfClasses<MapOfNumCuts,0,nb_dims>;
 
-    void                         add_measure_rec           ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, const auto &positions, PI op_id ) const;
-    void                         add_measure_rec           ( auto &res, auto &M, auto &item_to_vertex, const auto &num_cuts, PI last_vertex, PI op_id ) const;
+    void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
  
     static void                  apply_corr                ( Vec<int> &keep, auto &v0 );
  
@@ -78,6 +80,8 @@ private:
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI32                 num_cut_oid;              ///< curr op id for num_cut_map
     Vec<TS>                      sps;                      ///< scalar products for each vertex
+    
+    int                          cut_count = 0;
 };
 
 #include "Cell.cxx" // IWYU pragma: export

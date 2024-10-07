@@ -3,6 +3,7 @@
 #include <tl/support/containers/Vec.h>
 #include <tl/support/Displayer.h>
 #include <tl/support/compare.h>
+#include "VecForCapa.h"
 #include <map>
 
 /**
@@ -23,7 +24,7 @@ private:
     Map   values;    ///<
 };
 
-/// single dim, s == 0
+/// s == 0
 template<class PII,class PIO>
 class MapOfUniquePISortedArray<0,PII,PIO> {
 public:
@@ -35,29 +36,29 @@ private:
     PIO   value = 0;  ///<
 };
 
-/// single dim, s == 1
+/// s == 1
 template<class PII,class PIO>
 class MapOfUniquePISortedArray<1,PII,PIO> {
 public:
-    void   prepare_for( PII max_PII_value ) { values.resize( max_PII_value, 0 ); }
+    void   prepare_for( PII max_PII_value ) { values.reserve( max_PII_value, 0 ); }
     PIO&   operator[] ( Vec<PII,1> a ) { return values[ a[ 0 ] ]; }
     void   display    ( Displayer &ds ) const { ds << values; }
 
 private:
-    using  Map        = Vec<PIO>;
+    using  Map      = VecForCapa<PIO>;
 
     Map    values;    ///<
 };
 
-/// single dim, s == 2
+/// s == 2
 template<class PII,class PIO>
 struct MapOfUniquePISortedArray<2,PII,PIO> {
-    void   prepare_for( PI max_PII_value ) { values.resize( ( max_PII_value - 1 ) * max_PII_value / 2, 0 ); }
-    PIO&   operator[] ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
-    void   display    ( Displayer &ds ) const { ds << values; }
+    void   prepare_for             ( PI max_PII_value ) { values.reserve( ( max_PII_value - 1 ) * max_PII_value / 2, 0 ); }
+    PIO&   operator[]              ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
+    void   display                 ( Displayer &ds ) const { ds << values; }
 
 private:
-    using  Map        = Vec<PIO>;
+    using  Map      = VecForCapa<PIO>;
 
-    Map    values;    ///<
+    Map    values;
 };

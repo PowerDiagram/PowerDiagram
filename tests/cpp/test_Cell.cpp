@@ -15,12 +15,14 @@ TEST_CASE( "Cell", "" ) {
 
     auto r = []() { return Scalar( rand() ) / RAND_MAX; };
 
-    for( PI i = 0; i < 50; ++i ) {
+    for( PI i = 0; i < 3; ++i ) {
         Scalar a = r() * 2 * M_PI;
         cell.cut_boundary( { cos( a ), sin( a ) }, 1.0, i );
     }
 
-    // P( cell );
+    P( cell );
+    cell.memory_compaction();
+    P( cell );
     // cell.for_each_vertex( [](const auto &v ) { 
     //     P( v.num_cuts );
     // } );

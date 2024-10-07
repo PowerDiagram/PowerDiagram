@@ -1,4 +1,4 @@
-#include <tl/support/containers/operators/mean.h>
+#include <tl/support/operators/mean.h>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
 
@@ -56,8 +56,20 @@ void test_astro( std::string filename, PI mp ) {
 
     auto tStartSteady = std::chrono::steady_clock::now();
 
+    Vec<Scalar> nb_vertices( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<Scalar> nb_cuts( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<Scalar> nb_vertices_2( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<Scalar> nb_cuts_2( FromSizeAndItemValue(), pd.nb_cells() );
     Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell, int num_thread ) {
+    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
+        nb_vertices[ cell.i0 ] = cell.capa_vertices();
+        nb_cuts[ cell.i0 ] = cell.capa_cuts();
+
+        cell.memory_compaction();
+
+        nb_vertices_2[ cell.i0 ] = cell.capa_vertices();
+        nb_cuts_2[ cell.i0 ] = cell.capa_cuts();
+
         volumes[ num_thread ] += cell.measure();
     } );
     // prof->toc( "cell" );
@@ -68,12 +80,16 @@ void test_astro( std::string filename, PI mp ) {
 
     // std::cout << *prof << std::endl;
     // P( mp, sum( volumes ) );
+    P( mean( nb_vertices ) );
+    P( mean( nb_cuts ) );
+    P( mean( nb_vertices_2 ) );
+    P( mean( nb_cuts_2 ) );
 }
 
 
 TEST_CASE( "Astro 3D", "" ) {
     //prof = new amgcl::profiler<>( "sdot" );
     // test_astro<double,3>( "/home/leclerc/test_amg/16M.xyz32.bin" );
-    for( PI i = 20; i <= 20; i += 1 )
+    for( PI i = 18; i <= 18; i += 1 )
         test_astro<double,3>( "Points_1000000.xyz", i );
 }

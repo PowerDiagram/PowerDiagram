@@ -29,7 +29,7 @@ DTP void UTP::for_each_point( const std::function<void( const Point &p0, const S
         buffer << ni;
 
     std::sort( buffer.begin(), buffer.end(), [&]( const auto &a, const auto &b ) {
-        return norm_2_p2( points[ a ] - center ) < norm_2_p2( points[ a ] - center );
+        return norm_2_p2( points[ a ] - center ) < norm_2_p2( points[ b ] - center );
     } );
 
     for( PI n : buffer )
