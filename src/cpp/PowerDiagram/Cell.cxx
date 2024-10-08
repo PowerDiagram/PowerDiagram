@@ -36,7 +36,7 @@ DTP UTP::Cell() {
     sps.reserve( 128 );
 
     num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 64 ); } );
-    num_cut_oid = 0;
+    num_cut_oid = 1;
 }
 
 DTP void UTP::init_geometry_from( const Cell &that ) {
@@ -168,10 +168,18 @@ DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
 //         sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
 // }
 
+DTP PI UTP::new_cut_oid( PI s ) const {
+    // reservation for the test
+    ++num_cut_oid;
+
+    // + room for some PI data
+    return std::exchange( num_cut_oid, num_cut_oid + s );
+}
+
 DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
-    PI op_id = std::exchange( ++num_cut_oid, num_cut_oid + vertices.size() );
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    const PI op_id = new_cut_oid( vertices.size() );
     edge_map.prepare_for( cuts.size() );
 
     sps.resize( vertices.size() );
@@ -313,7 +321,6 @@ DTP void UTP::memory_compaction() {
 
     // update vertices + active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
-    Vec<PI32> vertex_corr( FromSize(), vertices.size() );
     for( PI i = 0; i < nb_active_vertices; ++i ) {
         const auto n = vertex_indices[ i ];
         for( auto num_cut : vertices[ n ].num_cuts )
@@ -322,7 +329,6 @@ DTP void UTP::memory_compaction() {
         if ( vertex_indices[ i ] != i )
             vertices[ i ] = std::move( vertices[ n ] );
         vertex_indices[ i ] = i;
-        vertex_corr[ n ] = i;
     }
 
     vertex_indices.resize( nb_active_vertices );
@@ -374,9 +380,10 @@ DTP void UTP::for_each_vertex( const std::function<void( const Vertex &vertex )>
 }
 
 DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<const Vertex *,2> vertices )> &f ) const {
-    PI op_id = std::exchange( ++num_cut_oid, num_cut_oid + vertices.size() );
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    const PI op_id = new_cut_oid( vertices.size() );
     edge_map.prepare_for( cuts.size() );
+
     for( PI32 ni = 0; ni < nb_active_vertices; ++ni ) {
         PI32 n0 = vertex_indices[ ni ];
         const Vertex &vertex = vertices[ n0 ];
@@ -384,6 +391,7 @@ DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1>
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
             auto edge_cuts = vertex.num_cuts.without_index( ind_cut );
             PI &edge_op_id = edge_map[ edge_cuts ];
+
             if ( edge_op_id >= op_id ) {
                 const PI n1 = edge_op_id - op_id;
                 const Vertex *ns[] = {
@@ -457,6 +465,8 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
 
             //
             const PI32 next_vertex = iv - op_id;
+            if ( next_vertex == prev_vertex )
+                return;
 
             // fill the corresponding column
             for( int d = 0; d < nb_dims; ++d )
@@ -466,13 +476,15 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
             add_measure_rec( res, M, next_num_cuts, next_vertex, op_id );
         } );
     } else {
+        //if ( i0 == 0 )
+        //    P( abs( determinant( M ) ) );
         res += abs( determinant( M ) );
     }
 }
 
 DTP TS UTP::measure() const {
     num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
-    PI op_id = std::exchange( ++num_cut_oid, num_cut_oid + cuts.size() );
+    PI op_id = new_cut_oid( vertices.size() );
 
     TS res = 0;
     Vec<Vec<TS,nb_dims>,nb_dims> M;
@@ -489,7 +501,7 @@ DTP TS UTP::measure() const {
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &to_vtk ) const { //
-    auto add_item = [&]( int vtk_id, auto vertices ) {
+    const auto point_data = [&]( const auto &vertices ) -> std::map<std::string,typename VtkOutput::VTF> {
         typename VtkOutput::VTF convex_function;
         typename VtkOutput::VTF is_outside;
         Vec<VtkOutput::Pt> points;
@@ -498,25 +510,36 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,
             is_outside << any( vertex->num_cuts, [&]( PI32 num_cut ) { return cuts[ num_cut ].is_inf(); } );
             points << to_vtk( vertex->pos );
         }
-        vo.add_polygon( points, { { "convex_function", convex_function }, { "is_outside", is_outside } } ); //
-        //if ( p0 && w0 )
-        //else
-        //    vo.add_polygon( points, { { "is_outside", is_outside } } );
+        return { { "convex_function", convex_function }, { "is_outside", is_outside } };
+    };
+
+    const auto point_coords = [&]( const auto &vertices ) -> Vec<typename VtkOutput::Pt> {
+        Vec<VtkOutput::Pt> res;
+        for( const Vertex *vertex : vertices )
+            res << to_vtk( vertex->pos );
+        return res;
     };
 
     // edges
     if constexpr ( nb_dims >= 1 ) {
         for_each_edge( [&]( Vec<PI,nb_dims-1> num_cuts, auto vertices ) {
-            add_item( VtkOutput::VtkLine, vertices );
+            vo.add_edge( point_coords( vertices ), point_data( vertices ) );
         } );
     }
 
     // faces
     if constexpr ( nb_dims >= 2 ) {
         for_each_face( [&]( Vec<PI,nb_dims-2> bc, auto vertices ) {
-            add_item( VtkOutput::VtkPolygon, vertices );
+            vo.add_polygon( point_coords( vertices ), point_data( vertices ) );
         } );
     }
+
+    // polyhedra
+    // if constexpr ( nb_dims >= 3 ) {
+    //     for_each_polyhedron( [&]( Vec<PI,nb_dims-3> bc, auto vertices ) {
+    //         vo.add_polyhedron( point_coords( vertex_indices ), point_data( vertices ) );
+    //     } );
+    // }
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo ) const {

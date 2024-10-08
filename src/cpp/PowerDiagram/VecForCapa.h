@@ -11,18 +11,22 @@
  */
 template<class T>
 struct VecForCapa {
-    /**/   VecForCapa( const VecForCapa & ) = delete;
-    /**/   VecForCapa() {}
+    /**/     VecForCapa( const VecForCapa & ) = delete;
+    /**/     VecForCapa() {}
+  
+    /**/    ~VecForCapa() { if ( values ) free( values ); }
 
-    /**/  ~VecForCapa() { if ( values ) free( values ); }
+    const T& operator[]( PI index ) const { return values[ index ]; }
+    T&       operator[]( PI index ) { return values[ index ]; }
+    void     reserve   ( PI size, const T &default_value );
+    T        size      () const { return capa; }
+  
+    const T* begin     () const { return values; }
+    const T* end       () const { return values + capa; }
 
-    T&     operator[]( PI index ) { return values[ index ]; }
-    void   reserve   ( PI size, const T &default_value );
-    T      size      () const { return capa; }
-
-private:
-    T*     values    = nullptr;
-    PI     capa      = 0;
+private:  
+    T*       values    = nullptr;
+    PI       capa      = 0;
 };
 
 #define DTP template<class T>

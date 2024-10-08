@@ -25,7 +25,7 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<S
     // limits
     min_box_pos = point_tree->min_point();
     max_box_pos = point_tree->max_point();
-    if ( all( min_box_pos == max_box_pos ) && nb_dims )
+    if ( nb_dims && all( min_box_pos == max_box_pos ) )
         max_box_pos[ 0 ] += 1;
 
     // base cell
@@ -33,10 +33,6 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Point> &&points_, Vec<S
     for( PI i = 0; i < bnd_offs.size(); ++i )
         base_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
     base_cell.memory_compaction();
-
-    // base inf cell. WARN INF
-    // for( PI i = 0; i < bnd_offs.size(); ++i )
-    //     base_inf_cell.cut_boundary( bnd_dirs[ i ], bnd_offs[ i ], i );
 }
 
 DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Scalar,nb_dims> &rb_base, const Vec<CutInfo> *prev_cuts ) {

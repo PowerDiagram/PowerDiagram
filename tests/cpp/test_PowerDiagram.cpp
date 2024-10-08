@@ -84,7 +84,8 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     PointTreeCtorParms cp;
     PowerDiagram<Scalar,nb_dims> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
 
-    Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<Scalar> v0( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<Scalar> v1( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     Vec<Scalar> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     Vec<Scalar> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     Vec<Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo>> prev_cuts( FromSize(), pd.nb_cells() );
@@ -92,8 +93,26 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
         nv0[ cell.i0 ] = cell.capa_vertices();
         nc0[ cell.i0 ] = cell.capa_cuts();
 
-        cell.memory_compaction();
-        volumes[ num_thread ] += cell.measure();
+        // if ( cell.i0 == 2 ) {
+        //     P( cell );
+        //     cell.memory_compaction();
+        //     P( cell );
+        // }
+
+        v0[ num_thread ] += cell.measure();
+        // cell.memory_compaction();
+        // v1[ num_thread ] += cell.measure();
+
+        // if ( cell.i0 == 0 ) {
+        //     P( cell, cell.measure() );
+        //     Scalar s = 0;
+        //     cell.for_each_vertex( [&]( const auto &v ) -> void {
+        //         s += v.pos[ 0 ];
+        //         s += v.pos[ 1 ];
+        //         s += v.pos[ 2 ];
+        //     } );
+        //     P( s );
+        // }
 
         nv1[ cell.i0 ] = cell.capa_vertices();
         nc1[ cell.i0 ] = cell.capa_cuts();
@@ -104,42 +123,42 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     } );
 
     auto t1 = std::chrono::steady_clock::now();
-    std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( volumes ) << std::endl;
+    std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( v0 ) << " " << sum( v1 ) << std::endl;
 
-    P( mean( nv0 ) );
-    P( mean( nv1 ) );
-    P( mean( nc0 ) );
-    P( mean( nc1 ) );
+    // P( mean( nv0 ) );
+    // P( mean( nv1 ) );
+    // P( mean( nc0 ) );
+    // P( mean( nc1 ) );
 
-    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        nv0[ cell.i0 ] = cell.capa_vertices();
-        nc0[ cell.i0 ] = cell.capa_cuts();
+    // pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
+    //     nv0[ cell.i0 ] = cell.capa_vertices();
+    //     nc0[ cell.i0 ] = cell.capa_cuts();
 
-        cell.memory_compaction();
+    //     cell.memory_compaction();
  
-        nv1[ cell.i0 ] = cell.capa_vertices();
-        nc1[ cell.i0 ] = cell.capa_cuts();
-    }, prev_cuts.data() );
+    //     nv1[ cell.i0 ] = cell.capa_vertices();
+    //     nc1[ cell.i0 ] = cell.capa_cuts();
+    // }, prev_cuts.data() );
 
-    auto t2 = std::chrono::steady_clock::now();
-    std::cout << "Time taken = " << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << std::endl;
+    // auto t2 = std::chrono::steady_clock::now();
+    // std::cout << "Time taken = " << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << std::endl;
 
-    P( mean( nv0 ) );
-    P( mean( nv1 ) );
-    P( mean( nc0 ) );
-    P( mean( nc1 ) );
+    // P( mean( nv0 ) );
+    // P( mean( nv1 ) );
+    // P( mean( nc0 ) );
+    // P( mean( nc1 ) );
 
-    if ( filename.size() ) {
-        VtkOutput vo;
-        pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell ) {
-            cell.display_vtk( vo );
-        } );
-        vo.save( filename );
-    }
+    // if ( filename.size() ) {
+    //     VtkOutput vo;
+    //     pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell ) {
+    //         cell.display_vtk( vo );
+    //     } );
+    //     vo.save( filename );
+    // }
 }
 
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
-    // test_speed<double,3>( 10000, "out.vtk" );
-    test_speed<double,3>( 30000 );
+    // test_speed<double,3>( 3, "out.vtk" );
+    test_speed<double,3>( 10, "out.vtk" );
 }

@@ -36,7 +36,7 @@ public:
  
     void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &coord_change ) const; ///<
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
- 
+
     PI                           capa_vertices             () const { return vertices.size(); }
     PI                           nb_vertices               () const { return nb_active_vertices; }
     PI                           capa_cuts                 () const { return cuts.size(); }
@@ -60,11 +60,11 @@ private:
     using                        NumCutMap                 = RangeOfClasses<MapOfNumCuts,0,nb_dims>;
 
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
- 
-    static void                  apply_corr                ( Vec<int> &keep, auto &v0 );
+    PI                           new_cut_oid               ( PI s = 0 ) const;
  
     Pt                           compute_pos               ( const Pt &p0, const Pt &p1, TS s0, TS s1 ) const;
     Pt                           compute_pos               ( Vec<PI,nb_dims> num_cuts ) const;
+
 
     PI                           _remove_ext_vertices      ( PI old_nb_vertices ); ///< return new size
     void                         _add_cut_vertices         ( const Pt &dir, TS off, PI32 new_cut );
