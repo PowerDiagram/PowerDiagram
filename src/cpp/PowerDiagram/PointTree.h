@@ -27,6 +27,7 @@ public:
     virtual void         display       ( TL_NAMESPACE::Displayer &df ) const = 0;
     #endif
 
+    virtual void         for_each_point( const std::function<void( const Point &p0, Scalar w0, PI i0, PI32 n0 )> &f, Span<PI32> indices ) = 0;
     virtual void         for_each_point( const std::function<void( Span<Point> p0s, Span<Scalar> w0s, Span<PI> i0s )> &f ) = 0;
 
     virtual PI           nb_seed_points() const = 0;

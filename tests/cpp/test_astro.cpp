@@ -6,14 +6,14 @@
 
 //amgcl::profiler<> *prof;
 
-template<class Scalar,int nb_dims>
+template<class TF,int nb_dims>
 void test_astro( std::string filename, PI mp ) {
-    using Point = Vec<Scalar,nb_dims>;
+    using Point = Vec<TF,nb_dims>;
 
     // load points
     std::ifstream f( filename );
     Vec<Point> positions;
-    Vec<Scalar> weights;
+    Vec<TF> weights;
     if ( filename.ends_with( ".xyz32.bin" ) ) {
         for( PI i = 0; i < ( 1 << 22 ); ++i ) {
             float x, y, z;
@@ -38,7 +38,7 @@ void test_astro( std::string filename, PI mp ) {
     // P( positions.size() );
 
     // boundaries
-    Vec<Scalar> bnd_offs;
+    Vec<TF> bnd_offs;
     Vec<Point> bnd_dirs;
     for( PI d = 0; d < nb_dims; ++d ) {
         Point p( FromItemValue(), 0 ); p[ d ] = +1;
@@ -49,68 +49,67 @@ void test_astro( std::string filename, PI mp ) {
 
     // prof->tic( "setup" );
     PointTreeCtorParms cp{ .max_nb_points = mp };
-    PowerDiagram<Scalar,nb_dims> pd( cp, std::move( positions ), std::move( weights ), bnd_dirs, bnd_offs );
+    PowerDiagram<TF,nb_dims> pd( cp, std::move( positions ), std::move( weights ), bnd_dirs, bnd_offs );
     // prof->toc( "setup" );
 
     // prof->tic( "cell" );
 
     auto t0 = std::chrono::steady_clock::now();
 
-    Vec<Scalar> nb_vertices_1( FromSizeAndItemValue(), pd.nb_cells() );
-    Vec<Scalar> nb_cuts_1( FromSizeAndItemValue(), pd.nb_cells() );
-    Vec<Scalar> nb_vertices_2( FromSizeAndItemValue(), pd.nb_cells() );
-    Vec<Scalar> nb_cuts_2( FromSizeAndItemValue(), pd.nb_cells() );
-    Vec<Scalar> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    Vec<Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo>> prev_cuts( FromSize(), pd.nb_cells() );
-    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        nb_vertices_1[ cell.i0 ] = cell.capa_vertices();
-        nb_cuts_1[ cell.i0 ] = cell.capa_cuts();
+    Vec<TF> nv1( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<TF> nc1( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<TF> nv2( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<TF> nc2( FromSizeAndItemValue(), pd.nb_cells() );
+    Vec<TF> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<typename PowerDiagram<TF,nb_dims>::CutInfo> prev_cuts( FromSize(), pd.nb_cells() );
+    pd.for_each_cell( [&]( Cell<TF,nb_dims> &cell, int num_thread ) {
+        nv1[ cell.i0 ] = cell.capa_vertices();
+        nc1[ cell.i0 ] = cell.capa_cuts();
 
-        volumes[ num_thread ] += cell.measure();
-        
         cell.memory_compaction();
 
-        nb_vertices_2[ cell.i0 ] = cell.capa_vertices();
-        nb_cuts_2[ cell.i0 ] = cell.capa_cuts();
+        volumes[ num_thread ] += cell.measure();
 
+        nv2[ cell.i0 ] = cell.capa_vertices();
+        nc2[ cell.i0 ] = cell.capa_cuts();
 
-        // for( const CellCut<Scalar,nb_dims> &cut : cell.cuts )
-        //     if ( cut.type == CutType::Dirac )
-        //         prev_cuts[ cell.i0 ].push_back( cut.p1, cut.w1, cut.i1 );
+        for( const CellCut<TF,nb_dims> &cut : cell.cuts )
+            if ( cut.type == CutType::Dirac )
+                prev_cuts[ cell.i0 ][ cut.ptr ] << cut.num_in_ptr;
     } );
-    // prof->toc( "cell" );
 
-    P( mean( nb_vertices_1 ) );
-    P( mean( nb_vertices_2 ) );
-    P( mean( nb_cuts_1 ) );
-    P( mean( nb_cuts_2 ) );
+    P( mean( nv1 ) );
+    P( mean( nv2 ) );
+    P( mean( nc1 ) );
+    P( mean( nc2 ) );
 
     auto t1 = std::chrono::steady_clock::now();
-    std::cout << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << "ms vol:" << sum( volumes ) << " mp:" << mp << std::endl;
+    std::cout << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << "ms vol:" << sum( volumes ) << std::endl;
 
-    // pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-    //     volumes[ num_thread ] += cell.measure();
-    //     // nb_vertices[ cell.i0 ] = cell.capa_vertices();
-    //     // nb_cuts[ cell.i0 ] = cell.capa_cuts();
+    for ( auto &v : volumes )
+        v = 0;
 
-    //     // cell.memory_compaction();
+    pd.for_each_cell( [&]( Cell<TF,nb_dims> &cell, int num_thread ) {
+        nv1[ cell.i0 ] = cell.capa_vertices();
+        nc1[ cell.i0 ] = cell.capa_cuts();
 
-    //     // nb_vertices_2[ cell.i0 ] = cell.capa_vertices();
-    //     // nb_cuts_2[ cell.i0 ] = cell.capa_cuts();
+        cell.memory_compaction();
 
-    //     // volumes[ num_thread ] += cell.measure();
-    // }, prev_cuts.data() );
-    // // prof->toc( "cell" );
+        volumes[ num_thread ] += cell.measure();
 
-    // auto t2 = std::chrono::steady_clock::now();
-    // std::cout << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << "ms vol:" << sum( volumes ) << " mp:" << mp << std::endl;
+        nv2[ cell.i0 ] = cell.capa_vertices();
+        nc2[ cell.i0 ] = cell.capa_cuts();
+    }, prev_cuts.data() );
 
-    // // std::cout << *prof << std::endl;
-    // // P( mp, sum( volumes ) );
-    // P( mean( nb_vertices ) );
-    // P( mean( nb_cuts ) );
-    // P( mean( nb_vertices_2 ) );
-    // P( mean( nb_cuts_2 ) );
+    auto t2 = std::chrono::steady_clock::now();
+    std::cout << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << "ms vol:" << sum( volumes ) << std::endl;
+
+    // std::cout << *prof << std::endl;
+    // P( mp, sum( volumes ) );
+    P( mean( nv1 ) );
+    P( mean( nv2 ) );
+    P( mean( nc1 ) );
+    P( mean( nc2 ) );
 }
 
 

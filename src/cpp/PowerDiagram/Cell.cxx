@@ -23,8 +23,8 @@
  
 // #include <eigen3/Eigen/LU>
 
-#define DTP template<class TS,int nb_dims>
-#define UTP Cell<TS,nb_dims>
+#define DTP template<class TF,int nb_dims>
+#define UTP Cell<TF,nb_dims>
 
 DTP UTP::Cell() {
     vertex_indices.reserve( 128 );
@@ -35,7 +35,7 @@ DTP UTP::Cell() {
 
     sps.reserve( 128 );
 
-    num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 64 ); } );
+    num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
     num_cut_oid = 1;
 }
 
@@ -66,12 +66,12 @@ DTP void UTP::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
     // cuts
     cuts.clear();
     for( int d = 0; d < nb_dims; ++d ) {
-        Pt dir( FromInitFunctionOnIndex(), [&]( TS *res, PI i ) { *res = ( i == d ? -1 : 0 ); } );
-        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Pt{}, TS{ 0 }, PI( d ) );
+        Pt dir( FromInitFunctionOnIndex(), [&]( TF *res, PI i ) { *res = ( i == d ? -1 : 0 ); } );
+        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Pt{}, TF{ 0 }, PI( d ), nullptr, 0 );
     }
 
     Pt dir( FromItemValue(), 1 );
-    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Pt{}, TS{ 0 }, PI( nb_dims ) );
+    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Pt{}, TF{ 0 }, PI( nb_dims ), nullptr, 0 );
 
     // vertices
     nb_active_vertices = nb_dims + 1;
@@ -92,7 +92,7 @@ DTP void UTP::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
     }
 }
 
-DTP UTP::Pt UTP::compute_pos( const Pt &p0, const Pt &p1, TS s0, TS s1 ) const {
+DTP UTP::Pt UTP::compute_pos( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
@@ -100,8 +100,8 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
-        using TM = Vec<Vec<TS,nb_dims>,nb_dims>;
-        using TV = Vec<TS,nb_dims>;
+        using TM = Vec<Vec<TF,nb_dims>,nb_dims>;
+        using TV = Vec<TF,nb_dims>;
 
         TM m;
         TV v;
@@ -115,7 +115,7 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 }
 
-DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
+DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
     for( PI ni = 0; ni < nb_active_vertices; ++ni )
         if ( sp( vertices[ vertex_indices[ ni ] ].pos, dir ) > off )
             return false;
@@ -136,7 +136,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
     //     }
 
     //     // test with simd values
-    //     TS *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+    //     TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
     //     SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
     //     for( int d = 1; d < nb_dims; ++d )
     //         csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
@@ -147,7 +147,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
     return true;
 }
 
-// DTP void UTP::_get_sps( const Point &dir, TS off ) {
+// DTP void UTP::_get_sps( const Point &dir, TF off ) {
 //     constexpr PI simd_size = VertexCoords::simd_size;
 //     using SimdVec = VertexCoords::SimdVec;
 
@@ -155,7 +155,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TS off ) {
 
 //     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
 //     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
-//         TS *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+//         TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
 //         SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ];
 //         for( int d = 1; d < nb_dims; ++d )
 //             s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
@@ -176,7 +176,7 @@ DTP PI UTP::new_cut_oid( PI s ) const {
     return std::exchange( num_cut_oid, num_cut_oid + s );
 }
 
-DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
+DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( vertices.size() );
@@ -190,14 +190,14 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
     PI l1 = nb_active_vertices, l2 = l1, l3 = vertex_indices.size();
 
     // preparation for the new bounds 
-    // max_pos = { FromItemValue(), std::numeric_limits<TS>::lowest() };
-    // min_pos = { FromItemValue(), std::numeric_limits<TS>::max   () };
+    // max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
+    // min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
 
     // add the new vertices
     for( PI na = 0; na < l1; ) {
         const PI32 n0 = vertex_indices[ na ];
         const Pt   p0 = vertices[ n0 ].pos;
-        const TS   s0 = sp( p0, dir ) - off;
+        const TF   s0 = sp( p0, dir ) - off;
         const auto c0 = vertices[ n0 ].num_cuts;
 
         sps[ n0 ] = s0;
@@ -276,7 +276,7 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
             if ( edge_op_id >= op_id ) {
                 const PI32 n1 = edge_op_id - op_id;
                 const Pt   p1 = vertices[ n1 ].pos;
-                const TS   s1 = sps[ n1 ];
+                const TF   s1 = sps[ n1 ];
                 const bool e1 = s1 > 0;
 
                 if ( e0 != e1 ) {
@@ -300,8 +300,8 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TS off, PI32 new_cut ) {
     nb_active_vertices = l2;
 }
 
-DTP void UTP::_cut( CutType type, const Pt &dir, TS off, const Pt &p1, TS w1, PI i1 ) {
-    // test if all points are inside, make the TS products and get used cuts
+DTP void UTP::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr ) {
+    // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
         return;
 
@@ -310,7 +310,7 @@ DTP void UTP::_cut( CutType type, const Pt &dir, TS off, const Pt &p1, TS w1, PI
     //     memory_compaction();
 
     // store the new cut
-    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1 );
+    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
 
     // make the new vertices + deref the ext ones
     _add_cut_vertices( dir, off, new_cut );
@@ -352,11 +352,11 @@ DTP void UTP::memory_compaction() {
             num_cut = active_cuts[ num_cut ];
 }
 
-DTP void UTP::cut_boundary( const Pt &dir, TS off, PI num_boundary ) {
-    _cut( CutType::Boundary, dir, off, Pt{}, TS{}, num_boundary );
+DTP void UTP::cut_boundary( const Pt &dir, TF off, PI num_boundary ) {
+    _cut( CutType::Boundary, dir, off, Pt{}, TF{}, num_boundary, nullptr, 0 );
 }
 
-DTP void UTP::cut_dirac( const Pt &p1, TS w1, PI i1 ) {
+DTP void UTP::cut_dirac( const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr ) {
     const Pt dir = p1 - p0;
     auto n = norm_2_p2( dir );
     auto s0 = sp( dir, p0 );
@@ -364,7 +364,7 @@ DTP void UTP::cut_dirac( const Pt &p1, TS w1, PI i1 ) {
 
     auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
 
-    _cut( CutType::Dirac, dir, off, p1, w1, i1 );
+    _cut( CutType::Dirac, dir, off, p1, w1, i1, ptr, num_in_ptr );
 }
 
 DTP bool UTP::test_each_vertex( const std::function<bool( const Vertex &vertex )> &f ) const {
@@ -482,18 +482,18 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
     }
 }
 
-DTP TS UTP::measure() const {
+DTP TF UTP::measure() const {
     num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( vertices.size() );
 
-    TS res = 0;
-    Vec<Vec<TS,nb_dims>,nb_dims> M;
+    TF res = 0;
+    Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n ) {
         const PI32 i = vertex_indices[ n ];
         add_measure_rec( res, M, vertices[ i ].num_cuts, i, op_id );
     }
 
-    TS coe = 1;
+    TF coe = 1;
     for( int d = 2; d <= nb_dims; ++d )
         coe *= d;
 
@@ -571,7 +571,7 @@ DTP bool UTP::contains( const Pt &x ) const {
     return true;
 }
 
-DTP TS UTP::height( const Pt &point ) const {
+DTP TF UTP::height( const Pt &point ) const {
     return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 
