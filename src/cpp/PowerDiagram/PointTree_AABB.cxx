@@ -261,6 +261,10 @@ DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
 // }
 
 DTP bool UTP::may_intersect( const Cell<Scalar,nb_dims> &cell ) const {
+    // o = norm_2_p2( pos_in_cell - cell.p0 ) - cell.w0 - norm_2_p2( pos_in_cell - pos_in_box ) + sp( coeff_weights, pos_in_box ) + max_offset_weights
+    // o = norm_2_p2( cell.p0 ) + 2 * sp( pos_in_cell, pos_in_box - cell.p0 ) - cell.w0 - norm_2_p2( pos_in_box ) + sp( coeff_weights, pos_in_box ) + max_offset_weights
+    //  -> 
+
     return cell.test_each_vertex( [&]( const CellVertex<Scalar,nb_dims> &vertex ) -> bool {
         Point p1 = min( max_pos, max( min_pos, vertex.pos + Scalar( 1 ) / 2 * coeff_weights ) );
         return norm_2_p2( vertex.pos - cell.p0 ) - cell.w0 > norm_2_p2( vertex.pos - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;

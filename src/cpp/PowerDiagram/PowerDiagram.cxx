@@ -43,10 +43,38 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
 
     //
     if ( prev_cuts ) {
+        // previous intersections
         for( const auto &p : prev_cuts[ cell.i0 ] ) {
             p.first->for_each_point( [&]( const Pt &p1, TF w1, PI i1, PI32 n1 ) {
                 cell.cut_dirac( p1, w1, i1, p.first, n1 );
             }, p.second );
+        }
+
+        // intersections with the points in the same box that have not been tested
+        auto apc = prev_cuts[ cell.i0 ].find( rb_base.leaf );
+        if ( apc != prev_cuts[ cell.i0 ].end() ) {
+            rb_base.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
+                for( PI n = 0; n < p1s.size(); ++n )
+                    if ( i1s[ n ] != cell.i0 && ! apc->second.contains( n ) )
+                        cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ], rb_base.leaf, n );
+            } );
+        }
+
+        // intersections with the points other boxes that may create intersections and that have not been tested
+        for( RemainingBoxes<TF,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+            auto apc = prev_cuts[ cell.i0 ].find( rb.leaf );
+            if ( apc != prev_cuts[ cell.i0 ].end() ) {
+                rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
+                    for( PI n = 0; n < p1s.size(); ++n )
+                        if ( ! apc->second.contains( n ) )
+                            cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ], rb.leaf, n );
+                } );
+            } else {
+                rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
+                    for( PI n = 0; n < p1s.size(); ++n )
+                        cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ], rb.leaf, n );
+                } );
+            }
         }
 
         return;

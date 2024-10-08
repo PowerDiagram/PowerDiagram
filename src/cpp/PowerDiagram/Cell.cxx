@@ -190,8 +190,8 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     PI l1 = nb_active_vertices, l2 = l1, l3 = vertex_indices.size();
 
     // preparation for the new bounds 
-    // max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
-    // min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
+    max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
+    min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
 
     // add the new vertices
     for( PI na = 0; na < l1; ) {
@@ -215,8 +215,8 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
             /*if ( l2 != l3 )*/ vertex_indices[ l2 ] = vertex_indices[ l3 ];
             /*if ( l3 != na )*/ vertex_indices[ l3 ] = n0;
         } else {
-            // max_pos = max( max_pos, p0 );
-            // min_pos = min( min_pos, p0 );
+            max_pos = max( max_pos, p0 );
+            min_pos = min( min_pos, p0 );
             ++na;
         }
 
@@ -237,30 +237,9 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
             //                            l1                             l2                        l3
             auto *ni = vertex_indices.push_back();
             *ni = vertex_indices[ l3 ];
+
             vertex_indices[ l3 ] = vertex_indices[ l2 ];
             vertex_indices[ l2 ] = vertices.size();
-            // if ( l3 < vertex_indices.size() ) {
-            //     //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ] [ new inactive vertices ]
-            //     //                            l1                      l2                        l3
-            //     //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ] [ new inactive vertices ]
-            //     //                            l1                             l2                        l3
-            //     vertex_indices.push_back( vertex_indices[ l3 ] );
-            //     vertex_indices[ l3 ] = vertex_indices[ l2 ];
-            //     vertex_indices[ l2 ] = vertices.size();
-            // } else if ( l2 < vertex_indices.size() ) {
-            //     //  [ old active vertices ] [ new active vertices ] [ old inactive vertices ]
-            //     //                            l1                      l2                      l3
-            //     //  [ old active vertices ] [ new active vertices     nr ] [ old inactive vertices ]
-            //     //                            l1                             l2                      l3
-            //     vertex_indices.push_back( vertex_indices[ l2 ] );
-            //     vertex_indices[ l2 ] = vertices.size();
-            // } else {
-            //     //  [ old active vertices ] [ new active vertices ]
-            //     //                            l1                      l2/l3
-            //     //  [ old active vertices ] [ new active vertices     nr ]
-            //     //                            l1                             l2/l3
-            //     vertex_indices.push_back( vertices.size() );
-            // }
             
             ++l3;
             ++l2;
@@ -285,8 +264,8 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
                     auto pn = compute_pos( p0, p1, s0, s1 );
 
                     // bounds
-                    // max_pos = max( max_pos, pn );
-                    // min_pos = min( min_pos, pn );
+                    max_pos = max( max_pos, pn );
+                    min_pos = min( min_pos, pn );
 
                     // append/insert the new
                     insert_vertex( cn, pn );
