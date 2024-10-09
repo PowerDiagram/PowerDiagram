@@ -9,7 +9,7 @@ enum class CutType {
 
 };
 
-void display( Displayer &ds, CutType t ) {
+inline void display( Displayer &ds, CutType t ) {
     switch ( t ) {
     case CutType::Dirac   : ds << "Dirac"   ; return;
     case CutType::Boundary: ds << "Boundary"; return;

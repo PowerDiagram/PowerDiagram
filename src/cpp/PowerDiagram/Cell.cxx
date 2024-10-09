@@ -188,6 +188,51 @@ DTP PI UTP::new_cut_oid( PI s ) const {
     return std::exchange( num_cut_oid, num_cut_oid + s );
 }
 
+DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( const CellCut<Config> &cut, TF measure )> &f ) const {
+    num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
+    PI op_id = new_cut_oid( vertices.size() );
+
+    Vec<TF> measure_for_each_cut( FromSizeAndItemValue(), cuts.size(), 0 );
+
+    TF res = 0;
+    Vec<Vec<TF,nb_dims>,nb_dims> M( FromItemValue(), FromItemValue(), 120 );
+    for( PI n = 0; n < nb_vertices(); ++n ) {
+        const PI32 i = vertex_indices[ n ];
+        add_measure_rec( res, M, vertices[ i ].num_cuts, i, op_id, measure_for_each_cut );
+    }
+
+    // cuts
+    TF coe = 1;
+    for( int d = 2; d + 1 <= nb_dims; ++d )
+        coe *= d;
+
+    for( PI num_cut = 0; num_cut < cuts.size(); ++num_cut )
+        if ( TF m = measure_for_each_cut[ num_cut ] )
+            f( cuts[ num_cut ], m );
+
+    // cell
+    coe *= nb_dims;
+    return res / coe;
+}
+
+DTP void UTP::get_prev_cut_info( PrevCutInfo<Config> &pci ) {
+    memory_compaction();
+
+    pci.by_leaf.clear();
+    for( const CellCut<Config> &cut : cuts ) {
+        if ( cut.type == CutType::Dirac ) {
+            if ( pci.by_leaf.empty() || pci.by_leaf.back().first != cut.ptr )
+                pci.by_leaf.push_back( cut.ptr, PI32( 0 ) );
+            PI32 &used = pci.by_leaf.back().second;
+            used |= ( PI32( 1 ) << cut.num_in_ptr );
+        }
+    }
+
+    std::sort( pci.by_leaf.begin(), pci.by_leaf.end(), []( const auto &a, const auto &b ) {
+        return a.first < b.first;
+    } );
+}
+
 DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
@@ -441,6 +486,55 @@ DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2>
     }
 }
 
+DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const {
+    using std::sqrt;
+    using std::abs;
+    using std::pow;
+
+    if constexpr ( constexpr PI c = num_cuts.ct_size ) {
+        //
+        if ( c == 1 ) {
+            Vec<Vec<TF,nb_dims-1>,nb_dims> woc( FromInitFunctionOnIndex(), [&]( Vec<TF,nb_dims-1> *v, PI i ) {
+                new ( v ) Vec<TF,nb_dims-1>( M[ i ].without_index( CtInt<0>() ) );
+            } );
+            
+            TF loc = 0;
+            CtRange<0,c>::for_each_item( [&]( auto r ) {
+                auto N = woc.without_index( r );
+                loc += pow( determinant( N ), 2 );
+            } );
+            measure_for_each_cut[ num_cuts[ 0 ] ] += sqrt( loc );
+        }
+
+        //
+        CtRange<0,c>::for_each_item( [&]( auto n ) {
+            // next item ref
+            auto next_num_cuts = num_cuts.without_index( n );
+
+            // vertex choice for this item
+            auto &iv = num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
+            if ( iv < op_id ) {
+                iv = op_id + prev_vertex;
+                return;
+            }
+
+            //
+            const PI32 next_vertex = iv - op_id;
+            if ( next_vertex == prev_vertex )
+                return;
+
+            // fill the corresponding column
+            for( int d = 0; d < nb_dims; ++d )
+                M[ d ][ c - 1 ] = vertices[ next_vertex ].pos[ d ] - vertices[ prev_vertex ].pos[ d ];
+
+            // recursion
+            add_measure_rec( res, M, next_num_cuts, next_vertex, op_id, measure_for_each_cut );
+        } );
+    } else {
+        res += abs( determinant( M ) );
+    }
+}
+
 DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const {
     using std::abs;
 
@@ -469,8 +563,6 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
             add_measure_rec( res, M, next_num_cuts, next_vertex, op_id );
         } );
     } else {
-        //if ( i0 == 0 )
-        //    P( abs( determinant( M ) ) );
         res += abs( determinant( M ) );
     }
 }

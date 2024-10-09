@@ -2,6 +2,7 @@
 
 #include <tl/support/memory/UniquePtr.h>
 #include "RemainingBoxes.h"
+#include "PrevCutInfo.h"
 #include "PointTree.h"
 #include "Cell.h"
 
@@ -17,7 +18,6 @@ public:
 
     using                   Pt                = Vec<TF,nb_dims>;
     using                   Ptr               = PointTree<Config>;
-    using                   CutInfo           = std::map<Ptr *,Vec<PI32>>;
 
     /**/                    PowerDiagram      ( const PointTreeCtorParms &cp, Vec<Pt> &&points, Vec<TF> &&weights, Span<Pt> bnd_dirs, Span<TF> bnd_offs );
 
@@ -27,7 +27,7 @@ public:
     Pt                      sym               ( const Pt &pt, int num_sym ) const { return pt; }
 
     static int              max_nb_threads    ();
-    void                    for_each_cell     ( const std::function<void( Cell<Config> &cell, int num_thread )> &f, const CutInfo *prev_cuts = nullptr );
+    void                    for_each_cell     ( const std::function<void( Cell<Config> &cell, int num_thread )> &f, const PrevCutInfo<Config> *prev_cuts = nullptr );
     void                    for_each_cell     ( const std::function<void( Cell<Config> &cell )> &f ); ///< version with a mutex lock for `f`
     auto                    cell_data_at      ( const Pt &pt, TF probe_size ) const -> Vec<std::tuple<const TF *, const Pt *, SI>>;
     auto                    cell_data_at      ( const Pt &pt ) const -> Opt<std::tuple<const TF *, const Pt *, SI>>;
@@ -41,7 +41,7 @@ public:
 private:
     using                   PtPtr             = UniquePtr<PointTree<Config>>;
 
-    void                    make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Config> &rb_base, const CutInfo *prev_cuts );
+    void                    make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Config> &rb_base, const PrevCutInfo<Config> *prev_cuts );
     bool                    outside_cell      ( auto &cell, const RemainingBoxes<Config> &rb_base );
 
     Pt                      min_box_pos;      ///<

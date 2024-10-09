@@ -89,60 +89,42 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     Vec<TF> v1( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     Vec<TF> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     Vec<TF> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
-    Vec<typename PowerDiagram<Config>::CutInfo> prev_cuts( FromSize(), pd.nb_cells() );
+    Vec<PrevCutInfo<Config>> prev_cuts( FromSize(), pd.nb_cells() );
     pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
-        // nv0[ cell.i0 ] = cell.capa_vertices();
-        // nc0[ cell.i0 ] = cell.capa_cuts();
-
-        // // if ( cell.i0 == 2 ) {
-        // //     P( cell );
-        // //     cell.memory_compaction();
-        // //     P( cell );
-        // // }
+        nv0[ cell.i0 ] = cell.capa_vertices();
+        nc0[ cell.i0 ] = cell.capa_cuts();
 
         // v0[ num_thread ] += cell.measure();
-        // // cell.memory_compaction();
-        // // v1[ num_thread ] += cell.measure();
+        cell.memory_compaction();
 
-        // // if ( cell.i0 == 0 ) {
-        // //     P( cell, cell.measure() );
-        // //     Scalar s = 0;
-        // //     cell.for_each_vertex( [&]( const auto &v ) -> void {
-        // //         s += v.pos[ 0 ];
-        // //         s += v.pos[ 1 ];
-        // //         s += v.pos[ 2 ];
-        // //     } );
-        // //     P( s );
-        // // }
+        nv1[ cell.i0 ] = cell.capa_vertices();
+        nc1[ cell.i0 ] = cell.capa_cuts();
 
-        // nv1[ cell.i0 ] = cell.capa_vertices();
-        // nc1[ cell.i0 ] = cell.capa_cuts();
-
-        // for( const CellCut<Config> &cut : cell.cuts )
-        //     if ( cut.type == CutType::Dirac )
-        //         prev_cuts[ cell.i0 ][ cut.ptr ] << cut.num_in_ptr;
+        cell.get_prev_cut_info( prev_cuts[ cell.i0 ] );
     } );
 
     auto t1 = std::chrono::steady_clock::now();
-    std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( v0 ) << " " << sum( v1 ) << std::endl;
+    std::cout << "Time taken = " << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << " ms, volume = " << sum( v0 ) << std::endl;
 
-    // P( mean( nv0 ) );
-    // P( mean( nv1 ) );
-    // P( mean( nc0 ) );
-    // P( mean( nc1 ) );
+    // Vec<TF> nboxes( FromSize(), pd.nb_cells() );
+    // for( PI n = 0; n < pd.nb_cells(); ++n )
+    //     nboxes[ n ] = prev_cuts[ n ].by_leaf.size();
 
-    // pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-    //     nv0[ cell.i0 ] = cell.capa_vertices();
-    //     nc0[ cell.i0 ] = cell.capa_cuts();
+    // P( mean( nboxes ) );
+    // P( min( nboxes ) );
+    // P( max( nboxes ) );
 
-    //     cell.memory_compaction();
- 
-    //     nv1[ cell.i0 ] = cell.capa_vertices();
-    //     nc1[ cell.i0 ] = cell.capa_cuts();
-    // }, prev_cuts.data() );
+    P( mean( nv0 ) );
+    P( mean( nv1 ) );
+    P( mean( nc0 ) );
+    P( mean( nc1 ) );
 
-    // auto t2 = std::chrono::steady_clock::now();
-    // std::cout << "Time taken = " << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << std::endl;
+    pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
+        v1[ num_thread ] += cell.measure();
+    }, prev_cuts.data() );
+
+    auto t2 = std::chrono::steady_clock::now();
+    std::cout << "Time taken = " << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << " " << sum( v1 ) << std::endl;
 
     // P( mean( nv0 ) );
     // P( mean( nv1 ) );
@@ -151,7 +133,7 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
     // if ( filename.size() ) {
     //     VtkOutput vo;
-    //     pd.for_each_cell( [&]( const Cell<Scalar,nb_dims> &cell ) {
+    //     pd.for_each_cell( [&]( const Cell<Config> &cell ) {
     //         cell.display_vtk( vo );
     //     } );
     //     vo.save( filename );
@@ -160,6 +142,6 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
-    // test_speed<double,3>( 3, "out.vtk" );
-    test_speed<double,3>( 1000000, "out.vtk" );
+    // test_speed<double,3>( 3, "out.vtk" ); 4.5
+    test_speed<double,3>( 500000, "out.vtk" );
 }

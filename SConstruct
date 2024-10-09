@@ -42,6 +42,8 @@ libs = [
     "modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
 
     "src/cpp/PowerDiagram/VtkOutput.cpp",
+
+    "tests/cpp/SdotSolver.cpp",
 ]
 
 args = dict( ARGLIST )

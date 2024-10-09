@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MapOfUniquePISortedArray.h"
+#include "PowerDiagram/PrevCutInfo.h"
 #include "RangeOfClasses.h"
 #include "CellVertex.h"
 #include "VtkOutput.h"
@@ -33,6 +34,7 @@ public:
     void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
     void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr );
  
+    TF                           for_each_cut_with_measure ( const std::function<void( const CellCut<Config> &cut, TF measure )> &f ) const;
     bool                         test_each_vertex          ( const std::function<bool( const Vertex &vertex )> &f ) const; ///< return true to stop
     void                         for_each_vertex           ( const std::function<void( const Vertex &vertex )> &f ) const;
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<const Vertex *,2> vertices )> &f ) const;
@@ -45,6 +47,8 @@ public:
     PI                           nb_vertices               () const { return nb_active_vertices; }
     PI                           capa_cuts                 () const { return cuts.size(); }
  
+    void                         get_prev_cut_info         ( PrevCutInfo<Config> &pci );
+
     bool                         contains                  ( const Pt &x ) const;
     TF                           measure                   () const;
     bool                         is_inf                    () const;
@@ -67,6 +71,7 @@ private:
     template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
     using                        NumCutMap                 = RangeOfClasses<MapOfNumCuts,0,nb_dims>;
 
+    void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
     PI                           new_cut_oid               ( PI s = 0 ) const;
  

@@ -30,8 +30,8 @@ public:
     virtual void         display       ( TL_NAMESPACE::Displayer &df ) const = 0;
     #endif
 
-    virtual void         for_each_point( const std::function<void( const Pt &p0, TF w0, PI i0, PI32 n0 )> &f, Span<PI32> indices ) = 0;
     virtual void         for_each_point( const std::function<void( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s )> &f ) = 0;
+    virtual void         make_prev_cuts( Cell<Config> &cell, PI32 cuts ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
     virtual bool         may_intersect ( const Cell<Config> &cell ) const = 0;
