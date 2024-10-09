@@ -195,7 +195,7 @@ DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( c
     Vec<TF> measure_for_each_cut( FromSizeAndItemValue(), cuts.size(), 0 );
 
     TF res = 0;
-    Vec<Vec<TF,nb_dims>,nb_dims> M( FromItemValue(), FromItemValue(), 120 );
+    Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n ) {
         const PI32 i = vertex_indices[ n ];
         add_measure_rec( res, M, vertices[ i ].num_cuts, i, op_id, measure_for_each_cut );
@@ -208,7 +208,7 @@ DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( c
 
     for( PI num_cut = 0; num_cut < cuts.size(); ++num_cut )
         if ( TF m = measure_for_each_cut[ num_cut ] )
-            f( cuts[ num_cut ], m );
+            f( cuts[ num_cut ], m / coe );
 
     // cell
     coe *= nb_dims;
@@ -497,9 +497,9 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
             Vec<Vec<TF,nb_dims-1>,nb_dims> woc( FromInitFunctionOnIndex(), [&]( Vec<TF,nb_dims-1> *v, PI i ) {
                 new ( v ) Vec<TF,nb_dims-1>( M[ i ].without_index( CtInt<0>() ) );
             } );
-            
+
             TF loc = 0;
-            CtRange<0,c>::for_each_item( [&]( auto r ) {
+            CtRange<0,nb_dims>::for_each_item( [&]( auto r ) {
                 auto N = woc.without_index( r );
                 loc += pow( determinant( N ), 2 );
             } );

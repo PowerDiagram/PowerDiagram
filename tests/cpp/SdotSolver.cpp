@@ -118,16 +118,22 @@ SdotSolver::TM SdotSolver::matrix( Span<TF> weights ) {
     // computations
     for_each_cell( [&]( const Cell<Config> &cell, int num_thread ) {
         Partial &partial = partials[ num_thread ];
-        partial.num_cells << partial.values.size();
+
+        partial.num_cells << cell.i0;
         partial.offsets << partial.values.size();
 
+        TF sum = 0;
         cell.for_each_cut_with_measure( [&]( const CellCut<Config> &cut, TF measure ) {
             if ( cut.type != CutType::Dirac )
                 return;
-            TF der = measure / norm_2( cut.p1 - cell.p0 );
+            TF der = measure / ( 2 * norm_2( cut.p1 - cell.p0 ) );
             partial.columns << cut.i1;
-            partial.values << der;
+            partial.values << - der;
+            sum += der;
         } );
+        
+        partial.columns << cell.i0;
+        partial.values << sum;
     }, weights );
 
     for( Partial &partial : partials )
@@ -135,7 +141,7 @@ SdotSolver::TM SdotSolver::matrix( Span<TF> weights ) {
 
     // merge
     TM res;
-    res.offsets.resize( nb_cells() );
+    res.offsets.resize( nb_cells() + 1 );
     for( const Partial &partial : partials )
         for( PI n = 0; n < partial.num_cells.size(); ++n )
             res.offsets[ partial.num_cells[ n ] ] = partial.offsets[ n + 1 ] - partial.offsets[ n + 0 ];
