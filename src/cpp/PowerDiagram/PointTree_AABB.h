@@ -4,12 +4,15 @@
 
 /**
 */
-template<class TF,int nb_dims>
-class PointTree_AABB : public PointTreeWithValues<TF,nb_dims> {
+template<class Config>
+class PointTree_AABB : public PointTreeWithValues<Config> {
 public:
-    using                Pt         = Vec<TF,nb_dims>;
+    static constexpr int nb_dims       = Config::nb_dims;
+    using                TF            = Config::Scalar;
 
-    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Pt> Pts, Span<TF> weights, Span<PI> indices, PointTree<TF,nb_dims> *parent, PI num_in_parent );
+    using                Pt            = Vec<TF,nb_dims>;
+
+    /**/                 PointTree_AABB( const PointTreeCtorParms &cp, Span<Pt> Pts, Span<TF> weights, Span<PI> indices, PointTree<Config> *parent, PI num_in_parent );
 
     void                 init_children ( const PointTreeCtorParms &cp );
     void                 init_bounds   ( const PointTreeCtorParms &cp );
@@ -21,7 +24,7 @@ public:
 
     Pt                   inv_sym       ( const Pt &pt, int ) const { return pt; }
 
-    virtual bool         may_intersect ( const Cell<TF,nb_dims> &cell ) const override;
+    virtual bool         may_intersect ( const Cell<Config> &cell ) const override;
     virtual Pt           min_point     () const override { return min_pos; }
     virtual Pt           max_point     () const override { return max_pos; }
 

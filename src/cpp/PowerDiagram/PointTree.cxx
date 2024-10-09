@@ -2,10 +2,10 @@
 
 #include "PointTree_AABB.h"
 
-#define DTP template<class TF,int nb_dims>
-#define UTP PointTree<TF,nb_dims>
+#define DTP template<class Config>
+#define UTP PointTree<Config>
 
-DTP UTP::PointTree( PointTree<TF,nb_dims> *parent, PI num_in_parent ) : num_in_parent( num_in_parent ), parent( parent ) {
+DTP UTP::PointTree( PointTree<Config> *parent, PI num_in_parent ) : num_in_parent( num_in_parent ), parent( parent ) {
 }
 
 DTP UTP::~PointTree() {

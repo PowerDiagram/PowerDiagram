@@ -13,12 +13,15 @@
  * @brief
  *
  */
-template<class TF,int nb_dims>
-class Cell { STD_TL_TYPE_INFO( Cell, "", min_pos, max_pos, nb_active_vertices, vertex_indices, vertices, cuts ) //
+template<class Config>
+class Cell { STD_TL_TYPE_INFO( Cell, "", nb_active_vertices, vertex_indices, vertices, cuts ) //
 public:
+    static constexpr int         nb_dims                   = Config::nb_dims;
+    using                        TF                        = Config::Scalar;
+
     using                        Vertex                    = CellVertex<TF,nb_dims>;
-    using                        Cut                       = CellCut<TF,nb_dims>;
-    using                        Ptr                       = PointTree<TF,nb_dims>;
+    using                        Cut                       = CellCut<Config>;
+    using                        Ptr                       = PointTree<Config>;
     using                        Pt                        = Vec<TF,nb_dims>;
     
     /**/                         Cell                      ();
@@ -48,6 +51,10 @@ public:
     TF                           height                    ( const Pt &point ) const;
     bool                         empty                     () const;
 
+    PI32                         nb_active_vertices;       ///<
+    Vec<PI32>                    vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
+    Vec<Vertex>                  vertices;                 ///< mix of active and inactive ones
+
     Pt                           min_pos;                  ///<
     Pt                           max_pos;                  ///<
     TF                           w0;                       ///<
@@ -71,10 +78,6 @@ private:
     void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut );
     bool                         _all_inside               ( const Pt &dir, TF off );
     void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr );
-
-    PI32                         nb_active_vertices;       ///<
-    Vec<PI32>                    vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
-    Vec<Vertex>                  vertices;                 ///< mix of active and inactive ones
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<

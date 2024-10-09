@@ -23,8 +23,8 @@
  
 // #include <eigen3/Eigen/LU>
 
-#define DTP template<class TF,int nb_dims>
-#define UTP Cell<TF,nb_dims>
+#define DTP template<class Config>
+#define UTP Cell<Config>
 
 DTP UTP::Cell() {
     vertex_indices.reserve( 128 );
@@ -41,8 +41,10 @@ DTP UTP::Cell() {
 
 DTP void UTP::init_geometry_from( const Cell &that ) {
     // limits
-    min_pos = that.min_pos;
-    max_pos = that.max_pos;
+    if ( Config::use_AABB_bounds_on_cells ) {
+        min_pos = that.min_pos;
+        max_pos = that.max_pos;
+    }
 
     // vertices
     nb_active_vertices = that.nb_active_vertices;
@@ -116,13 +118,15 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
 }
 
 DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
-    TF res = 0;
-    for( PI d = 0; d < nb_dims; ++d ) {
-        res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
-        res += ( max_pos[ d ] - min_pos[ d ] ) * abs( dir[ d ] ) / 2;
+    if ( Config::use_AABB_bounds_on_cells ) {
+        TF res = 0;
+        for( PI d = 0; d < nb_dims; ++d ) {
+            res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
+            res += ( max_pos[ d ] - min_pos[ d ] ) * abs( dir[ d ] ) / 2;
+        }
+        if ( res <= off )
+            return true;
     }
-    if ( res <= off )
-        return true;
 
     for( PI ni = 0; ni < nb_active_vertices; ++ni )
         if ( sp( vertices[ vertex_indices[ ni ] ].pos, dir ) > off )
@@ -198,8 +202,10 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     PI l1 = nb_active_vertices, l2 = l1, l3 = vertex_indices.size();
 
     // preparation for the new bounds 
-    max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
-    min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
+    if ( Config::use_AABB_bounds_on_cells ) {
+        max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
+        min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
+    }
 
     // add the new vertices
     for( PI na = 0; na < l1; ) {
@@ -223,8 +229,10 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
             /*if ( l2 != l3 )*/ vertex_indices[ l2 ] = vertex_indices[ l3 ];
             /*if ( l3 != na )*/ vertex_indices[ l3 ] = n0;
         } else {
-            max_pos = max( max_pos, p0 );
-            min_pos = min( min_pos, p0 );
+            if ( Config::use_AABB_bounds_on_cells ) {
+                max_pos = max( max_pos, p0 );
+                min_pos = min( min_pos, p0 );
+            }
             ++na;
         }
 
@@ -272,8 +280,10 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
                     auto pn = compute_pos( p0, p1, s0, s1 );
 
                     // bounds
-                    max_pos = max( max_pos, pn );
-                    min_pos = min( min_pos, pn );
+                    if ( Config::use_AABB_bounds_on_cells ) {
+                        max_pos = max( max_pos, pn );
+                        min_pos = min( min_pos, pn );
+                    }
 
                     // append/insert the new
                     insert_vertex( cn, pn );
@@ -469,7 +479,7 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
     }
 }
 
-DTP TF UTP::measure() const {
+DTP typename UTP::TF UTP::measure() const {
     num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( vertices.size() );
 
@@ -558,7 +568,7 @@ DTP bool UTP::contains( const Pt &x ) const {
     return true;
 }
 
-DTP TF UTP::height( const Pt &point ) const {
+DTP typename UTP::TF UTP::height( const Pt &point ) const {
     return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 

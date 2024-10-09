@@ -7,20 +7,21 @@
  * @brief 
  * 
  */
-template<class Scalar,int nb_dims>
+template<class Config>
 class RemainingBoxes { STD_TL_TYPE_INFO( RemainingBoxes, "", remaining_boxes, leaf )
 public:
-    static RemainingBoxes            for_first_leaf_of       ( PointTree<Scalar,nb_dims> *point_tree ); ///< take
-    static RemainingBoxes            from_leaf               ( PointTree<Scalar,nb_dims> *leaf );
+    static RemainingBoxes     for_first_leaf_of       ( PointTree<Config> *point_tree ); ///< take
+    static RemainingBoxes     from_leaf               ( PointTree<Config> *leaf );
 
-    RemainingBoxes&                  go_to_next_leaf         ( const std::function<bool( PointTree<Scalar,nb_dims> *point_tree )> &go_inside );
-    RemainingBoxes&                  go_to_next_leaf         ();
-    operator                         bool                    () const;
+    // RemainingBoxes&        go_to_next_leaf         ( const std::function<bool( PointTree<Config> *point_tree )> &go_inside );
+    RemainingBoxes&           go_to_next_leaf         ( const Cell<Config> &cell );
+    RemainingBoxes&           go_to_next_leaf         ();
+    operator                  bool                    () const;
 
-    static void                      from_leaf_rec           ( RemainingBoxes &res, PointTree<Scalar,nb_dims> *tree );
+    static void               from_leaf_rec           ( RemainingBoxes &res, PointTree<Config> *tree );
 
-    Vec<PointTree<Scalar,nb_dims> *> remaining_boxes;
-    PointTree<Scalar,nb_dims>*       leaf;
+    Vec<PointTree<Config> *>  remaining_boxes;
+    PointTree<Config>*        leaf;
 };
 
 #include "RemainingBoxes.tcc"

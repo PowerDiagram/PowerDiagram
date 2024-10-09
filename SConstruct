@@ -9,6 +9,7 @@ def make_env():
     CXXFLAGS = [
         '-std=c++20',
 
+        # '-march=skylake',
         '-march=native',
         '-ffast-math',
         '-O3',

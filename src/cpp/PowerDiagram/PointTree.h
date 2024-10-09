@@ -11,10 +11,13 @@
 
 /**
 */
-template<class TF,int nb_dims>
+template<class Config>
 class PointTree {
 public:
-    using                PtUPtr        = UniquePtr<PointTree<TF,nb_dims>>;
+    static constexpr int nb_dims       = Config::nb_dims;
+    using                TF            = Config::Scalar;
+
+    using                PtUPtr        = UniquePtr<PointTree<Config>>;
     using                Pt            = Vec<TF,nb_dims>;
 
     /**/                 PointTree     ( PointTree *parent, PI num_in_parent );
@@ -31,7 +34,7 @@ public:
     virtual void         for_each_point( const std::function<void( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s )> &f ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
-    virtual bool         may_intersect ( const Cell<TF,nb_dims> &cell ) const = 0;
+    virtual bool         may_intersect ( const Cell<Config> &cell ) const = 0;
     PointTree*           first_leaf    (); ///<
     PointTree*           next_leaf     (); ///<
     virtual Pt           min_point     () const = 0;

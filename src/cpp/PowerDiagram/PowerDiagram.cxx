@@ -8,8 +8,8 @@
 
 // #include "support/P.h"
 
-#define DTP template<class TF,int nb_dims>
-#define UTP PowerDiagram<TF,nb_dims>
+#define DTP template<class Config>
+#define UTP PowerDiagram<Config>
 
 DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Pt> &&points_, Vec<TF> &&weights_, Span<Pt> bnd_dirs, Span<TF> bnd_offs ) :
         bnd_dirs( bnd_dirs), bnd_offs( bnd_offs), weights( std::move( weights_ ) ), points( std::move( points_ ) ) {
@@ -20,7 +20,7 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Pt> &&points_, Vec<TF> 
         indices[ i ] = i;
 
     // make the point tree
-    point_tree = PtPtr{ PointTree<TF,nb_dims>::New( cp, points, weights, indices, nullptr, 0 ) };
+    point_tree = PtPtr{ PointTree<Config>::New( cp, points, weights, indices, nullptr, 0 ) };
 
     // limits
     min_box_pos = point_tree->min_point();
@@ -35,11 +35,11 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Pt> &&points_, Vec<TF> 
     base_cell.memory_compaction();
 }
 
-DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<TF,nb_dims> &rb_base, const CutInfo *prev_cuts ) {
-    // helper to test if a bow may contain a dirac that can create a new cut
-    const auto may_intersect = [&]( PointTree<TF,nb_dims> *point_tree ) -> bool {
-        return point_tree->may_intersect( cell );
-    };
+DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Config> &rb_base, const CutInfo *prev_cuts ) {
+    // // helper to test if a bow may contain a dirac that can create a new cut
+    // const auto may_intersect = [&]( PointTree<Config> *point_tree ) -> bool {
+    //     return point_tree->may_intersect( cell );
+    // };
 
     //
     if ( prev_cuts ) {
@@ -61,7 +61,7 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
         }
 
         // intersections with the points other boxes that may create intersections and that have not been tested
-        for( RemainingBoxes<TF,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+        for( RemainingBoxes<Config> rb = rb_base; rb.go_to_next_leaf( cell ); ) {
             auto apc = prev_cuts[ cell.i0 ].find( rb.leaf );
             if ( apc != prev_cuts[ cell.i0 ].end() ) {
                 rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
@@ -98,7 +98,7 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
     } );
 
     // intersections with the points other boxes that may create intersections
-    for( RemainingBoxes<TF,nb_dims> rb = rb_base; rb.go_to_next_leaf( may_intersect ); ) {
+    for( RemainingBoxes<Config> rb = rb_base; rb.go_to_next_leaf( cell ); ) {
         rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
             buffer.resize( p1s.size() );
             for( PI n = 0; n < p1s.size(); ++n )
@@ -119,31 +119,31 @@ DTP int UTP::max_nb_threads() {
     return std::thread::hardware_concurrency();
 }
 
-DTP void UTP::for_each_cell( const std::function<void( Cell<TF,nb_dims> & )> &f ) {
+DTP void UTP::for_each_cell( const std::function<void( Cell<Config> & )> &f ) {
     std::mutex m;
-    for_each_cell( [&]( Cell<TF,nb_dims> &cell, int ) {
+    for_each_cell( [&]( Cell<Config> &cell, int ) {
         m.lock();
         f( cell );
         m.unlock();
     } );
 }
 
-DTP void UTP::for_each_cell( const std::function<void( Cell<TF,nb_dims> &, int )> &f, const CutInfo *prev_cuts ) {
+DTP void UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f, const CutInfo *prev_cuts ) {
     if ( ! point_tree )
         return;
 
     const PI nb_threads = max_nb_threads();
-    Vec<PointTree<TF,nb_dims> *> leave_bounds = point_tree->split( nb_threads );
+    Vec<PointTree<Config> *> leave_bounds = point_tree->split( nb_threads );
 
     Vec<std::thread> threads( FromSizeAndInitFunctionOnIndex(), nb_threads, [&]( std::thread *th, PI num_thread ) {
         new ( th ) std::thread( [&f,&leave_bounds,num_thread,this,prev_cuts]() {
-            Cell<TF,nb_dims> cell;
+            Cell<Config> cell;
             Vec<PI32> buffer( FromReservationSize(), 32 );
-            for( PointTree<TF,nb_dims> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
+            for( PointTree<Config> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
                 leaf->for_each_point( [&]( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s ) {
                     for( PI np = 0; np < p0s.size(); ++np ) {
                         // get a list of unexplored boxes
-                        auto rb_base = RemainingBoxes<TF,nb_dims>::from_leaf( leaf );
+                        auto rb_base = RemainingBoxes<Config>::from_leaf( leaf );
 
                         // make a base cell
                         cell.init_geometry_from( base_cell );
@@ -167,12 +167,12 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<TF,nb_dims> &, int )
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo ) {
-    for_each_cell( [&]( const Cell<TF,nb_dims> &cell ) {
+    for_each_cell( [&]( const Cell<Config> &cell ) {
         cell.display_vtk( vo );
     } );
 }
 
-DTP Opt<std::tuple<const TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at( const Pt &pt ) const {
+DTP Opt<std::tuple<const typename UTP::TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at( const Pt &pt ) const {
     // inside ?
     for( PI i = 0; i < bnd_offs.size(); ++i )
         if ( sp( bnd_dirs[ i ], pt ) > bnd_offs[ i ] )
@@ -184,7 +184,7 @@ DTP Opt<std::tuple<const TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at(
     const Pt *best_p0 = nullptr;
     PI best_i0 = 0;
     TF best_v;
-    for( RemainingBoxes<TF,nb_dims> rb_base = RemainingBoxes<TF,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
+    for( RemainingBoxes<Config> rb_base = RemainingBoxes<Config>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
         for( PI n0 = 0, nc = rb_base.leaf->points.size(); n0 < nc; ++n0 ) {
             const TF &w0 = rb_base.leaf->weights[ n0 ];
             const Pt &p0 = rb_base.leaf->points[ n0 ];
@@ -205,7 +205,7 @@ DTP Opt<std::tuple<const TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at(
     return std::tuple<const TF *, const typename UTP::Pt *, SI>{ best_w0, best_p0, best_i0 };
 }
 
-DTP Vec<std::tuple<const TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at( const Pt &pt, TF probe_size ) const {
+DTP Vec<std::tuple<const typename UTP::TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at( const Pt &pt, TF probe_size ) const {
     // find the "best cell"
     auto cda = cell_data_at( pt );
     if ( ! cda )
@@ -216,7 +216,7 @@ DTP Vec<std::tuple<const TF *, const typename UTP::Pt *, SI>> UTP::cell_data_at(
 
     // find the cell within the ball 
     Vec<std::tuple<const TF *, const Pt *, SI>> res;
-    for( RemainingBoxes<TF,nb_dims> rb_base = RemainingBoxes<TF,nb_dims>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
+    for( RemainingBoxes<Config> rb_base = RemainingBoxes<Config>::for_first_leaf_of( point_tree.get() ); rb_base; rb_base.go_to_next_leaf() ) {
         for( PI n0 = 0, nc = rb_base.leaf->points.size(); n0 < nc; ++n0 ) {
             const TF &w0 = rb_base.leaf->weights[ n0 ];
             const Pt &p0 = rb_base.leaf->points[ n0 ];
@@ -241,10 +241,10 @@ DTP Str UTP::type_name() {
     return "PowerDiagram";
 }
 
-DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<TF,nb_dims> &rb_base ) {
+DTP bool UTP::outside_cell( auto &cell, const RemainingBoxes<Config> &rb_base ) {
     return false;
     // // make the inf cell (i.e. without the inf bounds)
-    // InfCell<TF,nb_dims> inf_cell = base_inf_cell;
+    // InfCell<Config> inf_cell = base_inf_cell;
     // inf_cell.w0 = cell.w0;
     // inf_cell.p0 = cell.p0;
     // inf_cell.i0 = cell.i0;

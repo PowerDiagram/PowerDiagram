@@ -1,7 +1,7 @@
-#include <chrono>
 #include <tl/support/operators/mean.h>
 #include "PowerDiagram/PowerDiagram.h"
 #include "catch_main.h"
+#include <chrono>
 
 // template<class Scalar,int nb_dims>
 // void test_rand( PI nb_cells, PI max_nb_points, std::string filename = {} ) {
@@ -56,23 +56,24 @@
 //         test_rand<double,3>( 500, n );
 // }
 
-template<class Scalar,int nb_dims>
+template<class TF,int nd>
 void test_speed( PI nb_cells, std::string filename = {} ) {
-    using Point = Vec<Scalar,nb_dims>;
+    struct Config { using Scalar = TF; enum { nb_dims = nd, use_AABB_bounds_on_cells = 0 }; };
+    using Point = Vec<TF,nd>;
 
-    Vec<Scalar> weights;
+    Vec<TF> weights;
     Vec<Point> points;
     for( PI i = 0; i < nb_cells; ++i ) {
         Point p;
-        for( PI d = 0; d < nb_dims; ++d )
-            p[ d ] = Scalar( rand() ) / RAND_MAX;
+        for( PI d = 0; d < nd; ++d )
+            p[ d ] = TF( rand() ) / RAND_MAX;
         weights << 0;
         points  << p;
     }
 
-    Vec<Scalar> bnd_offs;
+    Vec<TF> bnd_offs;
     Vec<Point> bnd_dirs;
-    for( PI d = 0; d < nb_dims; ++d ) {
+    for( PI d = 0; d < nd; ++d ) {
         Point p( FromItemValue(), 0 ); p[ d ] = +1;
         Point q( FromItemValue(), 0 ); q[ d ] = -1;
         bnd_offs << 1 << 0;
@@ -82,44 +83,44 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     auto t0 = std::chrono::steady_clock::now();
 
     PointTreeCtorParms cp;
-    PowerDiagram<Scalar,nb_dims> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
+    PowerDiagram<Config> pd( cp, std::move( points ), std::move( weights ), bnd_dirs, bnd_offs );
 
-    Vec<Scalar> v0( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    Vec<Scalar> v1( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
-    Vec<Scalar> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
-    Vec<Scalar> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
-    Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo> prev_cuts( FromSize(), pd.nb_cells() );
-    pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
-        nv0[ cell.i0 ] = cell.capa_vertices();
-        nc0[ cell.i0 ] = cell.capa_cuts();
+    Vec<TF> v0( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<TF> v1( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
+    Vec<TF> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
+    Vec<TF> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
+    Vec<typename PowerDiagram<Config>::CutInfo> prev_cuts( FromSize(), pd.nb_cells() );
+    pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
+        // nv0[ cell.i0 ] = cell.capa_vertices();
+        // nc0[ cell.i0 ] = cell.capa_cuts();
 
-        // if ( cell.i0 == 2 ) {
-        //     P( cell );
-        //     cell.memory_compaction();
-        //     P( cell );
-        // }
+        // // if ( cell.i0 == 2 ) {
+        // //     P( cell );
+        // //     cell.memory_compaction();
+        // //     P( cell );
+        // // }
 
-        v0[ num_thread ] += cell.measure();
-        // cell.memory_compaction();
-        // v1[ num_thread ] += cell.measure();
+        // v0[ num_thread ] += cell.measure();
+        // // cell.memory_compaction();
+        // // v1[ num_thread ] += cell.measure();
 
-        // if ( cell.i0 == 0 ) {
-        //     P( cell, cell.measure() );
-        //     Scalar s = 0;
-        //     cell.for_each_vertex( [&]( const auto &v ) -> void {
-        //         s += v.pos[ 0 ];
-        //         s += v.pos[ 1 ];
-        //         s += v.pos[ 2 ];
-        //     } );
-        //     P( s );
-        // }
+        // // if ( cell.i0 == 0 ) {
+        // //     P( cell, cell.measure() );
+        // //     Scalar s = 0;
+        // //     cell.for_each_vertex( [&]( const auto &v ) -> void {
+        // //         s += v.pos[ 0 ];
+        // //         s += v.pos[ 1 ];
+        // //         s += v.pos[ 2 ];
+        // //     } );
+        // //     P( s );
+        // // }
 
-        nv1[ cell.i0 ] = cell.capa_vertices();
-        nc1[ cell.i0 ] = cell.capa_cuts();
+        // nv1[ cell.i0 ] = cell.capa_vertices();
+        // nc1[ cell.i0 ] = cell.capa_cuts();
 
-        for( const CellCut<Scalar,nb_dims> &cut : cell.cuts )
-            if ( cut.type == CutType::Dirac )
-                prev_cuts[ cell.i0 ][ cut.ptr ] << cut.num_in_ptr;
+        // for( const CellCut<Config> &cut : cell.cuts )
+        //     if ( cut.type == CutType::Dirac )
+        //         prev_cuts[ cell.i0 ][ cut.ptr ] << cut.num_in_ptr;
     } );
 
     auto t1 = std::chrono::steady_clock::now();
@@ -160,5 +161,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
     // test_speed<double,3>( 3, "out.vtk" );
-    test_speed<double,3>( 100000, "out.vtk" );
+    test_speed<double,3>( 1000000, "out.vtk" );
 }

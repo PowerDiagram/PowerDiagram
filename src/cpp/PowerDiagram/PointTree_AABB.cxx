@@ -6,13 +6,17 @@
 #include <tl/support/P.h>
 
 #include "PointTree_AABB.h"
+#include "PowerDiagram/CellVertex.h"
 
 #include <eigen3/Eigen/LU>
 
-#define DTP template<class TF,int nb_dims>
-#define UTP PointTree_AABB<TF,nb_dims>
+#include <xsimd/config/xsimd_arch.hpp>
+#include <xsimd/xsimd.hpp>
 
-DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Pt> points, Span<TF> weights, Span<PI> indices, PointTree<TF,nb_dims> *parent, PI num_in_parent ) : PointTreeWithValues<TF,nb_dims>( points, weights, indices, parent, num_in_parent ) {
+#define DTP template<class Config>
+#define UTP PointTree_AABB<Config>
+
+DTP UTP::PointTree_AABB( const PointTreeCtorParms &cp, Span<Pt> points, Span<TF> weights, Span<PI> indices, PointTree<Config> *parent, PI num_in_parent ) : PointTreeWithValues<Config>( points, weights, indices, parent, num_in_parent ) {
     num_sym = 0;
     
     init_bounds( cp );
@@ -260,7 +264,7 @@ DTP void UTP::init_bounds( const PointTreeCtorParms &cp ) {
 //     return false;
 // }
 
-DTP bool UTP::may_intersect( const Cell<TF,nb_dims> &cell ) const {
+DTP bool UTP::may_intersect( const Cell<Config> &cell ) const {
     using namespace std;
     // o = norm_2_p2( pos_in_cell - pos_in_box ) - sp( coeff_weights, pos_in_box ) - max_offset_weights - norm_2_p2( pos_in_cell - cell.p0 ) + cell.w0
     //
@@ -296,10 +300,66 @@ DTP bool UTP::may_intersect( const Cell<TF,nb_dims> &cell ) const {
 
     // return res < 0;
 
-    return cell.test_each_vertex( [&]( const CellVertex<TF,nb_dims> &vertex ) -> bool {
-        Pt p1 = min( max_pos, max( min_pos, vertex.pos + TF( 1 ) / 2 * coeff_weights ) );
-        return norm_2_p2( vertex.pos - cell.p0 ) - cell.w0 > norm_2_p2( vertex.pos - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;
-    } );
+    // return cell.test_each_vertex( [&]( const CellVertex<TF,nb_dims> &vertex ) -> bool {
+    //     Pt p1 = min( max_pos, max( min_pos, vertex.pos + TF( 1 ) / 2 * coeff_weights ) );
+    //     return norm_2_p2( vertex.pos - cell.p0 ) - cell.w0 > norm_2_p2( vertex.pos - p1 ) - sp( coeff_weights, p1 ) - max_offset_weights;
+    // } );
+
+    // for( PI na = 0; na < cell.nb_active_vertices; ++na ) {
+    //     const CellVertex<TF,nb_dims> &vertex = cell.vertices[ cell.vertex_indices[ na ] ];
+    //     Pt p1 = min( max_pos, max( min_pos, vertex.pos + TF( 1 ) / 2 * coeff_weights ) );
+    //     if ( norm_2_p2( vertex.pos - cell.p0 ) - norm_2_p2( vertex.pos - p1 ) - cell.w0 + sp( coeff_weights, p1 ) + max_offset_weights > 0 )
+    //          return true;
+    // }
+
+    // simd version
+    using XF = xsimd::batch<TF,xsimd::best_arch>;
+    using XI = xsimd::batch<PI,xsimd::best_arch>;
+    constexpr PI simd_size = XF::size;
+    const PI nl = cell.nb_active_vertices / simd_size * simd_size;
+    const TF off = norm_2_p2( cell.p0 ) + max_offset_weights - cell.w0;
+    for( PI na = 0; na < nl; na += simd_size ) {
+        auto inds = XI::load_unaligned( cell.vertex_indices.data() + na );
+
+        XF res = off;
+        #pragma unroll
+        for( PI d = 0; d < nb_dims; ++d ) {
+            auto vp = XF::gather( &cell.vertices[ 0 ].pos[ d ], inds * ( sizeof( CellVertex<TF,nb_dims> ) / sizeof( TF ) ) );
+            auto p1 = min( max_pos[ d ], max( min_pos[ d ], vp + TF( 1 ) / 2 * coeff_weights[ d ] ) );
+            res += 2 * vp * ( p1 - cell.p0[ d ] ) - p1 * p1 + coeff_weights[ d ] * p1;
+        }
+        if ( any( res > 0 ) )
+            return true;
+    }
+
+    for( PI na = nl; na < cell.nb_active_vertices; ++na ) {
+        const CellVertex<TF,nb_dims> &vertex = cell.vertices[ cell.vertex_indices[ na ] ];
+
+        TF res = off;
+        for( PI d = 0; d < nb_dims; ++d ) {
+            TF p1 = min( max_pos[ d ], max( min_pos[ d ], vertex.pos[ d ] + TF( 1 ) / 2 * coeff_weights[ d ] ) );
+            res += 2 * vertex.pos[ d ] * ( p1 - cell.p0[ d ] ) - p1 * p1 + coeff_weights[ d ] * p1;
+        }
+        if ( res > 0 )
+            return true;
+    }
+
+
+    // const TF off = norm_2_p2( cell.p0 ) + max_offset_weights - cell.w0;
+    // #pragma unroll 4
+    // for( PI na = 0; na < cell.nb_active_vertices; ++na ) {
+    //     const CellVertex<TF,nb_dims> &vertex = cell.vertices[ cell.vertex_indices[ na ] ];
+
+    //     TF res = off;
+    //     for( PI d = 0; d < nb_dims; ++d ) {
+    //         TF p1 = min( max_pos[ d ], max( min_pos[ d ], vertex.pos[ d ] + TF( 1 ) / 2 * coeff_weights[ d ] ) );
+    //         res += 2 * vertex.pos[ d ] * ( p1 - cell.p0[ d ] ) - p1 * p1 + coeff_weights[ d ] * p1;
+    //     }
+    //     if ( res > 0 )
+    //         return true;
+    // }
+
+    return false;
 }
 
 DTP Str UTP::type_name() {

@@ -16,7 +16,7 @@ class InfCell { STD_TL_TYPE_INFO( InfCell, "", vertices, cuts )
 public:
     using                       Vertex             = CellVertex<Scalar,nb_dims>;
     using                       Point              = Vec<Scalar,nb_dims>;
-    using                       Cut                = CellCut<Scalar,nb_dims>;
+    using                       Cut                = CellCut<Config>;
 
     void                        cut_boundary       ( const Point &dir, Scalar off, PI num_boundary );
     void                        cut_dirac          ( const Point &p1, Scalar w1, PI i1 );
