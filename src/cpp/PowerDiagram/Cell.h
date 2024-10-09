@@ -52,7 +52,7 @@ public:
     bool                         empty                     () const;
 
     PI32                         nb_active_vertices;       ///<
-    Vec<PI32>                    vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
+    Vec<PI>                      vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
     Vec<Vertex>                  vertices;                 ///< mix of active and inactive ones
 
     Pt                           min_pos;                  ///<
@@ -83,8 +83,6 @@ private:
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
     Vec<TF>                      sps;                      ///< scalar products for each vertex
-
-    int                          cut_count = 0;
 };
 
 #include "Cell.cxx" // IWYU pragma: export

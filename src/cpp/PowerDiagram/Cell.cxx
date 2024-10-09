@@ -302,10 +302,6 @@ DTP void UTP::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI
     if ( _all_inside( dir, off ) )
         return;
 
-    //
-    // if ( ++cut_count % 20 == 0 )
-    //     memory_compaction();
-
     // store the new cut
     PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
 
