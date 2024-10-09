@@ -116,33 +116,41 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
 }
 
 DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
+    TF res = 0;
+    for( PI d = 0; d < nb_dims; ++d ) {
+        res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
+        res += ( max_pos[ d ] - min_pos[ d ] ) * abs( dir[ d ] ) / 2;
+    }
+    if ( res <= off )
+        return true;
+
     for( PI ni = 0; ni < nb_active_vertices; ++ni )
         if ( sp( vertices[ vertex_indices[ ni ] ].pos, dir ) > off )
             return false;
 
-    // constexpr PI simd_size = VertexCoords::simd_size;
-    // using SimdVec = VertexCoords::SimdVec;
+    // // constexpr PI simd_size = VertexCoords::simd_size;
+    // // using SimdVec = VertexCoords::SimdVec;
 
-    // const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
-    // for( PI num_vertex = 0; ; num_vertex += simd_size ) {
-    //     // end of the loop with individual items
-    //     if ( num_vertex == floor_of_nb_vertices ) {
-    //         for( ; ; ++num_vertex ) {
-    //             if ( num_vertex == nb_vertices() )
-    //                 return true;
-    //             if ( sp( vertex_coords[ num_vertex ], dir ) > off )
-    //                 return false;
-    //         }
-    //     }
+    // // const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
+    // // for( PI num_vertex = 0; ; num_vertex += simd_size ) {
+    // //     // end of the loop with individual items
+    // //     if ( num_vertex == floor_of_nb_vertices ) {
+    // //         for( ; ; ++num_vertex ) {
+    // //             if ( num_vertex == nb_vertices() )
+    // //                 return true;
+    // //             if ( sp( vertex_coords[ num_vertex ], dir ) > off )
+    // //                 return false;
+    // //         }
+    // //     }
 
-    //     // test with simd values
-    //     TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
-    //     SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
-    //     for( int d = 1; d < nb_dims; ++d )
-    //         csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
-    //     if ( xsimd::any( csp > off ) )
-    //         return false;
-    // }
+    // //     // test with simd values
+    // //     TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+    // //     SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
+    // //     for( int d = 1; d < nb_dims; ++d )
+    // //         csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
+    // //     if ( xsimd::any( csp > off ) )
+    // //         return false;
+    // // }
 
     return true;
 }

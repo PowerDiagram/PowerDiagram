@@ -11,31 +11,31 @@
 
 /**
 */
-template<class Scalar,int nb_dims>
+template<class TF,int nb_dims>
 class PointTree {
 public:
-    using                PtUPtr        = UniquePtr<PointTree<Scalar,nb_dims>>;
-    using                Point         = Vec<Scalar,nb_dims>;
+    using                PtUPtr        = UniquePtr<PointTree<TF,nb_dims>>;
+    using                Pt            = Vec<TF,nb_dims>;
 
     /**/                 PointTree     ( PointTree *parent, PI num_in_parent );
     virtual             ~PointTree     ();
 
     static Str           type_name     ();
-    static PointTree*    New           ( const PointTreeCtorParms &cp, Span<Point> points, Span<Scalar> weights, Span<PI> indices, PointTree *parent, PI num_in_parent );
+    static PointTree*    New           ( const PointTreeCtorParms &cp, Span<Pt> points, Span<TF> weights, Span<PI> indices, PointTree *parent, PI num_in_parent );
 
     #ifndef AVOID_DISPLAY
     virtual void         display       ( TL_NAMESPACE::Displayer &df ) const = 0;
     #endif
 
-    virtual void         for_each_point( const std::function<void( const Point &p0, Scalar w0, PI i0, PI32 n0 )> &f, Span<PI32> indices ) = 0;
-    virtual void         for_each_point( const std::function<void( Span<Point> p0s, Span<Scalar> w0s, Span<PI> i0s )> &f ) = 0;
+    virtual void         for_each_point( const std::function<void( const Pt &p0, TF w0, PI i0, PI32 n0 )> &f, Span<PI32> indices ) = 0;
+    virtual void         for_each_point( const std::function<void( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s )> &f ) = 0;
 
     virtual PI           nb_seed_points() const = 0;
-    virtual bool         may_intersect ( const Cell<Scalar,nb_dims> &cell ) const = 0;
+    virtual bool         may_intersect ( const Cell<TF,nb_dims> &cell ) const = 0;
     PointTree*           first_leaf    (); ///<
     PointTree*           next_leaf     (); ///<
-    virtual Point        min_point     () const = 0;
-    virtual Point        max_point     () const = 0;
+    virtual Pt           min_point     () const = 0;
+    virtual Pt           max_point     () const = 0;
     bool                 is_a_leaf     () const;
 
     Vec<PointTree *>     split         ( PI nb_sub_lists ); ///< returns leaf bounds for an equal splitting (+ nullptr at the end)

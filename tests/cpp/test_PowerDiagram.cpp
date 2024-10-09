@@ -88,7 +88,7 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
     Vec<Scalar> v1( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     Vec<Scalar> nv0( FromSize(), pd.nb_cells() ), nv1( FromSize(), pd.nb_cells() ); // 22 en moyenne
     Vec<Scalar> nc0( FromSize(), pd.nb_cells() ), nc1( FromSize(), pd.nb_cells() ); // 22 en moyenne
-    Vec<Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo>> prev_cuts( FromSize(), pd.nb_cells() );
+    Vec<typename PowerDiagram<Scalar,nb_dims>::CutInfo> prev_cuts( FromSize(), pd.nb_cells() );
     pd.for_each_cell( [&]( Cell<Scalar,nb_dims> &cell, int num_thread ) {
         nv0[ cell.i0 ] = cell.capa_vertices();
         nc0[ cell.i0 ] = cell.capa_cuts();
@@ -119,7 +119,7 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
         for( const CellCut<Scalar,nb_dims> &cut : cell.cuts )
             if ( cut.type == CutType::Dirac )
-                prev_cuts[ cell.i0 ].push_back( cut.p1, cut.w1, cut.i1 );
+                prev_cuts[ cell.i0 ][ cut.ptr ] << cut.num_in_ptr;
     } );
 
     auto t1 = std::chrono::steady_clock::now();
@@ -160,5 +160,5 @@ void test_speed( PI nb_cells, std::string filename = {} ) {
 
 TEST_CASE( "PowerDiagram 3D", "" ) {
     // test_speed<double,3>( 3, "out.vtk" );
-    test_speed<double,3>( 10, "out.vtk" );
+    test_speed<double,3>( 100000, "out.vtk" );
 }
