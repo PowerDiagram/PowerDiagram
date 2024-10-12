@@ -4,20 +4,133 @@
 #include "SdotSolver.h"
 #include "catch_main.h"
 
-// #include "matplotlibcpp.h"
+#include <matplotlibcpp.h>
+#include <vector>
+
+constexpr PI nd = SdotSolver::Config::nb_dims;
+using TF = SdotSolver::TF;
+using Pt = SdotSolver::Pt;
+
+Vec<TF> solve_smooth( SdotSolver &solver, PI nb_additionnal_dirs, PI nb_smooth_per_dir ) {
+    Vec<TF> weights( FromSizeAndItemValue(), solver.nb_cells(), 0.0 );
+    P( nb_additionnal_dirs, nb_smooth_per_dir );
+
+    Vec<TF> errs;
+    Vec<Vec<TF>> dirs( FromReservationSize(), 1 + nb_additionnal_dirs );
+    for( int iter = 0; iter < 10; ++iter ) {
+        // while ( dirs.size() > 1 + nb_additionnal_dirs )
+        //     dirs.remove( 0, 1 );
+        if ( dirs.size() )
+            dirs.resize( 1 );
+
+        dirs << solver.jacobi_dir( weights );
+        for( PI ba = 0; ba < nb_additionnal_dirs; ++ba )
+            dirs << solver.smooth( weights, dirs.back(), nb_smooth_per_dir );
+
+        auto err = solver.der_err( weights, dirs );
+        errs.push_back( err.S );
+        P( err.S );
+
+        if ( errs.size() >= 9 )
+            return errs;
+
+        auto alpha = err.argmin();
+        TF relax = 1.0;
+        for( PI d = 0; d < 20; ++d, relax /= 2 ) {
+            Vec<TF> new_weights;
+            if ( alpha.size() == 1 ) {
+                new_weights = weights;
+                for( PI i = 0; i < alpha.size(); ++i )
+                    new_weights = new_weights + relax * min( alpha[ i ], 0.8 * err.max_X[ i ] ) * dirs[ i ];
+            } else {
+                Vec<TF> new_dir = alpha[ 0 ] * dirs[ 0 ];
+                for( PI n = 1; n < dirs.size(); ++n )
+                    new_dir = new_dir + alpha[ n ] * dirs[ n ];
+
+                TF corr = min( TF( 1 ), 0.9 * solver.max_alpha_for( weights, new_dir ) );
+                new_weights = weights + relax * corr * new_dir;
+            }
+
+            bool void_cell = false;
+            solver.error( new_weights, &void_cell );
+            if ( ! void_cell ) {
+                weights = std::move( new_weights );
+                break;
+            }
+            P( "nim" );
+        }
+    }
+
+    errs.push_back( solver.error( weights ) );
+
+    return errs;
+}
+
+Vec<TF> solve_smooth( SdotSolver &solver, PI nb_additionnal_dirs ) {
+    Vec<TF> res = solve_smooth( solver, nb_additionnal_dirs, 0 );
+    if ( nb_additionnal_dirs == 0 )
+        return res;
+
+    PI best_nb_smooth = 0;
+    for( PI i = 1; i < 11; ++i ) {
+        Vec<TF> loc = solve_smooth( solver, nb_additionnal_dirs, i );
+        if ( res.back() > loc.back() ) {
+            best_nb_smooth = i;
+            res = loc;
+        }
+    }
+    P( best_nb_smooth );
+
+    return res;
+}
+
+Vec<TF> solve_newton( SdotSolver &solver ) {
+    Vec<TF> target_masses( FromSizeAndItemValue(), solver.nb_cells(), TF( 1 ) / solver.nb_cells() );
+    Vec<TF> weights( FromSizeAndItemValue(), solver.nb_cells(), 0.0 );
+
+    Vec<TF> errs;
+    for( int iter = 0; ; ++iter ) {
+        auto vec = solver.measures( weights ) - target_masses;
+        auto sys = solver.matrix( weights );
+        auto sol = solve( sys, vec );
+
+        for( TF coeff = 1.0; ; coeff /= 2 ) {
+            auto prop = weights - coeff * sol;
+
+            bool void_cell = false;
+            TF err = solver.error( prop, &void_cell );
+
+            if ( ! void_cell ) {
+                weights = std::move( prop );
+
+                errs.push_back( err );
+                if ( errs.size() >= 9 )
+                    return errs;
+                
+                break;
+            }
+        }
+    }
+
+
+    return errs;
+}
+
+void plot_err( Str name, Span<TF> err ) {
+    std::vector<TF> num_iters;
+    for( PI i = 0; i < err.size(); ++i )
+        num_iters.push_back( i );
+    matplotlibcpp::named_semilogy( name.c_str(), num_iters, std::vector<TF>( err.begin(), err.end() ) );
+}
 
 void test_solver( PI nb_cells, std::string filename = {} ) {
-    constexpr PI nd = SdotSolver::Config::nb_dims;
-    using TF = SdotSolver::TF;
-    using Pt = SdotSolver::Pt;
-
     SdotSolver solver;
 
     // diracs
     for( PI i = 0; i < nb_cells; ++i ) {
         Pt p;
         for( PI d = 0; d < nd; ++d )
-            p[ d ] = TF( rand() ) / RAND_MAX;
+            p[ d ] = .5 * TF( rand() ) / RAND_MAX;
         solver.positions << p;
         solver.indices << i;
     }
@@ -30,58 +143,19 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
         solver.bnd_dirs << p << q;
     }
 
-    Vec<TF> weights( FromSizeAndItemValue(), solver.nb_cells(), 0.0 );
+    plot_err( "newton", solve_newton( solver ) );
+    plot_err( "jaco_0", solve_smooth( solver, 0 ) );
+    plot_err( "jaco_1", solve_smooth( solver, 1, 23 ) );
+    // plot_err( "jaco_2", solve_smooth( solver, 2, 15 ) );
+    plot_err( "jaco_3", solve_smooth( solver, 3, 11 ) );
+    // plot_err( "jaco_4", solve_smooth( solver, 4,  9 ) );
+    plot_err( "jaco_5", solve_smooth( solver, 5,  7 ) );
+    // for( PI i = 6; i < 10; ++i )
+        // plot_err( "jaco_" + std::to_string( i ), solve_smooth( solver, i ) );
+    matplotlibcpp::legend();
+    matplotlibcpp::show();
 
-    P( solver.error( weights ) );
-
-    P( solver.matrix_ap( weights ) );
-    P( solver.matrix( weights ) );
-
-    // Vec<TF> xs, ms;
-    // auto mb = solver.measures( weights )[ solver.indices[ 0 ] ];
-    // for( PI i = 0; i < 20; ++i ) {
-    //     weights[ 0 ] = 0.5 + 1e-3 * i;
-    //     xs << weights[ 0 ];
-    //     ms << solver.measures( weights )[ solver.indices[ 0 ] ] - mb;
-
-    //     VtkOutput vo;
-    //     solver.display_vtk( vo, weights );
-    //     vo.save( va_string( "out_$0.vtk", i ) );
-    // }
-    // P( mb );
-    // P( xs );
-    // P( ms );
-
-    // for( int iter = 0; iter < 10; ++iter ) {
-    //     Vec<TF> dir = solver.jacobi_dir( weights );
-
-    //     auto err = solver.der_err( weights, dir );
-    //     P( err );
-
-    //     //P( err, err.derivative( 1 ) / err.derivative( 2 ) );
-    //     std::vector<TF> xs;
-    //     std::vector<TF> es;
-    //     std::vector<TF> vs;
-    //     for( PI i = 0; i < 2000; ++i ) {
-    //         TF x = TF( i ) / 2000;
-    //         xs.push_back( x );
-    //         es.push_back( err[ 0 ] + err[ 1 ] * x /*+ err.derivative( 2 ) * pow( x, 2 ) / 2*/ );
-    //         vs.push_back( solver.error( weights + x * dir ) );
-    //     }
-    //     P( xs[ argmin( vs ) ] );
-
-    //     matplotlibcpp::plot( xs, es );
-    //     matplotlibcpp::plot( xs, vs );
-    //     matplotlibcpp::show();
-    //     break;
-
-    //     // TF alpha = err.derivative( 1 ) / err.derivative( 2 ) / 3;
-    //     TF alpha = xs[ argmin( vs ) ];
-    //     weights = weights + alpha * dir;
-
-    //     // P( err.derivative( 0 ), argmin( vs ) );
-    // }
-
+    // P( solver.matrix( weights ) );
 
     // if ( filename.size() ) {
     //     VtkOutput vo;
@@ -92,5 +166,5 @@ void test_solver( PI nb_cells, std::string filename = {} ) {
 
 
 TEST_CASE( "PowerDiagram 2D", "" ) {
-    test_solver( 10, "out.vtk" );
+    test_solver( 2000, "out.vtk" );
 }

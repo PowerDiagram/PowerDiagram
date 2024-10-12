@@ -28,6 +28,9 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Pt> &&points_, Vec<TF> 
     if ( nb_dims && all( min_box_pos == max_box_pos ) )
         max_box_pos[ 0 ] += 1;
 
+    min_box_pos = { 0, 0, 0 };
+    max_box_pos = { 1, 1, 1 };
+
     // base cell
     base_cell.init_geometry_to_encompass( min_box_pos, max_box_pos );
     for( PI i = 0; i < bnd_offs.size(); ++i )

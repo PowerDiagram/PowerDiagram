@@ -7,6 +7,7 @@ def make_env():
 
     # CXXFLAGS
     CXXFLAGS = [
+        '-Wdeprecated-declarations',
         '-std=c++20',
 
         # '-march=skylake',
@@ -21,6 +22,8 @@ def make_env():
     LIBS = [
         'Catch2Main',
         'Catch2',
+
+        'python3.12',
     ]
 
     # LIBPATH
@@ -44,6 +47,7 @@ libs = [
     "src/cpp/PowerDiagram/VtkOutput.cpp",
 
     "tests/cpp/SdotSolver.cpp",
+    "tests/cpp/CsrMatrix.cpp",
 ]
 
 args = dict( ARGLIST )

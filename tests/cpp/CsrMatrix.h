@@ -28,3 +28,5 @@ public:
     Vec<TI> columns;
     Vec<TF> values;
 };
+
+Vec<double> solve( const CsrMatrix<double> &sys, Span<double> vec );
