@@ -27,7 +27,10 @@ def make_env():
     ]
 
     # LIBPATH
-    LIBPATH = [ '/home/leclerc/.vfs_build/ext/Catch2/install/lib' ]
+    LIBPATH = [
+        '/home/hugo.leclerc/.vfs_build/ext/Catch2/install/lib',
+        '/home/leclerc/.vfs_build/ext/Catch2/install/lib'
+    ]
 
     return Environment( CPPPATH = CPPPATH, CXXFLAGS = CXXFLAGS, LIBS = LIBS, LIBPATH = LIBPATH )
 
