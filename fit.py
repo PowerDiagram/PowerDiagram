@@ -1,17 +1,23 @@
-from matplotlib import pyplot as plt
-import numpy 
+from pysdot.domain_types import ConvexPolyhedraAssembly
+from pysdot import OptimalTransport
+import numpy as np
 
-xs = numpy.array([ 0.000000, 0.050000, 0.100000, 0.150000, 0.200000, 0.250000, 0.300000, 0.350000, 0.400000, 0.450000, 0.500000, 0.550000, 0.600000, 0.650000, 0.700000, 0.750000, 0.800000, 0.850000, 0.900000, 0.950000 ])
-vs = numpy.array([ 0.326836, 0.326723, 0.326621, 0.326532, 0.326454, 0.326389, 0.326335, 0.326293, 0.326263, 0.326245, 0.326240, 0.326245, 0.326263, 0.326293, 0.326335, 0.326389, 0.326454, 0.326532, 0.326621, 0.326723 ])
-es = numpy.array([ 0.326836, 0.326670, 0.326409, 0.326052, 0.325600, 0.325052, 0.324409, 0.323671, 0.322837, 0.321907, 0.320883, 0.319762, 0.318547, 0.317235, 0.315829, 0.314327, 0.312729, 0.311036, 0.309248, 0.307364 ])
+positions = np.random.rand(200,2)
+positions[ :, 0 ] *= 0.5
 
-pf = numpy.polyfit( xs, vs, 4 )
-print( pf )
-print( pf[ -3 ] )
-print( pf[ -2 ] )
-print( pf[ -1 ] )
-# print( numpy.polyfit( xs, es, 4 ) )
+# diracs
+for relax in range( 21 ):
+    ot = OptimalTransport()
+    ot.set_positions(np.array(positions))
+    ot.verbosity = 2
 
-plt.plot( xs, vs )
-plt.plot( xs, pf[ -1 ] + pf[ -2 ] * xs + pf[ -3 ] * xs * xs )
-plt.show()
+    # ot.set_stopping_criterion(1e-8, "max delta masses")
+    ot.max_iter = 1
+
+    # solve
+    ot.adjust_weights( relax = relax / 20 )
+    # ot.adjust_weights()
+    print( min( ot.pd.integrals() ) )
+
+    # display
+    ot.display_vtk( f"pd{ round( relax ) }.vtk" )

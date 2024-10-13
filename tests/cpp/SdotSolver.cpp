@@ -155,7 +155,7 @@ Vec<SdotSolver::TF> SdotSolver::measures( Span<TF> weights ) {
     Vec<TF> res( FromSizeAndItemValue(), nb_cells() );
     for_each_cell( [&]( const Cell<Config> &cell, int num_thread ) {
         res[ cell.i0 ] = cell.measure();
-    }, weights );
+    }, weights, false );
     return res;
 }
 

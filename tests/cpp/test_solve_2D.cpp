@@ -9,11 +9,6 @@
 
 #include <matplotlibcpp.h>
 
-double clamph( double val, double mi, double ma ) {
-    double nval = ( 2 * val - ( mi + ma ) ) / ( ma - mi );
-    return std::tanh( nval );
-}
-
 void bench( Str filename ) {
     using Pt = SdotSolver::Pt;
     using TF = SdotSolver::TF;
@@ -21,30 +16,8 @@ void bench( Str filename ) {
     SdotSolver solver;
 
     // load points
-    std::ifstream f( filename );
-    if ( filename.ends_with( ".xyz32.bin" ) ) {
-        for( PI i = 0; ; ++i ) {
-            float x, y, z;
-            f.read( (char *)&x, sizeof( x ) );
-            f.read( (char *)&y, sizeof( y ) );
-            f.read( (char *)&z, sizeof( z ) );
-            if ( ! f )
-                break;
-            solver.positions << Pt{ x, y, z };
-        }
-    } else if ( filename.ends_with( ".xyz" ) ) {
-        for( PI i = 0; ; ++i ) {
-            double x, y, z;
-            f >> x >> y >> z;
-            if ( ! f )
-                break;
-            solver.positions << Pt{ x, y, z };
-        }
-    } else {
-        for( PI i = 0; i < 10000; ++i )
-            solver.positions << Pt{ 0.5 * TF( rand() ) / RAND_MAX, TF( rand() ) / RAND_MAX, TF( rand() ) / RAND_MAX };
-    }
-    P( solver.positions.size() );
+    for( PI i = 0; i < 10; ++i )
+        solver.positions << Pt{ 0.5 * TF( rand() ) / RAND_MAX, TF( rand() ) / RAND_MAX };
 
     // boundaries
     for( PI d = 0; d < 3; ++d ) {
@@ -78,7 +51,7 @@ void bench( Str filename ) {
         // matplotlibcpp::hist( std::vector<double>( sol.begin(), sol.end() ), 256 );
         // matplotlibcpp::show();
 
-        for( coeff = 1.0; ; coeff *= 2 ) {
+        for( coeff = 1.0; ; coeff *= 1.5 ) {
             ASSERT( coeff >= 1e-9 );
             prop = weights - coeff * sol;
 
