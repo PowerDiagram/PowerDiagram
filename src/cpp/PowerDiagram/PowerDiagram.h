@@ -27,7 +27,7 @@ public:
     Pt                      sym               ( const Pt &pt, int num_sym ) const { return pt; }
 
     static int              max_nb_threads    ();
-    void                    for_each_cell     ( const std::function<void( Cell<Config> &cell, int num_thread )> &f, const PrevCutInfo<Config> *prev_cuts = nullptr );
+    bool                    for_each_cell     ( const std::function<void( Cell<Config> &cell, int num_thread )> &f, const PrevCutInfo<Config> *prev_cuts = nullptr, bool stop_if_void = true ); ///< return true if stopped
     void                    for_each_cell     ( const std::function<void( Cell<Config> &cell )> &f ); ///< version with a mutex lock for `f`
     auto                    cell_data_at      ( const Pt &pt, TF probe_size ) const -> Vec<std::tuple<const TF *, const Pt *, SI>>;
     auto                    cell_data_at      ( const Pt &pt ) const -> Opt<std::tuple<const TF *, const Pt *, SI>>;

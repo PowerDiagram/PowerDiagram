@@ -111,20 +111,26 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Config> & )> &f ) {
     } );
 }
 
-DTP void UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f, const PrevCutInfo<Config> *prev_cuts ) {
+DTP bool UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f, const PrevCutInfo<Config> *prev_cuts, bool stop_if_void ) {
     if ( ! point_tree )
-        return;
+        return false;
 
     const PI nb_threads = max_nb_threads();
     Vec<PointTree<Config> *> leave_bounds = point_tree->split( nb_threads );
 
+    bool stopped = false;
     Vec<std::thread> threads( FromSizeAndInitFunctionOnIndex(), nb_threads, [&]( std::thread *th, PI num_thread ) {
-        new ( th ) std::thread( [&f,&leave_bounds,num_thread,this,prev_cuts]() {
+        new ( th ) std::thread( [&f,&leave_bounds,num_thread,this,prev_cuts,&stopped,stop_if_void]() {
             Cell<Config> cell;
             Vec<PI32> buffer( FromReservationSize(), 32 );
             for( PointTree<Config> *leaf = leave_bounds[ num_thread + 0 ]; leaf != leave_bounds[ num_thread + 1 ]; leaf = leaf->next_leaf() ) {
+                if ( stopped )
+                    return;
                 leaf->for_each_point( [&]( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s ) {
                     for( PI np = 0; np < p0s.size(); ++np ) {
+                        if ( stopped )
+                            return;
+
                         // get a list of unexplored boxes
                         auto rb_base = RemainingBoxes<Config>::from_leaf( leaf );
 
@@ -139,6 +145,12 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
                         f( cell, num_thread );
+
+                        //
+                        if ( stop_if_void && cell.empty() ) {
+                            stopped = true;
+                            return;
+                        }
                     }
                 } );
             }
@@ -147,6 +159,8 @@ DTP void UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f
 
     for( std::thread &th : threads )
         th.join();
+
+    return stopped;
 }
 
 DTP void UTP::display_vtk( VtkOutput &vo ) {

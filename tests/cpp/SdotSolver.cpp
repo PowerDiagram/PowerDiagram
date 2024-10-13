@@ -1,6 +1,6 @@
-#include <limits>
 #include <tl/support/operators/norm_2.h>
 #include <tl/support/operators/sum.h>
+#include <limits>
 
 #include "../../src/cpp/PowerDiagram/PowerDiagram.h"
 #include "SdotSolver.h"
@@ -9,9 +9,9 @@
 
 using Pd = PowerDiagram<SdotSolver::Config>;
 
-void SdotSolver::for_each_cell( const std::function<void( const Cell<Config> &cell, int )> &f, Span<TF> weights ) {
+bool SdotSolver::for_each_cell( const std::function<void( const Cell<Config> &cell, int )> &f, Span<TF> weights, bool stop_if_void ) {
     Pd pd( PointTreeCtorParms{}, Vec<Pt>( positions ), Vec<TF>( weights ), bnd_dirs, bnd_offs );
-    pd.for_each_cell( f );
+    return pd.for_each_cell( f, nullptr, stop_if_void );
 }
 
 PI SdotSolver::nb_cells() const {
@@ -225,62 +225,96 @@ SdotSolver::TF SdotSolver::max_alpha_for( Span<TF> weights, Span<TF> dir ) {
     return res[ 0 ];
 }
 
+Vec<SdotSolver::TF> SdotSolver::System::solve() const {
+    return ::solve( M, V );
+}
+
 SdotSolver::TM SdotSolver::matrix( Span<TF> weights ) {
+    return system( weights ).M;
+}
+
+SdotSolver::System SdotSolver::system( Span<TF> weights ) {
     // data for each thread
-    struct Partial { Vec<PI> num_cells, offsets, columns; Vec<TF> values; };
+    struct Partial { Vec<PI> num_cells, M_offsets, M_columns; Vec<TF> M_values; TF max_diff, S; };
     Vec<Partial> partials( FromSize(), Pd::max_nb_threads() );
     for( Partial &partial : partials ) {
         partial.num_cells.reserve( nb_cells() / partials.size() );
-        partial.offsets.reserve( nb_cells() / partials.size() );
-        partial.columns.reserve( 22 * nb_cells() / partials.size() );
-        partial.values.reserve( 22 * nb_cells() / partials.size() );
+        partial.M_offsets.reserve( nb_cells() / partials.size() );
+        partial.M_columns.reserve( 22 * nb_cells() / partials.size() );
+        partial.M_values.reserve( 22 * nb_cells() / partials.size() );
+        partial.max_diff = 0;
+        partial.S = 0;
     }
 
+    Vec<TF> V( FromSize(), nb_cells() );
+
     // computations
-    for_each_cell( [&]( const Cell<Config> &cell, int num_thread ) {
+    System res;
+    res.void_cell = for_each_cell( [&]( const Cell<Config> &cell, int num_thread ) {
         Partial &partial = partials[ num_thread ];
 
         partial.num_cells << cell.i0;
-        partial.offsets << partial.values.size();
+        partial.M_offsets << partial.M_values.size();
 
         TF sum = 0;
-        cell.for_each_cut_with_measure( [&]( const CellCut<Config> &cut, TF measure ) {
+        TF mea = cell.for_each_cut_with_measure( [&]( const CellCut<Config> &cut, TF measure ) {
             if ( cut.type != CutType::Dirac )
                 return;
             TF der = measure / ( 2 * norm_2( cut.p1 - cell.p0 ) );
-            partial.columns << cut.i1;
-            partial.values << - der;
+            partial.M_columns << cut.i1;
+            partial.M_values << - der;
             sum += der;
+
         } );
         
-        partial.columns << cell.i0;
-        partial.values << sum;
+        partial.M_columns << cell.i0;
+        partial.M_values << sum;
+        
+        TF loc = mea - TF( 1 ) / nb_cells();
+
+        partial.max_diff = max( partial.max_diff, abs( loc ) );
+        partial.S += pow( loc, 2 );
+
+        V[ cell.i0 ] = loc;
     }, weights );
 
+    if ( res.void_cell )
+        return res;
+
     for( Partial &partial : partials )
-        partial.offsets << partial.values.size();
+        partial.M_offsets << partial.M_values.size();
 
     // merge
-    TM res;
-    res.offsets.resize( nb_cells() + 1 );
+    res.M.offsets.resize( nb_cells() + 1 );
     for( const Partial &partial : partials )
         for( PI n = 0; n < partial.num_cells.size(); ++n )
-            res.offsets[ partial.num_cells[ n ] ] = partial.offsets[ n + 1 ] - partial.offsets[ n + 0 ];
-    res.offsets.back() = 0;
+            res.M.offsets[ partial.num_cells[ n ] ] = partial.M_offsets[ n + 1 ] - partial.M_offsets[ n + 0 ];
+    res.M.offsets.back() = 0;
 
-    for( PI v = 0, acc = 0; v < res.offsets.size(); ++v )
-        acc += std::exchange( res.offsets[ v ], acc );
+    for( PI v = 0, acc = 0; v < res.M.offsets.size(); ++v )
+        acc += std::exchange( res.M.offsets[ v ], acc );
 
-    res.columns.resize( res.offsets.back() );
-    res.values.resize( res.offsets.back() );
+    res.M.columns.resize( res.M.offsets.back() );
+    res.M.values.resize( res.M.offsets.back() );
     for( const Partial &partial : partials ) {
         for( PI n = 0; n < partial.num_cells.size(); ++n ) {
-            PI o = res.offsets[ partial.num_cells[ n ] ];
-            for( PI p = partial.offsets[ n + 0 ]; p < partial.offsets[ n + 1 ]; ++p, ++o ) {
-                res.columns[ o ] = partial.columns[ p ];
-                res.values[ o ] = partial.values[ p ];
+            PI o = res.M.offsets[ partial.num_cells[ n ] ];
+            for( PI p = partial.M_offsets[ n + 0 ]; p < partial.M_offsets[ n + 1 ]; ++p, ++o ) {
+                res.M.columns[ o ] = partial.M_columns[ p ];
+                res.M.values[ o ] = partial.M_values[ p ];
             }
         }
+    }
+    if ( res.M.values.size() )
+        res.M.values[ 0 ] += 1e3;
+
+    res.V = std::move( V );
+
+    res.max_diff = 0;
+    res.S = 0;
+    for( const Partial &partial : partials ) {
+        res.max_diff = max( res.max_diff, partial.max_diff );
+        res.S += partial.S;
     }
 
     return res;

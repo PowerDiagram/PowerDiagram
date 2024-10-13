@@ -15,7 +15,7 @@ void bench( Str filename ) {
     Vec<Pt> positions;
     Vec<TF> weights;
     if ( filename.ends_with( ".xyz32.bin" ) ) {
-        for( PI i = 0;; ++i ) {
+        for( PI i = 0; ; ++i ) {
             float x, y, z;
             f.read( (char *)&x, sizeof( x ) );
             f.read( (char *)&y, sizeof( y ) );
