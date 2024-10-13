@@ -9,6 +9,7 @@ def make_env():
     CXXFLAGS = [
         '-Wdeprecated-declarations',
         '-std=c++20',
+        '-fopenmp',
 
         # '-march=skylake',
         '-march=native',
@@ -22,6 +23,7 @@ def make_env():
     LIBS = [
         'Catch2Main',
         'Catch2',
+        'gomp',
 
         'python3.12',
     ]

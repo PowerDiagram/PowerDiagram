@@ -16,11 +16,12 @@ public:
     using      TF            = Config::Scalar;
     using      TM            = CsrMatrix<TF>;
 
+    struct     System        { CsrMatrix<TF> M; Vec<TF> V; TF S, max_diff; bool void_cell; Vec<TF> solve() const; };
     struct     Ders          { Vec<Vec<TF>> M; Vec<TF> V, max_X; TF S; void clear( PI nb_vars ); Vec<TF> argmin() const; };
          
     /**/       SdotSolver    () {}
      
-    void       for_each_cell ( const std::function<void( const Cell<Config> &cell, int )> &f, Span<TF> weights );
+    bool       for_each_cell ( const std::function<void( const Cell<Config> &cell, int )> &f, Span<TF> weights, bool stop_if_void = true );
     void       display_vtk   ( VtkOutput &vo, Span<TF> weights );
    
     TF         target_measure( PI num_cell ) const { return TF( 1 ) / positions.size(); }        
@@ -28,6 +29,7 @@ public:
     PI         nb_cells      () const;
     Vec<TF>    measures      ( Span<TF> weights );
     Vec<TF>    smooth        ( Span<TF> weights, Span<TF> dir, PI rec );
+    System     system        ( Span<TF> weights );
     TF         error         ( Span<TF> weights, bool *void_cell = nullptr );
 
     TF         max_alpha_for ( Span<TF> weights, Span<TF> dir );
