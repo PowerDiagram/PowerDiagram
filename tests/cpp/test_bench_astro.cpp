@@ -80,5 +80,6 @@ void bench( Str filename ) {
 }
 
 TEST_CASE( "bench Astro 3D", "" ) {
-    bench( "100M_60Mpch_jittered.xyz32.bin" );
+    // bench( "100M_60Mpch_jittered.xyz32.bin" );
+    bench( "16M.xyz32.bin" );
 }

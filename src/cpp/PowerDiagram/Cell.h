@@ -3,6 +3,7 @@
 #include "MapOfUniquePISortedArray.h"
 #include "PowerDiagram/PrevCutInfo.h"
 #include "RangeOfClasses.h"
+#include "SimdTensor.h"
 #include "CellVertex.h"
 #include "VtkOutput.h"
 #include "CellCut.h"
@@ -15,14 +16,14 @@
  *
  */
 template<class Config>
-class Cell { STD_TL_TYPE_INFO( Cell, "", nb_active_vertices, vertex_indices, vertices, cuts ) //
+class Cell { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_cuts, cuts ) //
 public:
     static constexpr int         nb_dims                   = Config::nb_dims;
     using                        TF                        = Config::Scalar;
 
-    using                        Vertex                    = CellVertex<TF,nb_dims>;
+    struct                       VertexCut                 { Vec<PI32,nb_dims> inds; };
+    using                        Ptree                     = PointTree<Config>;
     using                        Cut                       = CellCut<Config>;
-    using                        Ptr                       = PointTree<Config>;
     using                        Pt                        = Vec<TF,nb_dims>;
     
     /**/                         Cell                      ();
@@ -32,19 +33,18 @@ public:
 
     void                         memory_compaction         ();
     void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
-    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr );
+    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr );
  
     TF                           for_each_cut_with_measure ( const std::function<void( const CellCut<Config> &cut, TF measure )> &f ) const;
-    bool                         test_each_vertex          ( const std::function<bool( const Vertex &vertex )> &f ) const; ///< return true to stop
-    void                         for_each_vertex           ( const std::function<void( const Vertex &vertex )> &f ) const;
-    void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<const Vertex *,2> vertices )> &f ) const;
-    void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<const Vertex *> vertices )> &f ) const;
+    //bool                       test_each_vertex          ( const std::function<bool( const Vertex &vertex )> &f ) const; ///< return true to stop
+    //void                       for_each_vertex           ( const std::function<void( const Vertex &vertex )> &f ) const;
+    void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> vertices )> &f ) const;
+    void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const;
  
     void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &coord_change ) const; ///<
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
 
-    PI                           capa_vertices             () const { return vertices.size(); }
-    PI                           nb_vertices               () const { return nb_active_vertices; }
+    PI                           nb_vertices               () const { return vertex_cuts.size(); }
     PI                           capa_cuts                 () const { return cuts.size(); }
  
     void                         get_prev_cut_info         ( PrevCutInfo<Config> &pci );
@@ -55,17 +55,15 @@ public:
     TF                           height                    ( const Pt &point ) const;
     bool                         empty                     () const;
 
-    PI32                         nb_active_vertices;       ///<
-    Vec<PI>                      vertex_indices;           ///< vertex_indices[ 0 .. nb_active_vertices ] => active vertices. vertex_indices[ nb_active_vertices... ] => the other ones
-    Vec<Vertex>                  vertices;                 ///< mix of active and inactive ones
+    SimdTensor<TF,nb_dims>       vertex_coords;
+    Vec<VertexCut>               vertex_cuts;
+    Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
     Pt                           min_pos;                  ///<
     Pt                           max_pos;                  ///<
     TF                           w0;                       ///<
     Pt                           p0;                       ///<
     SI                           i0;                       ///<
-
-    Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
 private:
     template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
@@ -82,7 +80,7 @@ private:
     PI                           _remove_ext_vertices      ( PI old_nb_vertices ); ///< return new size
     void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut );
     bool                         _all_inside               ( const Pt &dir, TF off );
-    void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptr *ptr, PI32 num_in_ptr );
+    void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr );
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<
