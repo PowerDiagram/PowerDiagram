@@ -109,7 +109,7 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
 }
 
 DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
-    if ( Config::use_AABB_bounds_on_cells ) {
+    if constexpr ( Config::use_AABB_bounds_on_cells ) {
         TF res = 0;
         for( PI d = 0; d < nb_dims; ++d ) {
             res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
@@ -119,57 +119,80 @@ DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
             return true;
     }
 
-    for( PI ni = 0; ni < nb_vertices(); ++ni )
-        if ( sp( vertex_coords[ ni ], dir ) > off )
-            return false;
+    constexpr PI simd_size = VertexCoords::simd_size;
+    using SimdVec = VertexCoords::SimdVec;
 
-    // // constexpr PI simd_size = VertexCoords::simd_size;
-    // // using SimdVec = VertexCoords::SimdVec;
+    if constexpr ( Config::make_sps_during_phase == 0 )
+        sps.reserve( nb_vertices() );
 
-    // // const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
-    // // for( PI num_vertex = 0; ; num_vertex += simd_size ) {
-    // //     // end of the loop with individual items
-    // //     if ( num_vertex == floor_of_nb_vertices ) {
-    // //         for( ; ; ++num_vertex ) {
-    // //             if ( num_vertex == nb_vertices() )
-    // //                 return true;
-    // //             if ( sp( vertex_coords[ num_vertex ], dir ) > off )
-    // //                 return false;
-    // //         }
-    // //     }
+    bool has_ext = false;
+    const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
+    for( PI num_vertex = 0; ; num_vertex += simd_size ) {
+        // end of the loop with individual items
+        if ( num_vertex == floor_of_nb_vertices ) {
+            for( ; num_vertex < nb_vertices(); ++num_vertex ) {
+                TF csp = sp( vertex_coords[ num_vertex ], dir ) - off;
+                if constexpr ( Config::make_sps_during_phase == 0 )
+                    sps[ num_vertex ] = csp;
+                has_ext |= csp > 0;
+            }
+            return ! has_ext;
+        }
 
-    // //     // test with simd values
-    // //     TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
-    // //     SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
-    // //     for( int d = 1; d < nb_dims; ++d )
-    // //         csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
-    // //     if ( xsimd::any( csp > off ) )
-    // //         return false;
-    // // }
+        // test with simd values
+        TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+        SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ] - off;
+        for( int d = 1; d < nb_dims; ++d )
+            csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
-    return true;
+        if constexpr ( Config::make_sps_during_phase == 0 )
+            csp.store_aligned( sps.data() + num_vertex );
+        has_ext |= xsimd::any( csp > 0 );
+    }
+
+    return ! has_ext;
+
+    // bool res = true;
+    // const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
+    // for( PI num_vertex = 0; ; num_vertex += simd_size ) {
+    //     // end of the loop with individual items
+    //     if ( num_vertex == floor_of_nb_vertices ) {
+    //         for( ; num_vertex < nb_vertices(); ++num_vertex )
+    //             res &= ( sp( vertex_coords[ num_vertex ], dir ) > off );
+    //         return res;
+    //     }
+
+    //     // test with simd values
+    //     TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+    //     SimdVec csp = SimdVec::load_aligned( ptr ) * dir[ 0 ];
+    //     for( int d = 1; d < nb_dims; ++d )
+    //         csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
+    //     if ( xsimd::any( csp > off ) )
+    //         return false;
+    // }
+
+    // return true;
 }
 
-// DTP void UTP::_get_sps( const Point &dir, TF off ) {
-//     constexpr PI simd_size = VertexCoords::simd_size;
-//     using SimdVec = VertexCoords::SimdVec;
+DTP void UTP::_get_sps( const Pt &dir, TF off ) {
+    constexpr PI simd_size = VertexCoords::simd_size;
+    using SimdVec = VertexCoords::SimdVec;
 
-//     sps.resize( nb_vertices() );
+    sps.reserve( nb_vertices() );
 
-//     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
-//     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
-//         TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
-//         SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ];
-//         for( int d = 1; d < nb_dims; ++d )
-//             s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
-//         s -= off;
+    const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
+    for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
+        TF *ptr = vertex_coords.data() + vertex_coords.offset( num_vertex );
+        SimdVec s = SimdVec::load_aligned( ptr ) * dir[ 0 ] - off;
+        for( int d = 1; d < nb_dims; ++d )
+            s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
-//         s.store_aligned( sps.data() + num_vertex );
-//     }
+        s.store_aligned( sps.data() + num_vertex );
+    }
 
-//     for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex )
-//         sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
-// }
+    for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex )
+        sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
+}
 
 DTP PI UTP::new_cut_oid( PI s ) const {
     // reservation for the test
@@ -188,7 +211,7 @@ DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( c
     TF res = 0;
     Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n )
-        add_measure_rec( res, M, vertex_cuts[ n ], n, op_id, measure_for_each_cut );
+        add_measure_rec( res, M, vertex_cuts[ n ].inds, n, op_id, measure_for_each_cut );
 
     // cuts
     TF coe = 1;
@@ -222,16 +245,84 @@ DTP void UTP::get_prev_cut_info( PrevCutInfo<Config> &pci ) {
     } );
 }
 
+DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
+    if ( old_nb_vertices == 0 )
+        return;
+
+    // first phase: use of the new nodes to fill the gap by the ext nodes
+    PI new_size = nb_vertices(), i = 0;
+    while( true ) {
+        // find an ext vertex
+        while ( ! ( sps[ i ] > 0 ) ) {
+            if ( ++i >= old_nb_vertices ) {
+                vertex_coords.resize( new_size );
+                vertex_cuts.resize( new_size );
+                return;
+            }
+        }
+
+        // take a new node to fill the gap
+        if ( new_size == old_nb_vertices )
+            break;
+        --new_size;
+
+        vertex_coords.set_item( i, vertex_coords[ new_size ] );
+        vertex_cuts[ i ] = vertex_cuts[ new_size ];
+
+        //
+        if ( ++i >= old_nb_vertices ) {
+            vertex_coords.resize( new_size );
+            vertex_cuts.resize( new_size );
+            return;
+        }
+    }
+
+    // second phase: use of the old nodes
+    while( true ) {
+        // find an ext vertex
+        while ( ! ( sps[ i ] > 0 ) ) {
+            if ( ++i >= new_size ) {
+                vertex_coords.resize( new_size );
+                vertex_cuts.resize( new_size );
+                return;
+            }
+        }
+
+        // take an int node to fill the gap
+        while ( true ) {
+            if ( --new_size <= i ) {
+                vertex_coords.resize( new_size );
+                vertex_cuts.resize( new_size );
+                return;
+            }
+            
+            if ( ! ( sps[ new_size ] > 0 ) )
+                break;
+        }
+
+        vertex_coords.set_item( i, vertex_coords[ new_size ] );
+        vertex_cuts[ i ] = vertex_cuts[ new_size ];
+
+        //
+        if ( ++i >= new_size ) {
+            vertex_coords.resize( new_size );
+            vertex_cuts.resize( new_size );
+            return;
+        }
+    }
+}
+
 DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
-    sps.resize( nb_vertices() );
+    if constexpr ( Config::make_sps_during_phase == 2 )
+        sps.reserve( nb_vertices() );
 
     // preparation for the new bounds 
-    if ( Config::use_AABB_bounds_on_cells ) {
+    if constexpr ( Config::use_AABB_bounds_on_cells ) {
         max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
         min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
     }
@@ -240,14 +331,18 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     const PI old_nb_vertices = nb_vertices();
     for( PI n0 = 0; n0 < old_nb_vertices; ++n0  ) {
         const auto c0 = vertex_cuts[ n0 ].inds;
-        const Pt   p0 = vertex_coords[ n0 ];
-        const TF   s0 = sp( p0, dir ) - off;
+        const Pt p0 = vertex_coords[ n0 ];
+        TF s0;
+
+        if constexpr ( Config::make_sps_during_phase == 2 ) {
+            s0 = sp( p0, dir ) - off;
+            sps[ n0 ] = s0;
+        } else
+            s0 = sps[ n0 ];
         const bool e0 = s0 > 0;
 
-        sps[ n0 ] = s0;
-
         // if ext, move the vertex ref to [ new inactive vertices ]
-        if ( Config::use_AABB_bounds_on_cells && ! e0 ) {
+        if constexpr ( Config::use_AABB_bounds_on_cells && ! e0 ) {
             max_pos = max( max_pos, p0 );
             min_pos = min( min_pos, p0 );
         }
@@ -255,6 +350,7 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
         //
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
             // PI &edge_op_id = edge_map.at_without_index( vertices[ n0 ].num_cuts, ind_cut );
+            // auto &edge_op_id = edge_map.at_without_index( c0, ind_cut );
             Vec<PI32,nb_dims-1> edge_cuts = c0.without_index( ind_cut );
             auto &edge_op_id = edge_map[ edge_cuts ];
             if ( edge_op_id >= op_id ) {
@@ -265,11 +361,12 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
 
                 if ( e0 != e1 ) {
                     // data for the new vertex
+                    // Vec<PI32,nb_dims-1> edge_cuts = c0.without_index( ind_cut );
                     auto cn = edge_cuts.with_pushed_value( new_cut );
                     auto pn = compute_pos( p0, p1, s0, s1 );
 
                     // bounds
-                    if ( Config::use_AABB_bounds_on_cells ) {
+                    if constexpr ( Config::use_AABB_bounds_on_cells ) {
                         max_pos = max( max_pos, pn );
                         min_pos = min( min_pos, pn );
                     }
@@ -291,6 +388,10 @@ DTP void UTP::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
         return;
+
+    // get sps with simd instructions
+    if constexpr ( Config::make_sps_during_phase == 1 )
+        _get_sps( dir, off );
 
     // store the new cut
     PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
@@ -320,8 +421,8 @@ DTP void UTP::memory_compaction() {
 
     // num cuts
     for( VertexCut &v : vertex_cuts )
-        for( PI32 &num_cut : v.num_cuts )
-            num_cut = active_cuts[ num_cut ];
+        for( auto &ind : v.inds )
+            ind = active_cuts[ ind ];
 }
 
 DTP void UTP::cut_boundary( const Pt &dir, TF off, PI num_boundary ) {
@@ -362,7 +463,7 @@ DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1>
             PI &edge_op_id = edge_map[ edge_cuts ];
 
             if ( edge_op_id >= op_id ) {
-                const PI32 ns[] = { edge_op_id - op_id, n0 };
+                const PI32 ns[] = { PI32( edge_op_id - op_id ), n0 };
                 f( edge_cuts, ns );
             } else
                 edge_op_id = op_id + n0;

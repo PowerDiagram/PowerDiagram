@@ -7,6 +7,8 @@
 #include "CellVertex.h"
 #include "VtkOutput.h"
 #include "CellCut.h"
+#include <vector>
+#include <xsimd/memory/xsimd_aligned_allocator.hpp>
 
 // #include <amgcl/profiler.hpp>
 // extern amgcl::profiler<> *prof;
@@ -21,7 +23,9 @@ public:
     static constexpr int         nb_dims                   = Config::nb_dims;
     using                        TF                        = Config::Scalar;
 
-    struct                       VertexCut                 { Vec<PI32,nb_dims> inds; };
+    using                        VertexCoords              = SimdTensor<TF,nb_dims>;
+    using                        AlignedTFVec              = VertexCoords::AlignedVec;
+    struct                       VertexCut                 { Vec<PI16,nb_dims> inds; char pad[ 2 ]; void display( Displayer &ds ) const { ds << inds; } };
     using                        Ptree                     = PointTree<Config>;
     using                        Cut                       = CellCut<Config>;
     using                        Pt                        = Vec<TF,nb_dims>;
@@ -55,7 +59,7 @@ public:
     TF                           height                    ( const Pt &point ) const;
     bool                         empty                     () const;
 
-    SimdTensor<TF,nb_dims>       vertex_coords;
+    VertexCoords                 vertex_coords;
     Vec<VertexCut>               vertex_cuts;
     Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
@@ -76,16 +80,16 @@ private:
     Pt                           compute_pos               ( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const;
     Pt                           compute_pos               ( Vec<PI,nb_dims> num_cuts ) const;
 
-
-    PI                           _remove_ext_vertices      ( PI old_nb_vertices ); ///< return new size
+    void                         _remove_ext_vertices      ( PI old_nb_vertices ); ///< return new size
     void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut );
     bool                         _all_inside               ( const Pt &dir, TF off );
+    void                         _get_sps                  ( const Pt &dir, TF off );
     void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr );
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
-    Vec<TF>                      sps;                      ///< scalar products for each vertex
+    AlignedTFVec                 sps;                      ///< scalar products for each vertex
 };
 
 #include "Cell.cxx" // IWYU pragma: export

@@ -7,7 +7,7 @@ void bench( Str filename ) {
     constexpr int nd = 3;
     using TF = double;
 
-    struct Config { using Scalar = TF; enum { nb_dims = nd, use_AABB_bounds_on_cells = 0 }; };
+    using Config = BasePowerDiagramConfig<TF,nd>;
     using Pt = Vec<TF,nd>;
 
     // load points
@@ -25,19 +25,20 @@ void bench( Str filename ) {
             positions << Pt{ x, y, z };
             weights << 0;
         }
+    } else if ( filename.ends_with( ".xyz" ) ) {
+        for( PI i = 0; ; ++i ) {
+            double x, y, z;
+            f >> x >> y >> z;
+            if ( ! f )
+                break;
+            positions << Pt{ x, y, z };
+            weights << 0;
+        }
     } else {
         for( PI i = 0; i < 16777216; ++i ) {
             positions << Pt{ rand() / RAND_MAX, rand() / RAND_MAX, rand() / RAND_MAX };
             weights << 0;
         }
-        // for( PI i = 0; ; ++i ) {
-        //     double x, y, z;
-        //     f >> x >> y >> z;
-        //     if ( ! f )
-        //         break;
-        //     positions << Pt{ x, y, z };
-        //     weights << 0;
-        // }
     }
     P( positions.size() );
 
@@ -63,23 +64,31 @@ void bench( Str filename ) {
     Vec<TF> volumes( FromSizeAndItemValue(), pd.max_nb_threads(), 0 );
     Vec<PrevCutInfo<Config>> prev_cuts( FromSize(), pd.nb_cells() );
     pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
-        cell.get_prev_cut_info( prev_cuts[ cell.i0 ] );
+        // cell.get_prev_cut_info( prev_cuts[ cell.i0 ] );
         // volumes[ num_thread ] += cell.measure();
     } );
 
     auto t1 = std::chrono::steady_clock::now();
     std::cout << std::chrono::nanoseconds( t1 - t0 ).count() / 1e6 << "ms" << std::endl;
 
-    pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
-    }, prev_cuts.data() );
+    // pd.for_each_cell( [&]( Cell<Config> &cell, int num_thread ) {
+    // }, prev_cuts.data() );
 
-    auto t2 = std::chrono::steady_clock::now();
-    std::cout << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << "ms" << std::endl;
+    // auto t2 = std::chrono::steady_clock::now();
+    // std::cout << std::chrono::nanoseconds( t2 - t1 ).count() / 1e6 << "ms" << std::endl;
 
     // P( sum( volumes ) );
 }
 
 TEST_CASE( "bench Astro 3D", "" ) {
     // bench( "100M_60Mpch_jittered.xyz32.bin" );
-    bench( "16M.xyz32.bin" );
+    // bench( "16M.xyz32.bin" );
+    // cible: 3.58
+    // 9144.22ms avec sps en ligne, sans SIMD
+    // 8165.71ms avec sps après tests
+    // 7824.79ms ou 8260ms avec sps en ligne (sans SIMD)
+    // 0 => 8659
+    // 1 => 8177
+    // 2 => 8300
+    bench( "Points_1000000.xyz" );
 }

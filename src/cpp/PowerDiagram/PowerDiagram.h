@@ -6,6 +6,12 @@
 #include "PointTree.h"
 #include "Cell.h"
 
+template<class TF,int nd>
+struct BasePowerDiagramConfig {
+    enum { nb_dims = nd, use_AABB_bounds_on_cells = 0, make_sps_during_phase = 1 }; 
+    using Scalar = TF;
+};
+
 /**
  * @brief 
  * 
@@ -38,16 +44,17 @@ public:
     void                    display           ( Displayer &df ) const;
     #endif
 
+    Cell<Config>            base_cell;        ///<
+
 private:
     using                   PtPtr             = UniquePtr<PointTree<Config>>;
 
-    void                    make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Config> &rb_base, const PrevCutInfo<Config> *prev_cuts );
+    void                    make_intersections( auto &cell, Vec<PI32> &buffer, RemainingBoxes<Config> &rb, const PrevCutInfo<Config> *prev_cuts );
     bool                    outside_cell      ( auto &cell, const RemainingBoxes<Config> &rb_base );
 
     Pt                      min_box_pos;      ///<
     Pt                      max_box_pos;      ///<
     PtPtr                   point_tree;       ///<
-    Cell<Config>            base_cell;        ///<
 
     Span<Pt>                bnd_dirs;         ///<
     Span<TF>                bnd_offs;         ///<

@@ -38,7 +38,7 @@ DTP UTP::PowerDiagram( const PointTreeCtorParms &cp, Vec<Pt> &&points_, Vec<TF> 
     base_cell.memory_compaction();
 }
 
-DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const RemainingBoxes<Config> &rb_base, const PrevCutInfo<Config> *prev_cuts ) {
+DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, RemainingBoxes<Config> &rb, const PrevCutInfo<Config> *prev_cuts ) {
     // // helper to test if a bow may contain a dirac that can create a new cut
     // const auto may_intersect = [&]( PointTree<Config> *point_tree ) -> bool {
     //     return point_tree->may_intersect( cell );
@@ -51,11 +51,11 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
             p.first->make_prev_cuts( cell, p.second );
 
         // intersections with the points in the same box that have not been tested
-        PI32 apc = prev_cuts[ cell.i0 ].find( rb_base.leaf );
-        rb_base.leaf->make_prev_cuts( cell, ~ apc );
+        PI32 apc = prev_cuts[ cell.i0 ].find( rb.leaf );
+        rb.leaf->make_prev_cuts( cell, ~ apc );
 
         // intersections with the points other boxes that may create intersections and that have not been tested
-        for( RemainingBoxes<Config> rb = rb_base; rb.go_to_next_leaf( cell ); ) {
+        while( rb.go_to_next_leaf( cell ) ) {
             PI32 apc = prev_cuts[ cell.i0 ].find( rb.leaf );
             rb.leaf->make_prev_cuts( cell, ~ apc );
         }
@@ -64,7 +64,7 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
     }
 
     // intersections with the points in the same box
-    rb_base.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
+    rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
         buffer.resize( p1s.size() - 1 );
         for( PI n = 0, j = 0; n < p1s.size(); ++n )
             if ( i1s[ n ] != cell.i0 )
@@ -74,14 +74,14 @@ DTP void UTP::make_intersections( auto &cell, Vec<PI32> &buffer, const Remaining
         } );
 
         for( PI n : buffer )
-            cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ], rb_base.leaf, n );
+            cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ], rb.leaf, n );
         // for( PI n = 0; n < p1s.size(); ++n )
         //     if ( i1s[ n ] != cell.i0 )
         //         cell.cut_dirac( p1s[ n ], w1s[ n ], i1s[ n ] );
     } );
 
     // intersections with the points other boxes that may create intersections
-    for( RemainingBoxes<Config> rb = rb_base; rb.go_to_next_leaf( cell ); ) {
+    while( rb.go_to_next_leaf( cell ) ) {
         rb.leaf->for_each_point( [&]( Span<Pt> p1s, Span<TF> w1s, Span<PI> i1s ) {
             buffer.resize( p1s.size() );
             for( PI n = 0; n < p1s.size(); ++n )
@@ -131,17 +131,18 @@ DTP bool UTP::for_each_cell( const std::function<void( Cell<Config> &, int )> &f
                         if ( stopped )
                             return;
 
-                        // get a list of unexplored boxes
-                        auto rb_base = RemainingBoxes<Config>::from_leaf( leaf );
-
                         // make a base cell
                         cell.init_geometry_from( base_cell );
                         cell.p0 = p0s[ np ];
                         cell.w0 = w0s[ np ];
                         cell.i0 = i0s[ np ];
 
+                        // get a list of boxes to explore
+                        auto rb = RemainingBoxes<Config>::from_leaf( leaf );
+                        rb.sort_by_dist( p0s[ np ] );
+
                         // make the cuts
-                        make_intersections( cell, buffer, rb_base, prev_cuts );
+                        make_intersections( cell, buffer, rb, prev_cuts );
 
                         // if we missed a vertex because the base_cell is not large enough, restart with a new base_cell
                         f( cell, num_thread );

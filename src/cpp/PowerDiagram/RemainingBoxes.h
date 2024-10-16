@@ -16,6 +16,7 @@ public:
     // RemainingBoxes&        go_to_next_leaf         ( const std::function<bool( PointTree<Config> *point_tree )> &go_inside );
     RemainingBoxes&           go_to_next_leaf         ( const Cell<Config> &cell );
     RemainingBoxes&           go_to_next_leaf         ();
+    void                      sort_by_dist            ( const auto &pos );
     operator                  bool                    () const;
 
     static void               from_leaf_rec           ( RemainingBoxes &res, PointTree<Config> *tree );

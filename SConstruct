@@ -45,6 +45,7 @@ libs = [
     "modules/tl20/src/cpp/tl/support/display/DisplayItem_List.cpp",
     "modules/tl20/src/cpp/tl/support/display/DisplayContext.cpp",
     "modules/tl20/src/cpp/tl/support/display/DisplayItem.cpp",
+    "modules/tl20/src/cpp/tl/support/string/va_string.cpp",
     "modules/tl20/src/cpp/tl/support/Displayer.cpp",
 
     "modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",

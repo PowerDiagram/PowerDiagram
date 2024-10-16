@@ -3,6 +3,7 @@
 #include "../../src/cpp/PowerDiagram/VtkOutput.h"
 #include "CsrMatrix.h"
 
+template<class TF,int dim> class BasePowerDiagramConfig;
 template<class Config> class Cell;
 
 /**
@@ -10,10 +11,10 @@ template<class Config> class Cell;
 */
 class SdotSolver {
 public:   
-    struct     Config        { using Scalar = double; enum { nb_dims = 3, use_AABB_bounds_on_cells = 0 }; };
+    using      Config        = BasePowerDiagramConfig<double,3>;
          
-    using      Pt            = Vec<Config::Scalar,Config::nb_dims>;
-    using      TF            = Config::Scalar;
+    using      Pt            = Vec<double,3>;
+    using      TF            = double;
     using      TM            = CsrMatrix<TF>;
 
     struct     System        { CsrMatrix<TF> M; Vec<TF> V; TF S, max_diff; bool void_cell; Vec<TF> solve() const; };

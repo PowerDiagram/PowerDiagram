@@ -1,3 +1,5 @@
+#pragma once
+
 #include "RemainingBoxes.h"
 #include "PointTree.h"
 
@@ -103,6 +105,14 @@ DTP UTP &UTP::go_to_next_leaf( const Cell<Config> &cell ) {
 
 DTP UTP &UTP::go_to_next_leaf() {
     return go_to_next_leaf( []( PointTree<Config> * ) { return true; } );
+}
+
+DTP void UTP::sort_by_dist( const auto &pos ) {
+    std::sort( remaining_boxes.begin(), remaining_boxes.end(), [&]( PointTree<Config> *a, PointTree<Config> *b ) {
+        auto da = norm_2_p2( max( a->min_point(), min( a->max_point(), pos ) ) - pos );
+        auto db = norm_2_p2( max( b->min_point(), min( b->max_point(), pos ) ) - pos );
+        return da > db;
+    } );
 }
 
 DTP UTP::operator bool() const {

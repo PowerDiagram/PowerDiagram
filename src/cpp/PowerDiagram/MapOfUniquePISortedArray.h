@@ -57,8 +57,27 @@ struct MapOfUniquePISortedArray<2,PII,PIO> {
     PIO&   operator[]              ( const Vec<PII,2> &a ) { return values[ ( a[ 1 ] - 1 ) * a[ 1 ] / 2 + a[ 0 ] ]; }
     void   display                 ( Displayer &ds ) const { ds << values; }
 
+    PIO&   at_without_index        ( const Vec<PII,3> &a, auto index ) {
+         const auto a0 = a[ 0 + ( index <= 0 ) ], a1 = a[ 1 + ( index <= 1 ) ]; 
+         return values[ ( a1 - 1 ) * a1 / 2 + a0 ];
+    }
+
 private:
     using  Map      = VecForCapa<PIO>;
 
     Map    values;
 };
+
+// /// s == 2
+// template<class PII,class PIO>
+// struct MapOfUniquePISortedArray<2,PII,PIO> {
+//     void   prepare_for( PI max_PII_value ) { size = max_PII_value; values.reserve( max_PII_value * max_PII_value, 0 ); }
+//     PIO&   operator[] ( const Vec<PII,2> &a ) { return values[ a[ 1 ] * size + a[ 0 ] ]; }
+//     void   display    ( Displayer &ds ) const { ds << values; }
+
+// private:
+//     using  Map        = VecForCapa<PIO>;
+
+//     Map    values;
+//     PI     size;
+// };

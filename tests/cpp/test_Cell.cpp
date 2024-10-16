@@ -95,7 +95,7 @@ TEST_CASE( "Cell 2D", "" ) {
 
     cell.cut_boundary( { -1, 0 }, 0, 1 );
     cell.cut_boundary( { 0, -1 }, 0, 1 );
-    cell.cut_boundary( { 2, 1 }, 1, 1 );
+    cell.cut_boundary( { 1, 1 }, 1, 1 );
     cell.memory_compaction();
     P( cell );
 
