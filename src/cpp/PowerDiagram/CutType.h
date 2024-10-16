@@ -2,17 +2,19 @@
 
 #include <tl/support/Displayer.h>
 
+namespace power_diagram {
 enum class CutType {
     Dirac,
     Boundary,
     Infinity,
 
 };
+} // namespace power_diagram 
 
-inline void display( Displayer &ds, CutType t ) {
+inline void display( Displayer &ds, power_diagram::CutType t ) {
     switch ( t ) {
-    case CutType::Dirac   : ds << "Dirac"   ; return;
-    case CutType::Boundary: ds << "Boundary"; return;
-    case CutType::Infinity: ds << "Infinity"; return;
+    case power_diagram::CutType::Dirac   : ds << "Dirac"   ; return;
+    case power_diagram::CutType::Boundary: ds << "Boundary"; return;
+    case power_diagram::CutType::Infinity: ds << "Infinity"; return;
     }
 }

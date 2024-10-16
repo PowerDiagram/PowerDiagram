@@ -22,3 +22,6 @@ Rq: on pourrait fonctionner avec par défaut des cellules "non-bornées".
 
   
 La proposition, c'est de faire un pavage pour travailler localement puis avec des faisceaux.
+  Si on veut faire du périodique, on pourrait imaginer que ça soit utilisé comme paramètre du "paveur".
+  Ça pourrait être la même chose pour MPI : on donne les positions pour chaque process. Le paveur se charge de déplacer les données d'un processur à l'autre
+  

@@ -18,7 +18,7 @@ def make_env():
 
         '-g3',
 
-        '-DPOWER_DIAGRAM_CONFIG_SUFFIX=PD_SUFFIX_double_3',
+        '-DPOWER_DIAGRAM_CONFIG_SUFFIX=double_3',
         '-DPOWER_DIAGRAM_CONFIG_SCALAR=double',
         '-DPOWER_DIAGRAM_CONFIG_NB_DIM=3',
     ]
@@ -54,10 +54,14 @@ libs = [
 
     "modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
 
+    "src/cpp/PowerDiagram/DiracVec.cpp",
+    "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
+    
     "src/cpp/PowerDiagram/VtkOutput.cpp",
+    "src/cpp/PowerDiagram/Mpi.cpp",
 
-    "tests/cpp/SdotSolver.cpp",
-    "tests/cpp/CsrMatrix.cpp",
+    # "tests/cpp/SdotSolver.cpp",
+    # "tests/cpp/CsrMatrix.cpp",
 ]
 
 args = dict( ARGLIST )

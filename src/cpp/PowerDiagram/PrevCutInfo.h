@@ -1,24 +1,22 @@
 #pragma once
 
-#include <tl/support/containers/Vec.h>
+#include "Config.h"
 
-template<class Config> class PointTree;
+namespace power_diagram {
+PD_CLASS_DECL_AND_USE( PrevCutInfo );
+PD_CLASS_DECL_AND_USE( PavingItem );
 
 /**
  * @brief 
  * 
  */
-template<class Config>
-class PrevCutInfo {
+class PD_NAME( PrevCutInfo ) {
 public:
-    using Data = Vec<std::pair<PointTree<Config> *,PI32>>;
+    using Data = Vec<std::pair<PavingItem *,PI32>>;
     
-    PI32  find ( PointTree<Config> *leaf ) const {
-        for( const auto &p: by_leaf )
-            if ( p.first == leaf )
-                return p.second;
-        return 0;
-    }
+    PI32  find ( PavingItem *leaf ) const { for( const auto &p: by_leaf ) if ( p.first == leaf ) return p.second; return 0; }
 
     Data  by_leaf;
 };
+
+} // namespace power_diagram

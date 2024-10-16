@@ -1,11 +1,16 @@
 #pragma once
 
-#include "VertexRefIds.h"
+#include "MapOfUniquePISortedArray.h"
+#include "RangeOfClasses.h"
+#include "PrevCutInfo.h"
 #include "SimdTensor.h"
+#include "VertexRefs.h"
 #include "VtkOutput.h"
 #include "Cut.h"
 
 namespace power_diagram {
+PD_CLASS_DECL_AND_USE( PavingItem );
+PD_CLASS_DECL_AND_USE( Cell );
 
 /**
  * @brief
@@ -14,10 +19,6 @@ namespace power_diagram {
 class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "" ) //
 public:
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
-    using                        VertexRefs                = PD_NAME( VertexRefs );
-    using                        PavingItem                = PD_NAME( PavingItem );
-    using                        Cell                      = PD_NAME( Cell );
-    using                        Cut                       = PD_NAME( Cut );
     
     /**/                         PD_NAME( Cell )           ();
 
@@ -32,13 +33,13 @@ public:
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> vertices )> &f ) const;
     void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const;
  
-    void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &coord_change ) const; ///<
+    void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &to_vtk ) const; ///<
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
 
-    PI                           nb_vertices               () const { return vertex_cuts.size(); }
+    PI                           nb_vertices               () const { return vertex_refs.size(); }
     PI                           capa_cuts                 () const { return cuts.size(); }
  
-    void                         get_prev_cut_info         ( PrevCutInfo<Config> &pci );
+    void                         get_prev_cut_info         ( PrevCutInfo &pci );
 
     bool                         contains                  ( const Pt &x ) const;
     TF                           measure                   () const;
@@ -47,7 +48,7 @@ public:
     bool                         empty                     () const;
 
     VertexCoords                 vertex_coords;
-    Vec<VertexCut>               vertex_cuts;
+    Vec<VertexRefs>              vertex_refs;
     Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
     Pt                           min_pos;                  ///<
@@ -71,12 +72,12 @@ private:
     void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut );
     bool                         _all_inside               ( const Pt &dir, TF off );
     void                         _get_sps                  ( const Pt &dir, TF off );
-    void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr );
+    void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
-    AlignedTFVec                 sps;                      ///< scalar products for each vertex
+    Vec<TF>                      sps;                      ///< scalar products for each vertex
 };
 
 } // namespace power_diagram

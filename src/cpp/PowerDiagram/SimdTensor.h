@@ -2,9 +2,9 @@
 
 #include <tl/support/containers/Vec.h>
 #include <tl/support/operators/ceil.h>
-//#include <xsimd/xsimd.hpp>
 #include <asimd/SimdVec.h>
-//#include <vector>
+
+namespace power_diagram {
 
 /**
 */
@@ -88,3 +88,5 @@ DTP void UTP::clear() {
 
 #undef DTP
 #undef UTP
+
+} // namespace power_diagram
