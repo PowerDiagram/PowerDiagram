@@ -2,16 +2,16 @@
 
 #include <tl/support/containers/Vec.h>
 #include <tl/support/operators/ceil.h>
-#include <xsimd/xsimd.hpp>
-#include <vector>
+//#include <xsimd/xsimd.hpp>
+#include <asimd/SimdVec.h>
+//#include <vector>
 
 /**
 */
 template<class T,int nb_dims>
 class SimdTensor {
 public:
-    using               AlignedVec = std::vector<T,xsimd::default_allocator<T>>;
-    using               SimdVec    = xsimd::batch<T>;
+    using               SimdVec    = asimd::SimdVec<T>;
     using               Point      = Vec<T,nb_dims>;
 
     static constexpr PI simd_size  = SimdVec::size;
@@ -23,17 +23,18 @@ public:
     PI                  capacity   () const { return _data.size() / nb_dims; }
     PI                  size       () const { return _size; }
 
-    PI                  offset     ( PI n ) const { return ( n / simd_size ) * simd_size * nb_dims + ( n % simd_size ); }
-    PI                  offset     ( PI n, PI d ) const { return offset( n ) + simd_size * d; }
+    PI                  offset     ( PI n, PI d = 0 ) const { return ( n / simd_size ) * simd_size * nb_dims + ( n % simd_size ) + simd_size * d; }
 
-    const T&            operator() ( PI n, PI d ) const { return _data[ offset( n, d ) ]; }
-    T&                  operator() ( PI n, PI d ) { return _data[ offset( n, d ) ]; }
-    Point               operator[] ( PI n ) const { Point res; for( PI d = 0; d < nb_dims; ++d ) res[ d ] = operator()( n, d ); return res; }
+    const T&            operator() ( PI n, PI d = 0 ) const { return _data[ offset( n, d ) ]; }
+    T&                  operator() ( PI n, PI d = 0 ) { return _data[ offset( n, d ) ]; }
+
+    const Point         operator[] ( PI n ) const { Point res; for( PI d = 0; d < nb_dims; ++d ) res[ d ] = operator()( n, d ); return res; }
 
     const T*            data       () const { return _data.data(); }
     T*                  data       () { return _data.data(); }
 
     SimdTensor&         operator<< ( const Point &p );
+
     void                set_item   ( PI index, const Point &p );
     void                reserve    ( PI capa );
     void                resize     ( PI size );
@@ -41,7 +42,7 @@ public:
 
 private:
     PI                  _size;
-    AlignedVec          _data;     ///< ex for simd_size == 4: x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 ...
+    Vec<T>              _data;     ///< ex for simd_size == 4: x0 x1 x2 x3 y0 y1 y2 y3 x4 x5 ...
 };
 
 #define DTP template<class T,int nb_dims>
@@ -73,7 +74,7 @@ DTP void UTP::set_item( PI index, const Point &p ) {
 DTP void UTP::reserve( PI capa ) {
     const PI wsize = ceil( capa, simd_size ) * nb_dims;
     if ( wsize > _data.size() )
-        _data.resize( wsize );
+        _data.aligned_resize( wsize, simd_size * sizeof( T ) );
 }
 
 DTP void UTP::resize( PI size ) {

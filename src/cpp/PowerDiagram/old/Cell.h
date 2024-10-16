@@ -1,34 +1,47 @@
 #pragma once
 
-#include "VertexRefIds.h"
+#include "MapOfUniquePISortedArray.h"
+#include "PowerDiagram/PrevCutInfo.h"
+#include "RangeOfClasses.h"
 #include "SimdTensor.h"
+#include "CellVertex.h"
 #include "VtkOutput.h"
-#include "Cut.h"
+#include "CellCut.h"
+#include <vector>
+#include <xsimd/memory/xsimd_aligned_allocator.hpp>
 
-namespace power_diagram {
+// #include <amgcl/profiler.hpp>
+// extern amgcl::profiler<> *prof;
 
 /**
  * @brief
  *
  */
-class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "" ) //
+template<class Config>
+class Cell { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_cuts, cuts ) //
 public:
+    static constexpr int         nb_dims                   = Config::nb_dims;
+    using                        TF                        = Config::Scalar;
+
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
-    using                        VertexRefs                = PD_NAME( VertexRefs );
-    using                        PavingItem                = PD_NAME( PavingItem );
-    using                        Cell                      = PD_NAME( Cell );
-    using                        Cut                       = PD_NAME( Cut );
+    using                        AlignedTFVec              = VertexCoords::AlignedVec;
+    struct                       VertexCut                 { Vec<PI16,nb_dims> inds; char pad[ 2 ]; void display( Displayer &ds ) const { ds << inds; } };
+    using                        Ptree                     = PointTree<Config>;
+    using                        Cut                       = CellCut<Config>;
+    using                        Pt                        = Vec<TF,nb_dims>;
     
-    /**/                         PD_NAME( Cell )           ();
+    /**/                         Cell                      ();
 
-    void                         init_from                 ( const Cell &that, const Pt &p0, TF w0, PI i0 );
-
-    void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
-    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item );
+    void                         init_geometry_to_encompass( const Pt &min_pos, const Pt &max_pos );
+    void                         init_geometry_from        ( const Cell &that );
 
     void                         memory_compaction         ();
+    void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
+    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr );
  
-    TF                           for_each_cut_with_measure ( const std::function<void( const Cut &cut, TF measure )> &f ) const;
+    TF                           for_each_cut_with_measure ( const std::function<void( const CellCut<Config> &cut, TF measure )> &f ) const;
+    //bool                       test_each_vertex          ( const std::function<bool( const Vertex &vertex )> &f ) const; ///< return true to stop
+    //void                       for_each_vertex           ( const std::function<void( const Vertex &vertex )> &f ) const;
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> vertices )> &f ) const;
     void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const;
  
@@ -52,9 +65,9 @@ public:
 
     Pt                           min_pos;                  ///<
     Pt                           max_pos;                  ///<
-    Pt                           p0;                       ///<
     TF                           w0;                       ///<
-    PI                           i0;                       ///<
+    Pt                           p0;                       ///<
+    SI                           i0;                       ///<
 
 private:
     template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
@@ -79,4 +92,4 @@ private:
     AlignedTFVec                 sps;                      ///< scalar products for each vertex
 };
 
-} // namespace power_diagram
+#include "Cell.cxx" // IWYU pragma: export

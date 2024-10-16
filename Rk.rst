@@ -21,14 +21,4 @@ Rq: on pourrait fonctionner avec par défaut des cellules "non-bornées".
   Lorsqu'elles sont bornées, on passe au cut par edge.
 
   
-00    { num_cuts: [ 0, 2, 5 ], pos: [ 1.000000, 1.000000, 0.000000 ] }
-01    { num_cuts: [ 1, 2, 5 ], pos: [ 0.000000, 1.000000, 0.000000 ] }
-02    { num_cuts: [ 1, 2, 4 ], pos: [ 0.000000, 1.000000, 1.000000 ] }
-03    { num_cuts: [ 1, 3, 4 ], pos: [ 0.000000, 0.000000, 1.000000 ] }
-04    { num_cuts: [ 0, 2, 4 ], pos: [ 1.000000, 1.000000, 1.000000 ] }
-05    { num_cuts: [ 0, 3, 4 ], pos: [ 1.000000, 0.000000, 1.000000 ] }
-06    { num_cuts: [ 0, 3, 5 ], pos: [ 1.000000, 0.000000, 0.000000 ] }
-07    { num_cuts: [ 1, 3, 5 ], pos: [ 0.000000, 0.000000, 0.000000 ] }
-08    { num_cuts: [ 1, 5, 6 ], pos: [ 0.000000, 0.500000, 0.000000 ] }
-09    { num_cuts: [ 3, 5, 6 ], pos: [ 0.500000, 0.000000, 0.000000 ] }
-10    { num_cuts: [ 1, 3, 6 ], pos: [ 0.000000, 0.000000, 0.500000 ] }
+La proposition, c'est de faire un pavage pour travailler localement puis avec des faisceaux.

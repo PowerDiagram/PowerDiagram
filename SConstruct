@@ -17,6 +17,10 @@ def make_env():
         '-O3',
 
         '-g3',
+
+        '-DPOWER_DIAGRAM_CONFIG_SUFFIX=PD_SUFFIX_double_3',
+        '-DPOWER_DIAGRAM_CONFIG_SCALAR=double',
+        '-DPOWER_DIAGRAM_CONFIG_NB_DIM=3',
     ]
 
     # LIBS
