@@ -14,7 +14,7 @@ public:
     using               SimdVec    = asimd::SimdVec<T>;
     using               Point      = Vec<T,nb_dims>;
 
-    static constexpr PI simd_size  = SimdVec::size;
+    static constexpr PI simd_size  = SimdVec::size();
 
     /**/                SimdTensor ();
 
@@ -74,7 +74,7 @@ DTP void UTP::set_item( PI index, const Point &p ) {
 DTP void UTP::reserve( PI capa ) {
     const PI wsize = ceil( capa, simd_size ) * nb_dims;
     if ( wsize > _data.size() )
-        _data.aligned_resize( wsize, simd_size * sizeof( T ) );
+        _data.aligned_resize( wsize, CtInt<simd_size * sizeof( T )>() );
 }
 
 DTP void UTP::resize( PI size ) {

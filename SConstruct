@@ -11,8 +11,8 @@ def make_env():
         '-std=c++20',
         '-fopenmp',
 
-        # '-march=skylake',
-        '-march=native',
+        '-march=skylake',
+        # '-march=native',
         '-ffast-math',
         '-O3',
 
@@ -56,6 +56,9 @@ libs = [
 
     "src/cpp/PowerDiagram/DiracVec.cpp",
     "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
+
+    "src/cpp/PowerDiagram/PavingWithDiracs.cpp",
+    "src/cpp/PowerDiagram/RegularGrid.cpp",
     
     "src/cpp/PowerDiagram/VtkOutput.cpp",
     "src/cpp/PowerDiagram/Mpi.cpp",

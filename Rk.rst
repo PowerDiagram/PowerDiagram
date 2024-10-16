@@ -25,3 +25,10 @@ La proposition, c'est de faire un pavage pour travailler localement puis avec de
   Si on veut faire du périodique, on pourrait imaginer que ça soit utilisé comme paramètre du "paveur".
   Ça pourrait être la même chose pour MPI : on donne les positions pour chaque process. Le paveur se charge de déplacer les données d'un processur à l'autre
   
+
+* On stocke la position des diracs pour chaque case
+* On parcourt les cases pour construire les cellules
+  * on intersecte les cellules de la case courante + l'entourage proche (à définir fonction du type de problème).
+  * on va chercher s'il est possible de trouver des diracs qui peuvent intersecter la cellule, etc...
+
+  
