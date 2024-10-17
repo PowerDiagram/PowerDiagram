@@ -11,6 +11,8 @@ def make_env():
         '-std=c++20',
         '-fopenmp',
 
+        '-fdiagnostics-color=always',
+        
         # '-march=skylake',
         '-march=native',
         '-ffast-math',
@@ -54,15 +56,15 @@ libs = [
 
     "modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
 
-    "src/cpp/PowerDiagram/DiracVec.cpp",
-    "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
+    # "src/cpp/PowerDiagram/DiracVec.cpp",
+    # "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
 
-    "src/cpp/PowerDiagram/PavingWithDiracs.cpp",
-    "src/cpp/PowerDiagram/RegularGrid.cpp",
+    # "src/cpp/PowerDiagram/PavingWithDiracs.cpp",
+    # "src/cpp/PowerDiagram/RegularGrid.cpp",
     
-    "src/cpp/PowerDiagram/VtkOutput.cpp",
-    "src/cpp/PowerDiagram/Cell.cpp",
-    "src/cpp/PowerDiagram/Mpi.cpp",
+    # "src/cpp/PowerDiagram/VtkOutput.cpp",
+    # "src/cpp/PowerDiagram/Cell.cpp",
+    # "src/cpp/PowerDiagram/Mpi.cpp",
 
     # "tests/cpp/SdotSolver.cpp",
     # "tests/cpp/CsrMatrix.cpp",
