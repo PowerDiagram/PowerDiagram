@@ -11,8 +11,8 @@ def make_env():
         '-std=c++20',
         '-fopenmp',
 
-        '-march=skylake',
-        # '-march=native',
+        # '-march=skylake',
+        '-march=native',
         '-ffast-math',
         '-O3',
 
@@ -61,6 +61,7 @@ libs = [
     "src/cpp/PowerDiagram/RegularGrid.cpp",
     
     "src/cpp/PowerDiagram/VtkOutput.cpp",
+    "src/cpp/PowerDiagram/Cell.cpp",
     "src/cpp/PowerDiagram/Mpi.cpp",
 
     # "tests/cpp/SdotSolver.cpp",

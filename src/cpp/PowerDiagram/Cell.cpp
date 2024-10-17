@@ -1,5 +1,4 @@
-#pragma once
-
+#include <immintrin.h>
 #include <tl/support/operators/determinant.h>
 #include <tl/support/operators/lu_solve.h>
 #include <tl/support/operators/norm_2.h>
@@ -15,20 +14,17 @@
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
 
+// #include <eigen3/Eigen/LU>
 // #include <limits>
 
 #include "Cell.h"
+#include "PowerDiagram/VertexRefs.h"
 
-#include <tl/support/P.h>
- 
-// #include <eigen3/Eigen/LU>
+namespace power_diagram {
 
-#define DTP template<class Config>
-#define UTP Cell<Config>
-
-DTP UTP::Cell() {
+Cell::PD_NAME( Cell )() {
     vertex_coords.reserve( 128 );
-    vertex_cuts.reserve( 128 );
+    vertex_refs.reserve( 128 );
     cuts.reserve( 128 );
 
     sps.reserve( 128 );
@@ -37,59 +33,59 @@ DTP UTP::Cell() {
     num_cut_oid = 1;
 }
 
-DTP void UTP::init_geometry_from( const Cell &that ) {
+void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
     // limits
-    if ( Config::use_AABB_bounds_on_cells ) {
+    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
         min_pos = that.min_pos;
         max_pos = that.max_pos;
-    }
+    #endif
 
     // vertices
     vertex_coords = that.vertex_coords;
-    vertex_cuts = that.vertex_cuts;
+    vertex_refs = that.vertex_refs;
 
     // cuts
     cuts = that.cuts;
 }
 
-DTP void UTP::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
-    // first value. max_pos will be updated
-    min_pos = mi - ( ma - mi ) / 2;
-    max_pos = ma + ( ma - mi ) / 2;
+// void Cell::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
+//     // first value. max_pos will be updated
+//     min_pos = mi - ( ma - mi ) / 2;
+//     max_pos = ma + ( ma - mi ) / 2;
 
-    // cuts
-    cuts.clear();
-    for( int d = 0; d < nb_dims; ++d ) {
-        Pt dir( FromInitFunctionOnIndex(), [&]( TF *res, PI i ) { *res = ( i == d ? -1 : 0 ); } );
-        cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Pt{}, TF{ 0 }, PI( d ), nullptr, 0 );
-    }
+//     // cuts
+//     cuts.clear();
+//     for( int d = 0; d < nb_dims; ++d ) {
+//         Pt dir( FromInitFunctionOnIndex(), [&]( TF *res, PI i ) { *res = ( i == d ? -1 : 0 ); } );
+//         cuts.push_back( CutType::Infinity, dir, sp( min_pos, dir ), Pt{}, TF{ 0 }, PI( d ), nullptr, 0 );
+//     }
 
-    Pt dir( FromItemValue(), 1 );
-    cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Pt{}, TF{ 0 }, PI( nb_dims ), nullptr, 0 );
+//     Pt dir( FromItemValue(), 1 );
+//     cuts.push_back( CutType::Infinity, dir, sp( max_pos, dir ), Pt{}, TF{ 0 }, PI( nb_dims ), nullptr, 0 );
 
-    // vertices
-    vertex_coords.clear();
-    vertex_cuts.clear();
-    for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
-        Vec<PI32,nb_dims> num_cuts( FromItemValue(), 0 );
-        for( PI32 i = 0; i < nc_0; ++i )
-            num_cuts[ i ] = i;
-        for( PI32 i = nc_0 + 1; i < nb_dims + 1; ++i )
-            num_cuts[ i - 1 ] = i;
+//     // vertices
+//     vertex_coords.clear();
+//     vertex_refs.clear();
+//     for( int nc_0 = 0; nc_0 < nb_dims + 1; ++nc_0 ) {
+//         Vec<PI32,nb_dims> num_cuts( FromItemValue(), 0 );
+//         for( PI32 i = 0; i < nc_0; ++i )
+//             num_cuts[ i ] = i;
+//         for( PI32 i = nc_0 + 1; i < nb_dims + 1; ++i )
+//             num_cuts[ i - 1 ] = i;
 
-        Pt coords = compute_pos( num_cuts );
-        max_pos = max( max_pos, coords );
+//         Pt coords = compute_pos( num_cuts );
+//         max_pos = max( max_pos, coords );
 
-        vertex_coords << coords;
-        vertex_cuts << num_cuts;
-    }
-}
+//         vertex_coords << coords;
+//         vertex_refs << num_cuts;
+//     }
+// }
 
-DTP UTP::Pt UTP::compute_pos( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const {
+Pt Cell::compute_pos( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
-DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
+Pt Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
@@ -108,8 +104,8 @@ DTP UTP::Pt UTP::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     }
 }
 
-DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
-    if constexpr ( Config::use_AABB_bounds_on_cells ) {
+bool Cell::_all_inside( const Pt &dir, TF off ) {
+    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
         TF res = 0;
         for( PI d = 0; d < nb_dims; ++d ) {
             res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
@@ -117,12 +113,12 @@ DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
         }
         if ( res <= off )
             return true;
-    }
+    #endif
 
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
-    if constexpr ( Config::make_sps_during_phase == 0 )
+    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
         sps.reserve( nb_vertices() );
 
     bool has_ext = false;
@@ -132,7 +128,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
         if ( num_vertex == floor_of_nb_vertices ) {
             for( ; num_vertex < nb_vertices(); ++num_vertex ) {
                 TF csp = sp( vertex_coords[ num_vertex ], dir ) - off;
-                if constexpr ( Config::make_sps_during_phase == 0 )
+                if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
                     sps[ num_vertex ] = csp;
                 has_ext |= csp > 0;
             }
@@ -145,9 +141,10 @@ DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
         for( int d = 1; d < nb_dims; ++d )
             csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
-        if constexpr ( Config::make_sps_during_phase == 0 )
+        if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
             csp.store_aligned( sps.data() + num_vertex );
-        has_ext |= xsimd::any( csp > 0 );
+        TODO;
+        // has_ext |= asimd::any( csp > 0 );
     }
 
     return ! has_ext;
@@ -174,7 +171,7 @@ DTP bool UTP::_all_inside( const Pt &dir, TF off ) {
     // return true;
 }
 
-DTP void UTP::_get_sps( const Pt &dir, TF off ) {
+void Cell::_get_sps( const Pt &dir, TF off ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
@@ -194,7 +191,7 @@ DTP void UTP::_get_sps( const Pt &dir, TF off ) {
         sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
 }
 
-DTP PI UTP::new_cut_oid( PI s ) const {
+PI Cell::new_cut_oid( PI s ) const {
     // reservation for the test
     ++num_cut_oid;
 
@@ -202,7 +199,7 @@ DTP PI UTP::new_cut_oid( PI s ) const {
     return std::exchange( num_cut_oid, num_cut_oid + s );
 }
 
-DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( const CellCut<Config> &cut, TF measure )> &f ) const {
+TF Cell::for_each_cut_with_measure( const std::function<void( const Cut &cut, TF measure )> &f ) const {
     num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( nb_vertices() );
 
@@ -211,7 +208,7 @@ DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( c
     TF res = 0;
     Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n )
-        add_measure_rec( res, M, vertex_cuts[ n ].inds, n, op_id, measure_for_each_cut );
+        add_measure_rec( res, M, vertex_refs[ n ].num_cuts, n, op_id, measure_for_each_cut );
 
     // cuts
     TF coe = 1;
@@ -227,16 +224,16 @@ DTP typename UTP::TF UTP::for_each_cut_with_measure( const std::function<void( c
     return res / coe;
 }
 
-DTP void UTP::get_prev_cut_info( PrevCutInfo<Config> &pci ) {
+void Cell::get_prev_cut_info( PrevCutInfo &pci ) {
     memory_compaction();
 
     pci.by_leaf.clear();
-    for( const CellCut<Config> &cut : cuts ) {
+    for( const Cut &cut : cuts ) {
         if ( cut.type == CutType::Dirac ) {
-            if ( pci.by_leaf.empty() || pci.by_leaf.back().first != cut.ptr )
-                pci.by_leaf.push_back( cut.ptr, PI32( 0 ) );
+            if ( pci.by_leaf.empty() || pci.by_leaf.back().first != cut.paving_item )
+                pci.by_leaf.push_back( cut.paving_item, PI32( 0 ) );
             PI32 &used = pci.by_leaf.back().second;
-            used |= ( PI32( 1 ) << cut.num_in_ptr );
+            used |= ( PI32( 1 ) << cut.num_in_paving_item );
         }
     }
 
@@ -245,7 +242,7 @@ DTP void UTP::get_prev_cut_info( PrevCutInfo<Config> &pci ) {
     } );
 }
 
-DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
+void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
     if ( old_nb_vertices == 0 )
         return;
 
@@ -256,7 +253,7 @@ DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
         while ( ! ( sps[ i ] > 0 ) ) {
             if ( ++i >= old_nb_vertices ) {
                 vertex_coords.resize( new_size );
-                vertex_cuts.resize( new_size );
+                vertex_refs.resize( new_size );
                 return;
             }
         }
@@ -267,12 +264,12 @@ DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
         --new_size;
 
         vertex_coords.set_item( i, vertex_coords[ new_size ] );
-        vertex_cuts[ i ] = vertex_cuts[ new_size ];
+        vertex_refs[ i ] = vertex_refs[ new_size ];
 
         //
         if ( ++i >= old_nb_vertices ) {
             vertex_coords.resize( new_size );
-            vertex_cuts.resize( new_size );
+            vertex_refs.resize( new_size );
             return;
         }
     }
@@ -283,7 +280,7 @@ DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
         while ( ! ( sps[ i ] > 0 ) ) {
             if ( ++i >= new_size ) {
                 vertex_coords.resize( new_size );
-                vertex_cuts.resize( new_size );
+                vertex_refs.resize( new_size );
                 return;
             }
         }
@@ -292,7 +289,7 @@ DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
         while ( true ) {
             if ( --new_size <= i ) {
                 vertex_coords.resize( new_size );
-                vertex_cuts.resize( new_size );
+                vertex_refs.resize( new_size );
                 return;
             }
             
@@ -301,40 +298,40 @@ DTP void UTP::_remove_ext_vertices( PI old_nb_vertices ) {
         }
 
         vertex_coords.set_item( i, vertex_coords[ new_size ] );
-        vertex_cuts[ i ] = vertex_cuts[ new_size ];
+        vertex_refs[ i ] = vertex_refs[ new_size ];
 
         //
         if ( ++i >= new_size ) {
             vertex_coords.resize( new_size );
-            vertex_cuts.resize( new_size );
+            vertex_refs.resize( new_size );
             return;
         }
     }
 }
 
-DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
+void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
-    if constexpr ( Config::make_sps_during_phase == 2 )
+    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 2 )
         sps.reserve( nb_vertices() );
 
     // preparation for the new bounds 
-    if constexpr ( Config::use_AABB_bounds_on_cells ) {
+    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
         max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
         min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
-    }
+    #endif 
 
     // add the new vertices
     const PI old_nb_vertices = nb_vertices();
     for( PI n0 = 0; n0 < old_nb_vertices; ++n0  ) {
-        const auto c0 = vertex_cuts[ n0 ].inds;
+        const auto c0 = vertex_refs[ n0 ].num_cuts;
         const Pt p0 = vertex_coords[ n0 ];
         TF s0;
 
-        if constexpr ( Config::make_sps_during_phase == 2 ) {
+        if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 2 ) {
             s0 = sp( p0, dir ) - off;
             sps[ n0 ] = s0;
         } else
@@ -342,10 +339,12 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
         const bool e0 = s0 > 0;
 
         // if ext, move the vertex ref to [ new inactive vertices ]
-        if constexpr ( Config::use_AABB_bounds_on_cells && ! e0 ) {
+        #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+        if ( ! e0 ) {
             max_pos = max( max_pos, p0 );
             min_pos = min( min_pos, p0 );
         }
+        #endif
 
         //
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
@@ -366,13 +365,13 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
                     auto pn = compute_pos( p0, p1, s0, s1 );
 
                     // bounds
-                    if constexpr ( Config::use_AABB_bounds_on_cells ) {
+                    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
                         max_pos = max( max_pos, pn );
                         min_pos = min( min_pos, pn );
-                    }
+                    #endif
 
                     // append/insert the new
-                    vertex_cuts << VertexCut{ cn };
+                    vertex_refs << VertexRefs{ cn };
                     vertex_coords << pn;
                 }
             } else
@@ -384,27 +383,27 @@ DTP void UTP::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     _remove_ext_vertices( old_nb_vertices );
 }
 
-DTP void UTP::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr ) {
+void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item ) {
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
         return;
 
     // get sps with simd instructions
-    if constexpr ( Config::make_sps_during_phase == 1 )
+    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 1 )
         _get_sps( dir, off );
 
     // store the new cut
-    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
+    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 
     // make the new vertices + deref the ext ones
     _add_cut_vertices( dir, off, new_cut );
 }
 
-DTP void UTP::memory_compaction() {
+void Cell::memory_compaction() {
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
     for( PI i = 0; i < nb_vertices(); ++i )
-        for( auto num_cut : vertex_cuts[ i ].inds )
+        for( auto num_cut : vertex_refs[ i ].num_cuts )
             active_cuts[ num_cut ] = true;
 
     // update cuts + transform active_cuts as cut index correction
@@ -420,16 +419,16 @@ DTP void UTP::memory_compaction() {
     cuts.resize( nb_cuts );
 
     // num cuts
-    for( VertexCut &v : vertex_cuts )
-        for( auto &ind : v.inds )
+    for( VertexRefs &v : vertex_refs )
+        for( auto &ind : v.num_cuts )
             ind = active_cuts[ ind ];
 }
 
-DTP void UTP::cut_boundary( const Pt &dir, TF off, PI num_boundary ) {
+void Cell::cut_boundary( const Pt &dir, TF off, PI num_boundary ) {
     _cut( CutType::Boundary, dir, off, Pt{}, TF{}, num_boundary, nullptr, 0 );
 }
 
-DTP void UTP::cut_dirac( const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr ) {
+void Cell::cut_dirac( const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item ) {
     const Pt dir = p1 - p0;
     auto n = norm_2_p2( dir );
     auto s0 = sp( dir, p0 );
@@ -437,29 +436,29 @@ DTP void UTP::cut_dirac( const Pt &p1, TF w1, PI i1, Ptree *ptr, PI32 num_in_ptr
 
     auto off = s0 + ( 1 + ( w0 - w1 ) / n ) / 2 * ( s1 - s0 );
 
-    _cut( CutType::Dirac, dir, off, p1, w1, i1, ptr, num_in_ptr );
+    _cut( CutType::Dirac, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 }
 
-// DTP bool UTP::test_each_vertex( const std::function<bool( const Vertex &vertex )> &f ) const {
+// bool Cell::test_each_vertex( const std::function<bool( const Vertex &vertex )> &f ) const {
 //     for( PI32 i = 0; i < nb_active_vertices; ++i )
 //         if ( f( vertices[ vertex_indices[ i ] ] ) )
 //             return true;
 //     return false;
 // }
 
-// DTP void UTP::for_each_vertex( const std::function<void( const Vertex &vertex )> &f ) const {
+// void Cell::for_each_vertex( const std::function<void( const Vertex &vertex )> &f ) const {
 //     for( PI32 i = 0; i < nb_active_vertices; ++i )
 //         f( vertices[ vertex_indices[ i ] ] );
 // }
 
-DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> num_vertices )> &f ) const {
+void Cell::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> num_vertices )> &f ) const {
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
     for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
-            auto edge_cuts = vertex_cuts[ n0 ].inds.without_index( ind_cut );
+            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
             PI &edge_op_id = edge_map[ edge_cuts ];
 
             if ( edge_op_id >= op_id ) {
@@ -471,7 +470,7 @@ DTP void UTP::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1>
     }
 }
 
-DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const {
+void Cell::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const {
     // sibling for each vertex (index in `vertices`), for each face
     struct FaceInfo { Vec<SmallVec<PI,2>> siblings; PI start; };
     std::map<Vec<PI32,nb_dims-2>,FaceInfo,Less> face_map;
@@ -512,7 +511,7 @@ DTP void UTP::for_each_face( const std::function<void( const Vec<PI32,nb_dims-2>
     }
 }
 
-DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const {
+void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const {
     using std::sqrt;
     using std::abs;
     using std::pow;
@@ -561,7 +560,7 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
     }
 }
 
-DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const {
+void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const {
     using std::abs;
 
     if constexpr ( constexpr PI c = num_cuts.ct_size ) {
@@ -593,14 +592,14 @@ DTP void UTP::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 pr
     }
 }
 
-DTP typename UTP::TF UTP::measure() const {
+TF Cell::measure() const {
     num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( nb_vertices() );
 
     TF res = 0;
     Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n )
-        add_measure_rec( res, M, vertex_cuts[ n ].inds, n, op_id );
+        add_measure_rec( res, M, vertex_refs[ n ].num_cuts, n, op_id );
 
     TF coe = 1;
     for( int d = 2; d <= nb_dims; ++d )
@@ -609,14 +608,14 @@ DTP typename UTP::TF UTP::measure() const {
     return res / coe;
 }
 
-DTP void UTP::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &to_vtk ) const { //
+void Cell::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &to_vtk ) const { //
     const auto point_data = [&]( const auto &vertices ) -> std::map<std::string,typename VtkOutput::VTF> {
         typename VtkOutput::VTF convex_function;
         typename VtkOutput::VTF is_outside;
         Vec<VtkOutput::Pt> points;
         for( PI32 num_vertex : vertices ) {
             convex_function << conv( CtType<VtkOutput::TF>(), sp( vertex_coords[ num_vertex ], p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2 );
-            is_outside << any( vertex_cuts[ num_vertex ].inds, [&]( PI32 num_cut ) { return cuts[ num_cut ].is_inf(); } );
+            is_outside << any( vertex_refs[ num_vertex ].num_cuts, [&]( PI32 num_cut ) { return cuts[ num_cut ].is_inf(); } );
             points << to_vtk( vertex_coords[ num_vertex ] );
         }
         return { { "convex_function", convex_function }, { "is_outside", is_outside } };
@@ -651,7 +650,7 @@ DTP void UTP::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,
     // }
 }
 
-DTP void UTP::display_vtk( VtkOutput &vo ) const {
+void Cell::display_vtk( VtkOutput &vo ) const {
     return display_vtk( vo, []( const Pt &pos ) {
         Vec<VtkOutput::TF,3> res;
         for( PI i = 0; i < min( PI( pos.size() ), PI( res.size() ) ); ++i )
@@ -662,31 +661,30 @@ DTP void UTP::display_vtk( VtkOutput &vo ) const {
     } );
 }
 
-DTP bool UTP::is_inf() const {
+bool Cell::is_inf() const {
     if ( nb_vertices() == 0 )
         return true;
     TODO;
-    // for( const auto &num_cuts : vertex_cuts )
+    // for( const auto &num_cuts : vertex_refs )
     //     for( auto num_cut : num_cuts )
     //         if ( cuts[ num_cut ].is_inf() )
     //             return true;
     return false;
 }
 
-DTP bool UTP::contains( const Pt &x ) const {
+bool Cell::contains( const Pt &x ) const {
     for( const auto &cut : cuts )
         if ( sp( cut.dir, x ) > cut.off )
             return false;
     return true;
 }
 
-DTP typename UTP::TF UTP::height( const Pt &point ) const {
+TF Cell::height( const Pt &point ) const {
     return sp( point, p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2;
 }
 
-DTP bool UTP::empty() const {
+bool Cell::empty() const {
     return nb_vertices() == 0;
 }
 
-#undef DTP
-#undef UTP
+} // namespace power_diagram

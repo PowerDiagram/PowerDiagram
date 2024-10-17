@@ -1,4 +1,5 @@
 #include <tl/support/operators/product.h>
+#include <tl/support/operators/norm_2.h>
 #include "RegularGrid.h"
 #include "Mpi.h"
 
@@ -66,22 +67,43 @@ RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &peri
     P( offsets );
 }
 
-int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( Cell &cell, int num_thread )> &f ) {
-    // make a base cell
+void RegularGrid::make_cuts_from( PI b0, PI n0, Cell &cell, Vec<PI> &buf, const WeightsWithBounds &wwb ) {
+    // indices of points to be sorted
+    buf.clear();
+    for( PI n1 = offsets[ b0 + 0 ]; n1 < offsets[ b0 + 1 ]; ++n1 )
+        if ( n1 != n0 )
+            buf << n1;
 
+    std::sort( buf.begin(), buf.end(), [&]( PI a, PI b ) {
+        return norm_2_p2( points[ a ] - cell.p0 ) < norm_2_p2( points[ b ] - cell.p0 );
+    } );
+
+    // make the cuts
+    for( PI n1 : buf ) {
+        const PI i1 = inds[ n1 ];
+        cell.cut_dirac( points[ n1 ], wwb.weights[ i1 ], i1, nullptr, n1 );
+    }
+}
+
+int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( Cell &cell, int num_thread )> &f ) {
     // for each box...
     int error = 0;
     spawn( [&]( int num_thread, int nb_threads ) {
         try {
-            PI beg_grind = end_index() * ( num_thread + 0 ) / nb_threads;
-            PI end_grind = end_index() * ( num_thread + 1 ) / nb_threads;
+            PI beg_b0 = end_index() * ( num_thread + 0 ) / nb_threads;
+            PI end_b0 = end_index() * ( num_thread + 1 ) / nb_threads;
 
-            for( PI grind = beg_grind; grind < end_grind; ++grind ) {
-                for( PI i = offsets[ grind + 0 ]; i < offsets[ grind + 1 ]; ++i ) {
+            Cell local_cell;
+            Vec<PI> buf( FromReservationSize(), 128 );
+            for( PI b0 = beg_b0; b0 < end_b0; ++b0 ) {
+                for( PI n0 = offsets[ b0 + 0 ]; n0 < offsets[ b0 + 1 ]; ++n0 ) {
                     if ( error )
                         return;
+                    const PI i0 = inds[ n0 ];
 
-                    P( num_thread, points[ i ] );
+                    local_cell.init_from( base_cell, points[ n0 ], wwb.weights[ i0 ], i0 );
+                    make_cuts_from( b0, n0, local_cell, buf, wwb );
+                    f( local_cell, num_thread );
                 }
             }
         } catch ( CellTraversalError ) {

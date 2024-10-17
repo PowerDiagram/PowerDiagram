@@ -21,6 +21,7 @@ public:
 
     virtual int  for_each_cell         ( const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( Cell &cell, int num_thread )> &f ) override; ///< return 0 or an error code
 
+    void         make_cuts_from        ( PI b0, PI n0, Cell &cell, Vec<PI> &buf, const WeightsWithBounds &wwb );
     PI           end_index             () const;
     PI           index                 ( const Pt &pos, int dim ) const;
     PI           index                 ( const Pt &pos ) const;

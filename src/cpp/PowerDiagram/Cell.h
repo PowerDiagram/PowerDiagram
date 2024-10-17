@@ -16,11 +16,11 @@ PD_CLASS_DECL_AND_USE( Cell );
  * @brief
  *
  */
-class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "" ) //
+class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "" )
 public:
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
     
-    /**/                         PD_NAME( Cell )           () {}
+    /**/                         PD_NAME( Cell )           ();
 
     void                         init_from                 ( const Cell &that, const Pt &p0, TF w0, PI i0 );
 
@@ -51,8 +51,11 @@ public:
     Vec<VertexRefs>              vertex_refs;
     Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
+    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
     Pt                           min_pos;                  ///<
     Pt                           max_pos;                  ///<
+    #endif
+    
     Pt                           p0;                       ///<
     TF                           w0;                       ///<
     PI                           i0;                       ///<
