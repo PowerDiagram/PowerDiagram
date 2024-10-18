@@ -1,4 +1,3 @@
-#include <immintrin.h>
 #include <tl/support/operators/determinant.h>
 #include <tl/support/operators/lu_solve.h>
 #include <tl/support/operators/norm_2.h>
@@ -17,8 +16,9 @@
 // #include <eigen3/Eigen/LU>
 // #include <limits>
 
-#include "Cell.h"
 #include "PowerDiagram/VertexRefs.h"
+
+#include "Cell.h"
 
 namespace power_diagram {
 
@@ -31,21 +31,25 @@ Cell::PD_NAME( Cell )() {
 
     num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
     num_cut_oid = 1;
+
+    _bounded = false;
 }
 
 void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
-    // limits
-    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
-        min_pos = that.min_pos;
-        max_pos = that.max_pos;
-    #endif
-
     // vertices
     vertex_coords = that.vertex_coords;
     vertex_refs = that.vertex_refs;
 
     // cuts
     cuts = that.cuts;
+
+    // limits
+    _bounded = that._bounded;
+
+    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+        min_pos = that.min_pos;
+        max_pos = that.max_pos;
+    #endif
 }
 
 // void Cell::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
@@ -384,6 +388,10 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
 }
 
 void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item ) {
+    // 
+    if ( ! bounded() )
+        return _cut_unbounded( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
+
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
         return;
@@ -397,6 +405,11 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
 
     // make the new vertices + deref the ext ones
     _add_cut_vertices( dir, off, new_cut );
+}
+
+void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
+    P( dir, off );
+    TODO;
 }
 
 void Cell::memory_compaction() {

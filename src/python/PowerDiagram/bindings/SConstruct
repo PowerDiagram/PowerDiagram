@@ -1,0 +1,104 @@
+# from pathlib import Path
+import sysconfig
+import os
+
+def pdir( dir, n = 1 ):
+    if n == 0:
+        return dir
+    return pdir( os.path.dirname( dir ), n - 1 )
+
+# directories
+cwd = os.getcwd()
+bad = pdir( cwd, 6 )
+
+# we're going to reference the source through a build dir
+VariantDir( 'build', bad )
+
+# arguments
+args = dict( ARGLIST )
+
+module_name = args[ 'module_name' ]
+suffix = args[ 'suffix' ]
+
+scalar_type = args[ 'scalar_type' ]
+nb_dims = args[ 'nb_dims' ]
+
+# includes
+CPPPATH = [
+    os.path.join( bad, 'modules', 'tl20', 'src', 'cpp' ),
+    os.path.join( bad, 'modules', 'asimd', 'src' ),
+    os.path.join( bad, 'src', 'cpp' ),
+
+    sysconfig.get_paths()[ 'include' ], # Python.h
+]
+
+# CXXFLAGS
+CXXFLAGS = [
+    f'-DPOWER_DIAGRAM_CONFIG_module_name={ module_name }',
+    f'-DPOWER_DIAGRAM_CONFIG_suffix={ suffix }',
+
+    f'-DPOWER_DIAGRAM_CONFIG_scalar_type={ scalar_type }',
+    f'-DPOWER_DIAGRAM_CONFIG_nb_dims={ nb_dims }',
+
+    '-Wdeprecated-declarations',
+    '-std=c++20',
+    '-fopenmp',
+
+    '-fdiagnostics-color=always',
+    
+    # '-march=skylake',
+    '-march=native',
+    '-ffast-math',
+    '-O3',
+
+    '-g3',
+]
+
+# LIBS
+LIBS = [
+    'Catch2Main',
+    'Catch2',
+    'gomp',
+]
+
+# LIBPATH
+LIBPATH = [
+    '/home/hugo.leclerc/.vfs_build/ext/Catch2/install/lib',
+    '/home/leclerc/.vfs_build/ext/Catch2/install/lib'
+]
+
+# 
+sources = [
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_Pointer.cpp",
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_Number.cpp",
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_String.cpp",
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_List.cpp",
+
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayParameters.cpp",
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayContext.cpp",
+    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem.cpp",
+
+    "build/modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
+    "build/modules/tl20/src/cpp/tl/support/string/va_string.cpp",
+    "build/modules/tl20/src/cpp/tl/support/Displayer.cpp",
+
+    # "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
+    # "src/cpp/PowerDiagram/DiracVec.cpp",
+
+    # "src/cpp/PowerDiagram/PavingWithDiracs.cpp",
+    # "src/cpp/PowerDiagram/RegularGrid.cpp",
+    
+    # "src/cpp/PowerDiagram/VtkOutput.cpp",
+    # "src/cpp/PowerDiagram/Mpi.cpp",
+
+    "build/src/cpp/PowerDiagram/VtkOutput.cpp",
+    "build/src/cpp/PowerDiagram/Cell.cpp",
+
+    'build/src/python/PowerDiagram/bindings/PowerDiagram_bindings.cpp',
+]
+
+
+# make the library
+env = Environment( CPPPATH = CPPPATH, CXXFLAGS = CXXFLAGS, LIBS = LIBS, LIBPATH = LIBPATH, SHLIBPREFIX = '' )
+env.SharedLibrary( module_name + env[ 'SHLIBSUFFIX' ], sources )
+

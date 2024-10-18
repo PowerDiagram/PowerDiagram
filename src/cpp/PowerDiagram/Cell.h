@@ -16,7 +16,7 @@ PD_CLASS_DECL_AND_USE( Cell );
  * @brief
  *
  */
-class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "" )
+class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_refs, cuts )
 public:
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
     
@@ -25,11 +25,10 @@ public:
     void                         init_from                 ( const Cell &that, const Pt &p0, TF w0, PI i0 );
 
     void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
-    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item );
+    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, PavingItem *paving_item = nullptr, PI32 num_in_paving_item = 0 );
 
     void                         memory_compaction         ();
  
-    TF                           for_each_cut_with_measure ( const std::function<void( const Cut &cut, TF measure )> &f ) const;
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> vertices )> &f ) const;
     void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const;
  
@@ -37,12 +36,17 @@ public:
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
 
     PI                           nb_vertices               () const { return vertex_refs.size(); }
-    PI                           capa_cuts                 () const { return cuts.size(); }
+    PI                           nb_cuts                   () const { return cuts.size(); }
+    
+    bool                         bounded                   () const { return _bounded; }
  
     void                         get_prev_cut_info         ( PrevCutInfo &pci );
 
-    bool                         contains                  ( const Pt &x ) const;
+    // areas/...
+    TF                           for_each_cut_with_measure ( const std::function<void( const Cut &cut, TF measure )> &f ) const;
     TF                           measure                   () const;
+
+    bool                         contains                  ( const Pt &x ) const;
     bool                         is_inf                    () const;
     TF                           height                    ( const Pt &point ) const;
     bool                         empty                     () const;
@@ -77,9 +81,12 @@ private:
     void                         _get_sps                  ( const Pt &dir, TF off );
     void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
+    void                         _cut_unbounded            ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
+
     // intermediate data
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
+    bool                         _bounded;                 ///<
     Vec<TF>                      sps;                      ///< scalar products for each vertex
 };
 
