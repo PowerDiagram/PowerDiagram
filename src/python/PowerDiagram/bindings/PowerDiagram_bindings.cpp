@@ -1,4 +1,5 @@
 #include "PowerDiagram/Config.h"
+#include "PowerDiagram/VtkOutput.h"
 #include <tl/support/string/to_string.h>
 #include <PowerDiagram/Cell.h>
 
@@ -211,6 +212,11 @@ PYBIND11_MODULE( POWER_DIAGRAM_CONFIG_module_name, m ) { // py::module_local()
     //     .def( "__repr__", []( const Pt &pt ) { return to_string( pt ); } )
     //     ;
  
+    pybind11::class_<VtkOutput>( m, PD_STR( VtkOutput ) )
+        .def( pybind11::init<>() )
+        .def( "save", []( VtkOutput &vo, Str fn ) { return vo.save( fn ); } )
+        ;
+ 
     pybind11::class_<Cell>( m, PD_STR( Cell ) )
         // base methods
         .def( pybind11::init<>() )
@@ -224,8 +230,10 @@ PYBIND11_MODULE( POWER_DIAGRAM_CONFIG_module_name, m ) { // py::module_local()
         // modifications
         .def( "cut_boundary", []( Cell &cell, const Array &p0, TF w0, PI i0 ) { return cell.cut_boundary( Pt_from_Array( p0 ), w0, i0 ); } )
 
-        
+        // output
+        .def( "display_vtk", []( const Cell &cell, VtkOutput &vo ) { return cell.display_vtk( vo ); } )
         ;
+
     // py::class_<PolyCon_py>( m, name.c_str(),  )
     //     .def( py::init<Array, Array, Array, Array>() )
     //     .def( "value_and_gradients", &PolyCon_py::value_and_gradients )

@@ -1,22 +1,22 @@
+#include <tl/support/operators/for_each_selection.h>
 #include <tl/support/operators/determinant.h>
-#include <tl/support/operators/lu_solve.h>
+// #include <tl/support/operators/lu_solve.h>
 #include <tl/support/operators/norm_2.h>
 #include <tl/support/operators/any.h>
 #include <tl/support/operators/sp.h>
 
 #include <tl/support/containers/SmallVec.h>
 #include <tl/support/containers/CtRange.h>
-#include <tl/support/containers/Opt.h>
 
 #include <tl/support/ASSERT.h>
 
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
 
-// #include <eigen3/Eigen/LU>
-// #include <limits>
+#include <Eigen/LU>  
 
 #include "PowerDiagram/VertexRefs.h"
+#include "PowerDiagram/Config.h"
 
 #include "Cell.h"
 
@@ -89,22 +89,37 @@ Pt Cell::compute_pos( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
-Pt Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
+Opt<Pt> Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
-        using TM = Vec<Vec<TF,nb_dims>,nb_dims>;
-        using TV = Vec<TF,nb_dims>;
+        // using TM = Vec<Vec<TF,nb_dims>,nb_dims>;
+        // using TV = Vec<TF,nb_dims>;
+
+        // TM m;
+        // TV v;
+        // for( PI i = 0; i < nb_dims; ++i ) {
+        //     for( PI j = 0; j < nb_dims; ++j )
+        //         m[ i ][ j ] = cuts[ num_cuts[ i ] ].dir[ j ];
+        //     v[ i ] = cuts[ num_cuts[ i ] ].off;
+        // }
+
+        // return lu_solve( m, v );
+        using TM = Eigen::Matrix<TF,nb_dims,nb_dims>;
+        using TV = Eigen::Matrix<TF,nb_dims,1>;
 
         TM m;
         TV v;
         for( PI i = 0; i < nb_dims; ++i ) {
             for( PI j = 0; j < nb_dims; ++j )
-                m[ i ][ j ] = cuts[ num_cuts[ i ] ].dir[ j ];
+                m.coeffRef( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
             v[ i ] = cuts[ num_cuts[ i ] ].off;
         }
 
-        return lu_solve( m, v );
+        Eigen::FullPivLU<TM> lu( m );
+        if ( lu.dimensionOfKernel() )
+            return {};
+        return Pt( lu.solve( v ) );
     }
 }
 
@@ -147,8 +162,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
 
         if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
             csp.store_aligned( sps.data() + num_vertex );
-        TODO;
-        // has_ext |= asimd::any( csp > 0 );
+        has_ext |= asimd::any( csp > 0 );
     }
 
     return ! has_ext;
@@ -408,11 +422,89 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
 }
 
 void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
-    P( dir, off );
-    TODO;
+    // remove vertices that are outside the cut
+    for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
+        if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
+            vertex_coords.set_item( num_vertex, vertex_coords.pop_back_val() );
+            vertex_refs.set_item( num_vertex, vertex_refs.pop_back_val() );
+            --num_vertex;
+        }
+    }
+
+    // add the new cut
+    PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
+
+    // create the new vertices (from all the new cut combinations)
+    if ( nb_dims && new_cut >= PI( nb_dims - 1 ) ) {
+        for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
+            // get the new coordinates
+            Vec<PI,nb_dims> num_cuts;
+            for( PI i = 0; i < PI( nb_dims - 1 ); ++i )
+                num_cuts[ i ] = selection_of_cuts[ i ];
+            num_cuts[ nb_dims - 1 ] = new_cut;
+
+            // early return if parallel cuts
+            Opt<Pt> coords = compute_pos( num_cuts );
+            if ( ! coords )
+                return;
+
+            // // early return if the new vertex is outside
+            for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
+                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].off )
+                    return;
+
+            // else, register the new vertex
+            vertex_coords << *coords;
+            vertex_refs << num_cuts;
+        }, nb_dims - 1, new_cut );
+    }
+
+    // remove the inactive cuts
+    if ( _became_bounded() ) {
+        remove_inactive_cuts();
+        _bounded = true;
+    }
 }
 
-void Cell::memory_compaction() {
+bool Cell::_became_bounded() {
+    // we need some vertices
+    if ( nb_vertices() < nb_dims + 1 )
+        return false;
+
+    // get the number of vertices for each edge
+    auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    edge_map.prepare_for( cuts.size() );
+    const PI op_id = new_cut_oid( 2 );
+
+    for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
+        CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
+            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
+            PI &edge_op_id = edge_map[ edge_cuts ];
+
+            if ( edge_op_id >= op_id )
+                edge_op_id = op_id + 1;
+            else
+                edge_op_id = op_id;
+        } );
+    }
+
+    // check that all edges have 2 vertices
+    for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
+        bool found_edge_with_1_vertex = false;
+        CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
+            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
+            if ( edge_map[ edge_cuts ] == op_id )
+                found_edge_with_1_vertex = true;
+        } );
+
+        if ( found_edge_with_1_vertex )
+            return false;
+    }
+
+    return true;
+}
+
+void Cell::remove_inactive_cuts() {
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
     for( PI i = 0; i < nb_vertices(); ++i )
@@ -435,6 +527,10 @@ void Cell::memory_compaction() {
     for( VertexRefs &v : vertex_refs )
         for( auto &ind : v.num_cuts )
             ind = active_cuts[ ind ];
+}
+
+void Cell::memory_compaction() {
+    remove_inactive_cuts();
 }
 
 void Cell::cut_boundary( const Pt &dir, TF off, PI num_boundary ) {

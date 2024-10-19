@@ -27,6 +27,7 @@ nb_dims = args[ 'nb_dims' ]
 CPPPATH = [
     os.path.join( bad, 'modules', 'tl20', 'src', 'cpp' ),
     os.path.join( bad, 'modules', 'asimd', 'src' ),
+    os.path.join( bad, 'modules', 'eigen-3.4.0' ),
     os.path.join( bad, 'src', 'cpp' ),
 
     sysconfig.get_paths()[ 'include' ], # Python.h
