@@ -1,5 +1,5 @@
-# from pathlib import Path
 import sysconfig
+import pybind11
 import os
 
 def pdir( dir, n = 1 ):
@@ -25,13 +25,18 @@ nb_dims = args[ 'nb_dims' ]
 
 # includes
 CPPPATH = [
+    os.path.join( bad, 'src', 'cpp' ),
+
     os.path.join( bad, 'modules', 'tl20', 'src', 'cpp' ),
     os.path.join( bad, 'modules', 'asimd', 'src' ),
     os.path.join( bad, 'modules', 'eigen-3.4.0' ),
-    os.path.join( bad, 'src', 'cpp' ),
 
     sysconfig.get_paths()[ 'include' ], # Python.h
+    pybind11.get_include(), # pybind11.h
 ]
+
+
+# print( subprocess.check_output( [ 'pybind11-config', '--includes' ] ).decode('utf-8').split( '-I' ))
 
 # CXXFLAGS
 CXXFLAGS = [

@@ -3,6 +3,6 @@ requires = [ "setuptools" ]
 build-backend = "setuptools.build_meta"
 
 [project]
-dependencies = [ "munch", "pybind11" ]
+dependencies = [ "munch", "pybind11", "archspec" ]
 name = "PowerDiagram"
 version = "2024.01.26.0"
