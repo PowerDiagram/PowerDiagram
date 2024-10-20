@@ -40,6 +40,11 @@ Cell::PD_NAME( Cell )() {
 }
 
 void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
+    // dirac data
+    this->p0 = p0;
+    this->w0 = w0;
+    this->i0 = i0;
+
     // vertices
     vertex_coords = that.vertex_coords;
     vertex_refs = that.vertex_refs;
@@ -409,8 +414,6 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
     // 
     if ( ! bounded() )
         return _cut_unbounded( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
-
-    P( dir, off );
 
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
