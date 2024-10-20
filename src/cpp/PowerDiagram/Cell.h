@@ -22,6 +22,7 @@ class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_refs, 
 public:
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
     
+    /**/                         PD_NAME( Cell )           ( const Cell &that );
     /**/                         PD_NAME( Cell )           ();
 
     void                         init_from                 ( const Cell &that, const Pt &p0, TF w0, PI i0 );

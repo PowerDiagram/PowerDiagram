@@ -22,6 +22,10 @@
 
 namespace power_diagram {
 
+Cell::PD_NAME( Cell )( const Cell &that ) : Cell() {
+    init_from( that, that.p0, that.w0, that.i0 );
+}
+
 Cell::PD_NAME( Cell )() {
     vertex_coords.reserve( 128 );
     vertex_refs.reserve( 128 );
@@ -405,6 +409,8 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
     // 
     if ( ! bounded() )
         return _cut_unbounded( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
+
+    P( dir, off );
 
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )

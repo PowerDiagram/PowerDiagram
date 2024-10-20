@@ -88,17 +88,15 @@ sources = [
     "build/modules/tl20/src/cpp/tl/support/string/va_string.cpp",
     "build/modules/tl20/src/cpp/tl/support/Displayer.cpp",
 
-    # "src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
-    # "src/cpp/PowerDiagram/DiracVec.cpp",
+    "build/src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
+    "build/src/cpp/PowerDiagram/DiracVec.cpp",
 
-    # "src/cpp/PowerDiagram/PavingWithDiracs.cpp",
-    # "src/cpp/PowerDiagram/RegularGrid.cpp",
+    "build/src/cpp/PowerDiagram/PavingWithDiracs.cpp",
+    "build/src/cpp/PowerDiagram/RegularGrid.cpp",
     
-    # "src/cpp/PowerDiagram/VtkOutput.cpp",
-    # "src/cpp/PowerDiagram/Mpi.cpp",
-
     "build/src/cpp/PowerDiagram/VtkOutput.cpp",
     "build/src/cpp/PowerDiagram/Cell.cpp",
+    "build/src/cpp/PowerDiagram/Mpi.cpp",
 
     'build/src/python/PowerDiagram/bindings/PowerDiagram_bindings.cpp',
 ]

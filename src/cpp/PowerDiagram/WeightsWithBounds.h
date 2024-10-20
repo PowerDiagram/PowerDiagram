@@ -11,9 +11,12 @@ PD_CLASS_DECL_AND_USE( WeightsWithBounds );
  */
 class PD_NAME( WeightsWithBounds ) { STD_TL_TYPE_INFO( WeightsWithBounds, "" )
 public:
-    virtual bool may_intersect( const Cell &cell, const Cell &beam ) const { return true; }
+    virtual     ~PD_NAME( WeightsWithBounds )() {}
 
-    Span<TF>     weights;
+    virtual bool may_intersect               ( const Cell &cell, const Cell &beam ) const { return true; }
+    virtual TF   operator[]                  ( PI index ) const = 0;
+               
+    virtual void display                     ( Displayer &ds ) const { ds << "yo"; }
 };
 
 } // namespace power_diagram

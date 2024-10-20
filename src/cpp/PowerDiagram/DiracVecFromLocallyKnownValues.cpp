@@ -3,7 +3,6 @@
 
 namespace power_diagram {
 
-
 DiracVecFromLocallyKnownValues::PD_NAME( DiracVecFromLocallyKnownValues )( Vec<Pt> &&values ) : values( std::move( values ) ) {
 }
 

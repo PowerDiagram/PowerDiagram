@@ -21,7 +21,6 @@ public:
     
     virtual int  max_nb_threads     () const;
     virtual int  for_each_cell      ( const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( Cell &cell, int num_thread )> &f ) = 0;
-    //void       display            (  ) 
     
     void         spawn              ( const std::function<void( int num_thread, int nb_threads )> &f ) const;
 };

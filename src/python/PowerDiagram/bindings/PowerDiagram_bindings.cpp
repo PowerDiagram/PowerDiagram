@@ -1,13 +1,20 @@
-#include "PowerDiagram/Config.h"
-#include "PowerDiagram/VtkOutput.h"
-#include <tl/support/string/to_string.h>
+#include "PowerDiagram/PavingWithDiracs.h"
+#include "PowerDiagram/WeightsWithBounds.h"
+#include "pybind11/gil.h"
+#include <PowerDiagram/DiracVecFromLocallyKnownValues.h>
+#include <PowerDiagram/HomogeneousWeights.h>
+#include <PowerDiagram/RegularGrid.h>
+#include <PowerDiagram/VtkOutput.h>
 #include <PowerDiagram/Cell.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
+#include <tl/support/string/to_string.h>
 
+#include <pybind11/functional.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
+ 
 using Array = pybind11::array_t<power_diagram::TF, pybind11::array::c_style>;
 using namespace power_diagram;
 
@@ -205,6 +212,16 @@ Pt Pt_from_Array( const Array &array ) {
     return res;
 }
 
+Vec<Pt> VecPt_from_Array( const Array &array ) {
+    Vec<Pt> res;
+    if ( array.shape( 1 ) < nb_dims )
+        throw pybind11::value_error( "array is not large enough" );
+    res.resize( array.shape( 0 ) );
+    for( PI r = 0; r < res.size(); ++r )
+        for( PI d = 0; d < nb_dims; ++d )
+           res[ r ][ d ] = array.at( r, d );
+    return res;
+}
 
 PYBIND11_MODULE( POWER_DIAGRAM_CONFIG_module_name, m ) { // py::module_local()
     // pybind11::class_<Pt>( m, PD_STR( Pt ) )
@@ -234,19 +251,49 @@ PYBIND11_MODULE( POWER_DIAGRAM_CONFIG_module_name, m ) { // py::module_local()
         .def( "display_vtk", []( const Cell &cell, VtkOutput &vo ) { return cell.display_vtk( vo ); } )
         ;
 
-    // py::class_<PolyCon_py>( m, name.c_str(),  )
-    //     .def( py::init<Array, Array, Array, Array>() )
-    //     .def( "value_and_gradients", &PolyCon_py::value_and_gradients )
-    //     .def( "value_and_gradient", &PolyCon_py::value_and_gradient )
-    //     .def( "legendre_transform", &PolyCon_py::legendre_transform )
-    //     .def( "as_fbdo_arrays", &PolyCon_py::as_fbdo_arrays )
-    //     .def( "as_fb_arrays", &PolyCon_py::as_fb_arrays )
-    //     .def( "edge_points", &PolyCon_py::edge_points )
-    //     .def( "add_polycon", &PolyCon_py::add_polycon )
-    //     .def( "normalized", &PolyCon_py::normalized )
-    //     .def( "add_scalar", &PolyCon_py::add_scalar )
-    //     .def( "mul_scalar", &PolyCon_py::mul_scalar )
-    //     .def( "write_vtk", &PolyCon_py::write_vtk )
-    //     .def( "ndim", &PolyCon_py::ndim )
-    //     ;
+    pybind11::class_<DiracVec>( m, PD_STR( DiracVec ) )
+        .def( "__repr__", []( const DiracVec &a ) { return to_string( a ); } )
+        ;
+
+    pybind11::class_<DiracVecFromLocallyKnownValues,DiracVec>( m, PD_STR( DiracVecFromLocallyKnownValues ) )
+        .def( pybind11::init( [&]( const Array &pts ) -> DiracVecFromLocallyKnownValues { return VecPt_from_Array( pts ); } ) )
+        // .def( "__repr__", []( const DiracVecFromLocallyKnownValues &a ) { return to_string( a ); } )
+        ;
+
+    // weights ======================================================================================
+    pybind11::class_<WeightsWithBounds>( m, PD_STR( WeightsWithBounds ) )
+        .def( "__repr__", []( const WeightsWithBounds &a ) { return to_string( a ); } )
+        ;
+
+    pybind11::class_<HomogeneousWeights,WeightsWithBounds>( m, PD_STR( HomogeneousWeights ) )
+        .def( pybind11::init<>() )
+        // .def( "__repr__", []( const HomogeneousWeights &a ) { return to_string( a ); } )
+        ;
+
+    // paving ========================================================================================
+    pybind11::class_<PavingWithDiracs>( m, PD_STR( PavingWithDiracs ) )
+        .def( "__repr__", []( const PavingWithDiracs &a ) { return to_string( a ); } )
+        .def( "for_each_cell", []( PavingWithDiracs &paving, const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( const Cell &cell )> &f ) { 
+            pybind11::gil_scoped_release gsr;
+            paving.for_each_cell( base_cell, wwb, [&]( Cell &cell, int ) {
+                pybind11::gil_scoped_acquire gsa;
+                f( cell );
+            } );
+        } )
+        ;
+
+    pybind11::class_<RegularGrid,PavingWithDiracs>( m, PD_STR( RegularGrid ) )
+        .def( pybind11::init( []( const DiracVec &pts ) -> RegularGrid { return { pts, {} }; } ) )
+        .def( "__repr__", []( const RegularGrid &a ) { return to_string( a ); } )
+        ;
+
+    // utility functions ============================================================================
+    m.def( "display_vtk", []( VtkOutput &vo, const Cell &base_cell, PavingWithDiracs &diracs, const WeightsWithBounds &weights ) {
+        std::mutex m;
+        diracs.for_each_cell( base_cell, weights, [&]( Cell &cell, int ) { 
+            m.lock();
+            cell.display_vtk( vo );
+            m.unlock();
+        } );
+    } );
 }

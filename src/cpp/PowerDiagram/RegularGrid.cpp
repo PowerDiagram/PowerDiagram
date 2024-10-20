@@ -24,15 +24,14 @@ PI RegularGrid::index( const Pt &pos ) const {
     return res;
 }
 
-RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &periodicity ) {
+RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &periodicity, TF nb_diracs_per_box ) {
     //
     auto mima = dv.global_min_max();
     min_pos = mima[ 0 ];
     max_pos = mima[ 1 ];
 
     //
-    PI target_size = max( dv.global_size() / 16, 1ul );
-    TF step = product( max_pos - min_pos ) / pow( target_size, double( 1 ) / nb_dims );
+    TF step = pow( dv.global_size() / ( nb_diracs_per_box * product( max_pos - min_pos ) ), double( 1 ) / nb_dims );
     for( PI d = 0; d < nb_dims; ++d ) {
         nb_divs[ d ] = ceil( ( max_pos[ d ] - min_pos[ d ] ) / step );
         steps[ d ] = TF( max_pos[ d ] - min_pos[ d ] ) / nb_divs[ d ];
@@ -63,29 +62,27 @@ RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &peri
     // remake the exclusive scan
     for( PI i = 0, o = 0; i < offsets.size() - 1; ++i )
         offsets[ i ] = std::exchange( o, offsets[ i ] );
-
-    P( offsets );
 }
 
-void RegularGrid::make_cuts_from( PI b0, PI n0, Cell &cell, Vec<PI> &buf, const WeightsWithBounds &wwb ) {
+void RegularGrid::make_cuts_from( PI b0, PI n0, Cell &cell, Vec<PI> &buf, const WeightsWithBounds &weights ) {
     // indices of points to be sorted
     buf.clear();
     for( PI n1 = offsets[ b0 + 0 ]; n1 < offsets[ b0 + 1 ]; ++n1 )
         if ( n1 != n0 )
             buf << n1;
 
-    std::sort( buf.begin(), buf.end(), [&]( PI a, PI b ) {
+    std::sort( buf.begin(), buf.end(), [&]( PI a, PI b ) -> bool {
         return norm_2_p2( points[ a ] - cell.p0 ) < norm_2_p2( points[ b ] - cell.p0 );
     } );
 
     // make the cuts
     for( PI n1 : buf ) {
         const PI i1 = inds[ n1 ];
-        cell.cut_dirac( points[ n1 ], wwb.weights[ i1 ], i1, nullptr, n1 );
+        cell.cut_dirac( points[ n1 ], weights[ i1 ], i1, nullptr, n1 );
     }
 }
 
-int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &wwb, const std::function<void( Cell &cell, int num_thread )> &f ) {
+int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &weights, const std::function<void( Cell &cell, int num_thread )> &f ) {
     // for each box...
     int error = 0;
     spawn( [&]( int num_thread, int nb_threads ) {
@@ -101,8 +98,8 @@ int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &
                         return;
                     const PI i0 = inds[ n0 ];
 
-                    local_cell.init_from( base_cell, points[ n0 ], wwb.weights[ i0 ], i0 );
-                    make_cuts_from( b0, n0, local_cell, buf, wwb );
+                    local_cell.init_from( base_cell, points[ n0 ], weights[ i0 ], i0 );
+                    make_cuts_from( b0, n0, local_cell, buf, weights );
                     f( local_cell, num_thread );
                 }
             }
