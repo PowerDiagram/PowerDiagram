@@ -2,6 +2,7 @@ import sysconfig
 import pybind11
 import os
 
+# helper to get n-th parent directory
 def pdir( dir, n = 1 ):
     if n == 0:
         return dir
@@ -9,7 +10,7 @@ def pdir( dir, n = 1 ):
 
 # directories
 cwd = os.getcwd()
-bad = pdir( cwd, 6 )
+bad = pdir( cwd, 2 )
 
 # we're going to reference the source through a build dir
 VariantDir( 'build', bad )
@@ -75,18 +76,20 @@ LIBPATH = [
 
 # 
 sources = [
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_Pointer.cpp",
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_Number.cpp",
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_String.cpp",
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem_List.cpp",
+    'build/src/python/PowerDiagram/bindings/PowerDiagram_bindings.cpp',
 
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayParameters.cpp",
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayContext.cpp",
-    "build/modules/tl20/src/cpp/tl/support/display/DisplayItem.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Pointer.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Number.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_String.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_List.cpp",
 
-    "build/modules/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
-    "build/modules/tl20/src/cpp/tl/support/string/va_string.cpp",
-    "build/modules/tl20/src/cpp/tl/support/Displayer.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayParameters.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayContext.cpp",
+    "build/ext/tl20/src/cpp/tl/support/display/DisplayItem.cpp",
+
+    "build/ext/tl20/src/cpp/tl/support/string/read_arg_name.cpp",
+    "build/ext/tl20/src/cpp/tl/support/string/va_string.cpp",
+    "build/ext/tl20/src/cpp/tl/support/Displayer.cpp",
 
     "build/src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
     "build/src/cpp/PowerDiagram/DiracVec.cpp",
@@ -97,8 +100,6 @@ sources = [
     "build/src/cpp/PowerDiagram/VtkOutput.cpp",
     "build/src/cpp/PowerDiagram/Cell.cpp",
     "build/src/cpp/PowerDiagram/Mpi.cpp",
-
-    'build/src/python/PowerDiagram/bindings/PowerDiagram_bindings.cpp',
 ]
 
 

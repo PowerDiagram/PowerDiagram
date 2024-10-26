@@ -1,13 +1,13 @@
 # user specific
 .vfs_symbol_cache/
 .qtc_clangd/
+ext/
 .PowerDiagram.*
-test.nivc.mk
+.test.mk
 commentaires.rst
 *.vtk
 err
 compile_flags.txt
-modules
 callgrind.*
 *.bin
 perf.data*
