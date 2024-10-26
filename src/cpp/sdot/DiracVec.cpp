@@ -1,7 +1,7 @@
 #include "DiracVec.h"
 #include "Mpi.h"
 
-namespace power_diagram {
+namespace sdot {
 
 DiracVec::~PD_NAME( DiracVec )() {
 }
@@ -42,4 +42,4 @@ void DiracVec::display( Displayer &ds ) const {
     ds.end_array();
 }
 
-} // namespace power_diagram
+} // namespace sdot

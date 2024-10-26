@@ -2,7 +2,7 @@
 
 #include "WeightsWithBounds.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( HomogeneousWeights );
 
 /**
@@ -19,4 +19,4 @@ public:
     TF           weight_value;
 };
 
-} // namespace power_diagram
+} // namespace sdot

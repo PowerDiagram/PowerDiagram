@@ -1,4 +1,4 @@
-#include "PowerDiagram/PowerDiagram.h"
+#include "sdot/PowerDiagram.h"
 #include "catch_main.h"
 
 void test( double shrink, std::string name, const Vec<double> &values ) {

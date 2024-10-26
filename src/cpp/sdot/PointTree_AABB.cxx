@@ -7,7 +7,7 @@
 #include <tl/support/P.h>
 
 #include "PointTree_AABB.h"
-#include "PowerDiagram/CellVertex.h"
+#include "sdot/CellVertex.h"
 
 #include <eigen3/Eigen/LU>
 

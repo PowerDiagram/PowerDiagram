@@ -3,7 +3,7 @@
 #include "RegularGrid.h"
 #include "Mpi.h"
 
-namespace power_diagram {
+namespace sdot {
 using std::exchange;
 using std::max;
 using std::min;
@@ -110,4 +110,4 @@ int RegularGrid::for_each_cell( const Cell &base_cell, const WeightsWithBounds &
     return error;
 }
 
-} // namespace power_diagram
+} // namespace sdot

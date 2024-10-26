@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PowerDiagram/Config.h"
+#include <sdot/Config.h>
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( DiracVec );
 
 /**
@@ -23,4 +23,4 @@ public:
     virtual void      display            ( Displayer &ds ) const;
 };
 
-} // namespace power_diagram
+} // namespace sdot

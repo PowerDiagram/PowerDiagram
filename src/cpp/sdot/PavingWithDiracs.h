@@ -5,7 +5,7 @@
 #include "DiracVec.h"
 #include "Cell.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( PavingWithDiracs );
 
 /**
@@ -25,4 +25,4 @@ public:
     void         spawn              ( const std::function<void( int num_thread, int nb_threads )> &f ) const;
 };
 
-} // namespace power_diagram
+} // namespace sdot

@@ -3,7 +3,7 @@
 #include <tl/support/Displayer.h>
 #include "Config.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( VertexRefs );
 
 /**
@@ -19,4 +19,4 @@ public:
     //Pad   _pad;
 };
 
-} // namespace power_diagram
+} // namespace sdot

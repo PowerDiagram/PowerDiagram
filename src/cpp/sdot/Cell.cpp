@@ -15,12 +15,12 @@
 
 #include <Eigen/LU>  
 
-#include "PowerDiagram/VertexRefs.h"
-#include "PowerDiagram/Config.h"
+#include "sdot/VertexRefs.h"
+#include "sdot/Config.h"
 
 #include "Cell.h"
 
-namespace power_diagram {
+namespace sdot {
 
 Cell::PD_NAME( Cell )( const Cell &that ) : Cell() {
     init_from( that, that.p0, that.w0, that.i0 );
@@ -55,7 +55,7 @@ void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
     // limits
     _bounded = that._bounded;
 
-    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+    #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
         min_pos = that.min_pos;
         max_pos = that.max_pos;
     #endif
@@ -133,7 +133,7 @@ Opt<Pt> Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
 }
 
 bool Cell::_all_inside( const Pt &dir, TF off ) {
-    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+    #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
         TF res = 0;
         for( PI d = 0; d < nb_dims; ++d ) {
             res += ( max_pos[ d ] + min_pos[ d ] ) * dir[ d ] / 2;
@@ -146,7 +146,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
-    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
+    if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
         sps.reserve( nb_vertices() );
 
     bool has_ext = false;
@@ -156,7 +156,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
         if ( num_vertex == floor_of_nb_vertices ) {
             for( ; num_vertex < nb_vertices(); ++num_vertex ) {
                 TF csp = sp( vertex_coords[ num_vertex ], dir ) - off;
-                if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
+                if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
                     sps[ num_vertex ] = csp;
                 has_ext |= csp > 0;
             }
@@ -169,7 +169,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
         for( int d = 1; d < nb_dims; ++d )
             csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
-        if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 0 )
+        if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
             csp.store_aligned( sps.data() + num_vertex );
         has_ext |= asimd::any( csp > 0 );
     }
@@ -342,11 +342,11 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
-    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 2 )
+    if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 2 )
         sps.reserve( nb_vertices() );
 
     // preparation for the new bounds 
-    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+    #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
         max_pos = { FromItemValue(), std::numeric_limits<TF>::lowest() };
         min_pos = { FromItemValue(), std::numeric_limits<TF>::max   () };
     #endif 
@@ -358,7 +358,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
         const Pt p0 = vertex_coords[ n0 ];
         TF s0;
 
-        if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 2 ) {
+        if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 2 ) {
             s0 = sp( p0, dir ) - off;
             sps[ n0 ] = s0;
         } else
@@ -366,7 +366,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
         const bool e0 = s0 > 0;
 
         // if ext, move the vertex ref to [ new inactive vertices ]
-        #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+        #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
         if ( ! e0 ) {
             max_pos = max( max_pos, p0 );
             min_pos = min( min_pos, p0 );
@@ -392,7 +392,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
                     auto pn = compute_pos( p0, p1, s0, s1 );
 
                     // bounds
-                    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+                    #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
                         max_pos = max( max_pos, pn );
                         min_pos = min( min_pos, pn );
                     #endif
@@ -420,7 +420,7 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
         return;
 
     // get sps with simd instructions
-    if constexpr ( POWER_DIAGRAM_CONFIG_PHASE_OF_SPS == 1 )
+    if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 1 )
         _get_sps( dir, off );
 
     // store the new cut
@@ -805,4 +805,4 @@ bool Cell::empty() const {
     return nb_vertices() == 0;
 }
 
-} // namespace power_diagram
+} // namespace sdot

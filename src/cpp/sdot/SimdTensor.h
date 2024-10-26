@@ -4,7 +4,7 @@
 #include <tl/support/operators/ceil.h>
 #include <asimd/SimdVec.h>
 
-namespace power_diagram {
+namespace sdot {
 
 /**
 */
@@ -90,4 +90,4 @@ DTP void UTP::clear() {
 #undef DTP
 #undef UTP
 
-} // namespace power_diagram
+} // namespace sdot

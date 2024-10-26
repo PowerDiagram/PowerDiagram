@@ -20,9 +20,9 @@ def make_env():
 
         '-g3',
 
-        '-DPOWER_DIAGRAM_CONFIG_SUFFIX=double_3',
-        '-DPOWER_DIAGRAM_CONFIG_SCALAR=double',
-        '-DPOWER_DIAGRAM_CONFIG_NB_DIM=3',
+        '-DSDOT_CONFIG_SUFFIX=double_3',
+        '-DSDOT_CONFIG_SCALAR=double',
+        '-DSDOT_CONFIG_NB_DIM=3',
     ]
 
     # LIBS

@@ -17,8 +17,8 @@ public:
     virtual void         make_prev_cuts     ( Cell<Config> &cell, PI32 cuts ) override;
     virtual void         for_each_point     ( const std::function<void( Span<Pt> p0s, Span<TF> w0s, Span<PI> i0s )> &f ) override { f( points, weights, indices ); }
     virtual PI           nb_seed_points     () const { return indices.size(); }
--DPOWER_DIAGRAM_CONFIG_SUFFIX=PD_SUFFIX_double_3
--DPOWER_DIAGRAM_CONFIG_SCALAR=double
--DPOWER_DIAGRAM_CONFIG_NB_DIM=3
+-DSDOT_CONFIG_SUFFIX=PD_SUFFIX_double_3
+-DSDOT_CONFIG_SCALAR=double
+-DSDOT_CONFIG_NB_DIM=3
 
 #undef UTP

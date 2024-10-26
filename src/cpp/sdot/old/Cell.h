@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MapOfUniquePISortedArray.h"
-#include "PowerDiagram/PrevCutInfo.h"
+#include "sdot/PrevCutInfo.h"
 #include "RangeOfClasses.h"
 #include "SimdTensor.h"
 #include "CellVertex.h"

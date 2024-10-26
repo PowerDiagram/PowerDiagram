@@ -1,11 +1,11 @@
 #pragma once
 
 #include <tl/support/containers/Opt.h>
-#include "PowerDiagram/Config.h"
+#include "sdot/Config.h"
 #include "PavingWithDiracs.h"
 #include "DiracVec.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( RegularGrid );
 
 /**
@@ -36,4 +36,4 @@ public:
     Vec<PI>      inds;                 ///<
 };
 
-} // namespace power_diagram
+} // namespace sdot

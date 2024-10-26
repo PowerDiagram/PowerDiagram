@@ -1,4 +1,4 @@
-#include "PowerDiagram/InfCell.h"
+#include "sdot/InfCell.h"
 #include "catch_main.h"
 
 TEST_CASE( "PowerDiagram", "" ) {

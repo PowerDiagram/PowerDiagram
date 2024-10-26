@@ -2,7 +2,7 @@
 
 #include "Cell.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( WeightsWithBounds );
 
 /**
@@ -19,4 +19,4 @@ public:
     virtual void display                     ( Displayer &ds ) const { ds << "yo"; }
 };
 
-} // namespace power_diagram
+} // namespace sdot

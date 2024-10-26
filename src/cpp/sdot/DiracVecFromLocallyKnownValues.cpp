@@ -1,7 +1,7 @@
 #include "DiracVecFromLocallyKnownValues.h"
 #include "Mpi.h"
 
-namespace power_diagram {
+namespace sdot {
 
 DiracVecFromLocallyKnownValues::PD_NAME( DiracVecFromLocallyKnownValues )( Vec<Pt> &&values ) : values( std::move( values ) ) {
 }
@@ -34,5 +34,5 @@ Pt DiracVecFromLocallyKnownValues::local_pos( PI index ) const {
     return values[ index ];
 }
 
-} // namespace power_diagram
+} // namespace sdot
 

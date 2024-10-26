@@ -11,6 +11,7 @@ def pdir( dir, n = 1 ):
 # directories
 cwd = os.getcwd()
 bad = pdir( cwd, 2 )
+print( bad )
 
 # we're going to reference the source through a build dir
 VariantDir( 'build', bad )
@@ -28,9 +29,9 @@ nb_dims = args[ 'nb_dims' ]
 CPPPATH = [
     os.path.join( bad, 'src', 'cpp' ),
 
-    os.path.join( bad, 'modules', 'tl20', 'src', 'cpp' ),
-    os.path.join( bad, 'modules', 'asimd', 'src' ),
-    os.path.join( bad, 'modules', 'eigen-3.4.0' ),
+    os.path.join( bad, 'ext', 'tl20', 'src', 'cpp' ),
+    os.path.join( bad, 'ext', 'asimd', 'src' ),
+    os.path.join( bad, 'ext', 'eigen-3.4.0' ),
 
     sysconfig.get_paths()[ 'include' ], # Python.h
     pybind11.get_include(), # pybind11.h
@@ -41,11 +42,11 @@ CPPPATH = [
 
 # CXXFLAGS
 CXXFLAGS = [
-    f'-DPOWER_DIAGRAM_CONFIG_module_name={ module_name }',
-    f'-DPOWER_DIAGRAM_CONFIG_suffix={ suffix }',
+    f'-DSDOT_CONFIG_module_name={ module_name }',
+    f'-DSDOT_CONFIG_suffix={ suffix }',
 
-    f'-DPOWER_DIAGRAM_CONFIG_scalar_type={ scalar_type }',
-    f'-DPOWER_DIAGRAM_CONFIG_nb_dims={ nb_dims }',
+    f'-DSDOT_CONFIG_scalar_type={ scalar_type }',
+    f'-DSDOT_CONFIG_nb_dims={ nb_dims }',
 
     '-Wdeprecated-declarations',
     '-std=c++20',
@@ -76,7 +77,7 @@ LIBPATH = [
 
 # 
 sources = [
-    'build/src/python/PowerDiagram/bindings/PowerDiagram_bindings.cpp',
+    'build/src/python/sdot/bindings/PowerDiagram_bindings.cpp',
 
     "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Pointer.cpp",
     "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Number.cpp",
@@ -91,15 +92,15 @@ sources = [
     "build/ext/tl20/src/cpp/tl/support/string/va_string.cpp",
     "build/ext/tl20/src/cpp/tl/support/Displayer.cpp",
 
-    "build/src/cpp/PowerDiagram/DiracVecFromLocallyKnownValues.cpp",
-    "build/src/cpp/PowerDiagram/DiracVec.cpp",
+    "build/src/cpp/sdot/DiracVecFromLocallyKnownValues.cpp",
+    "build/src/cpp/sdot/DiracVec.cpp",
 
-    "build/src/cpp/PowerDiagram/PavingWithDiracs.cpp",
-    "build/src/cpp/PowerDiagram/RegularGrid.cpp",
+    "build/src/cpp/sdot/PavingWithDiracs.cpp",
+    "build/src/cpp/sdot/RegularGrid.cpp",
     
-    "build/src/cpp/PowerDiagram/VtkOutput.cpp",
-    "build/src/cpp/PowerDiagram/Cell.cpp",
-    "build/src/cpp/PowerDiagram/Mpi.cpp",
+    "build/src/cpp/sdot/VtkOutput.cpp",
+    "build/src/cpp/sdot/Cell.cpp",
+    "build/src/cpp/sdot/Mpi.cpp",
 ]
 
 

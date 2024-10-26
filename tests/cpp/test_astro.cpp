@@ -1,5 +1,5 @@
 #include <tl/support/operators/mean.h>
-#include "PowerDiagram/PowerDiagram.h"
+#include "sdot/PowerDiagram.h"
 #include "catch_main.h"
 
 #include <fstream>

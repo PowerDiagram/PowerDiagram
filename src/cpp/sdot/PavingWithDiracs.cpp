@@ -2,7 +2,7 @@
 #include "RegularGrid.h"
 #include <thread>
 
-namespace power_diagram {
+namespace sdot {
 
 UniquePtr<PavingWithDiracs> PavingWithDiracs::New( const DiracVec &dv, const CreationParameters &cp ) {
     return UniquePtr<PavingWithDiracs>{ new RegularGrid( dv, RegularGrid::Periodicity{} ) };
@@ -26,4 +26,4 @@ void PavingWithDiracs::spawn( const std::function<void( int num_thread, int nb_t
         th.join();
 }
 
-} // namespace power_diagram
+} // namespace sdot

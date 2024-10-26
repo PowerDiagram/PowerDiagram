@@ -10,7 +10,7 @@
 #include "VtkOutput.h"
 #include "Cut.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( PavingItem );
 PD_CLASS_DECL_AND_USE( Cell );
 
@@ -59,7 +59,7 @@ public:
     Vec<VertexRefs>              vertex_refs;
     Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
-    #if POWER_DIAGRAM_CONFIG_AABB_BOUNDS_ON_CELLS
+    #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
     Pt                           min_pos;                  ///<
     Pt                           max_pos;                  ///<
     #endif
@@ -95,4 +95,4 @@ private:
     Vec<TF>                      sps;                      ///< scalar products for each vertex
 };
 
-} // namespace power_diagram
+} // namespace sdot

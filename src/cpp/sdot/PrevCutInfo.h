@@ -2,7 +2,7 @@
 
 #include "Config.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( PrevCutInfo );
 PD_CLASS_DECL_AND_USE( PavingItem );
 
@@ -19,4 +19,4 @@ public:
     Data  by_leaf;
 };
 
-} // namespace power_diagram
+} // namespace sdot

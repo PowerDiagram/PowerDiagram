@@ -1,11 +1,10 @@
-#include "PowerDiagram/PavingWithDiracs.h"
-#include "PowerDiagram/WeightsWithBounds.h"
-#include "pybind11/gil.h"
-#include <PowerDiagram/DiracVecFromLocallyKnownValues.h>
-#include <PowerDiagram/HomogeneousWeights.h>
-#include <PowerDiagram/RegularGrid.h>
-#include <PowerDiagram/VtkOutput.h>
-#include <PowerDiagram/Cell.h>
+#include <sdot/DiracVecFromLocallyKnownValues.h>
+#include <sdot/HomogeneousWeights.h>
+#include <sdot/WeightsWithBounds.h>
+#include <sdot/PavingWithDiracs.h>
+#include <sdot/RegularGrid.h>
+#include <sdot/VtkOutput.h>
+#include <sdot/Cell.h>
 
 #include <tl/support/string/to_string.h>
 
@@ -14,9 +13,10 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+// #include "pybind11/gil.h"
  
-using Array = pybind11::array_t<power_diagram::TF, pybind11::array::c_style>;
-using namespace power_diagram;
+using Array = pybind11::array_t<sdot::TF, pybind11::array::c_style>;
+using namespace sdot;
 
 // #define PolyCon_Py CC_DT( PolyCon_py )
 
@@ -223,7 +223,7 @@ Vec<Pt> VecPt_from_Array( const Array &array ) {
     return res;
 }
 
-PYBIND11_MODULE( POWER_DIAGRAM_CONFIG_module_name, m ) { // py::module_local()
+PYBIND11_MODULE( SDOT_CONFIG_module_name, m ) { // py::module_local()
     // pybind11::class_<Pt>( m, PD_STR( Pt ) )
     //     .def( pybind11::init( &create_Pt_from_Array ) )
     //     .def( "__repr__", []( const Pt &pt ) { return to_string( pt ); } )

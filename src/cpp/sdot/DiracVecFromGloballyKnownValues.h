@@ -3,7 +3,7 @@
 #include "DiracVec.h"
 #include "Mpi.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( DiracVecFromGloballyKnownValues );
 
 /**
@@ -29,4 +29,4 @@ private:
     Vec<Pt>     values;
 };
 
-} // namespace power_diagram
+} // namespace sdot

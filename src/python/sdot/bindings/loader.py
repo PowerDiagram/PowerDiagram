@@ -1,5 +1,4 @@
 from pathlib import Path
-import archspec.cli
 from munch import Munch
 import archspec.cpu
 import subprocess

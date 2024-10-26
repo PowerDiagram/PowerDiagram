@@ -1,4 +1,4 @@
-#include <PowerDiagram/Cell.h>
+#include <sdot/Cell.h>
 #include "catch_main.h"
 
 TEST_CASE( "Cell", "" ) {

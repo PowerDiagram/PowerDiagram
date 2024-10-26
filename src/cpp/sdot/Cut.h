@@ -3,7 +3,7 @@
 #include "CutType.h"
 #include "Config.h"
 
-namespace power_diagram {
+namespace sdot {
 PD_CLASS_DECL_AND_USE( PavingItem );
 PD_CLASS_DECL_AND_USE( Cut );
 
@@ -36,4 +36,4 @@ public:
     PI                   i1;
 };
 
-} // namespace power_diagram
+} // namespace sdot

@@ -1,6 +1,6 @@
 #define ASIMD_DEBUG_ON_OP( NAME, COND, FUNC ) std::cout << FUNC << std::endl;
-// #include "PowerDiagram/DiracVecFromLocallyKnownValues.h" 
-// #include "PowerDiagram/PavingWithDiracs.h" 
+// #include "sdot/DiracVecFromLocallyKnownValues.h" 
+// #include "sdot/PavingWithDiracs.h" 
 #include "catch_main.h"
 
 // asimd::SimdVec<double> foul_smurf( asimd::SimdVec<double> a, asimd::SimdVec<double> b, asimd::SimdVec<double> c ) {
@@ -46,7 +46,7 @@ TEST_CASE( "mask", "" ) {
     // P( n );
 }
 
-// using namespace power_diagram;
+// using namespace sdot;
 
 // TEST_CASE( "bench Astro 3D", "" ) {
 //     auto pos = DiracVecFromLocallyKnownValues::random( 32 );
