@@ -243,6 +243,7 @@ PYBIND11_MODULE( SDOT_CONFIG_module_name, m ) { // py::module_local()
         .def_property_readonly( "nb_vertices", &Cell::nb_vertices )
         .def_property_readonly( "nb_cuts", &Cell::nb_cuts )
         .def_property_readonly( "bounded", &Cell::bounded )
+        .def_property_readonly( "empty", &Cell::empty )
 
         // modifications
         .def( "cut_boundary", []( Cell &cell, const Array &p0, TF w0, PI i0 ) { return cell.cut_boundary( Pt_from_Array( p0 ), w0, i0 ); } )

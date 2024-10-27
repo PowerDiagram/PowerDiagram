@@ -80,11 +80,12 @@ private:
     Opt<Pt>                      compute_pos               ( Vec<PI,nb_dims> num_cuts ) const;
 
     void                         _remove_ext_vertices      ( PI old_nb_vertices ); ///< return new size
-    void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut );
+    void                         _add_cut_vertices         ( const Pt &dir, TF off, PI32 new_cut, PI old_nb_vertices );
     bool                         _all_inside               ( const Pt &dir, TF off );
     void                         _get_sps                  ( const Pt &dir, TF off );
     void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
+    void                         _remove_inactive_cuts_ubnd();
     bool                         _became_bounded           ();
     void                         _cut_unbounded            ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 

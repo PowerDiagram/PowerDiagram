@@ -70,9 +70,9 @@ def get_build_dir( suffix ):
 def module_for( **kwargs ):
     # sorted list of parameters with arch
     plist = [ ( x, str( y ) ) for x, y in kwargs.items() ]
-    plist.append( ( 'arch', str( archspec.cpu.host() ) ) )
-    plist.append( ( 'os', platform.system() ) )
     plist.sort()
+    plist.append( ( 'os', platform.system() ) )
+    plist.append( ( 'arch', str( archspec.cpu.host() ) ) )
 
     ilist = [ f"{ k }={ v }" for k, v in plist ]
     vlist = [ v for k, v in plist ]

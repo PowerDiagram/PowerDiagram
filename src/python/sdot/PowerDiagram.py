@@ -120,14 +120,11 @@ class PowerDiagram:
         
         # make base_cell from boundaries
         base_cell = self._binding_module.Cell()
-        if self._boundaries:
+        if self._boundaries is not None:
             ndim = self._binding_module.ndim()
             for n, bnd in enumerate( self._boundaries ):
                 base_cell.cut_boundary( bnd[ : ndim ],  bnd[ ndim ], n )
 
-        print( base_cell )
-        print( self._positions )
-        
         # call module function
         self._positions.for_each_cell( base_cell, self._weights, function )
 

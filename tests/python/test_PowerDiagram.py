@@ -38,11 +38,12 @@ import numpy as np
 # # print( cell )
 
 # # cell.display_vtk( vo )
-p = PowerDiagram()
-p.positions = [
-    [ 0.5, 0.5 ],
-    [ 1.5, 0.5 ]
-]
+def test_2_diracs():
+    p = PowerDiagram()
+    p.positions = [
+        [ 0.5, 0.5 ],
+        [ 1.5, 0.5 ]
+    ]
 
-p.for_each_cell( print )
-
+    p.for_each_cell( print )
+    assert 0

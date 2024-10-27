@@ -31,7 +31,7 @@ Cell::PD_NAME( Cell )() {
     vertex_refs.reserve( 128 );
     cuts.reserve( 128 );
 
-    sps.reserve( 128 );
+    sps.aligned_reserve( 128, CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
     num_cut_oid = 1;
@@ -148,7 +148,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
     using SimdVec = VertexCoords::SimdVec;
 
     if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
-        sps.reserve( nb_vertices() );
+        sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     bool has_ext = false;
     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
@@ -203,7 +203,7 @@ void Cell::_get_sps( const Pt &dir, TF off ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
-    sps.reserve( nb_vertices() );
+    sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
@@ -337,14 +337,14 @@ void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
     }
 }
 
-void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
+void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_vertices ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
     auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
     if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 2 )
-        sps.reserve( nb_vertices() );
+        sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     // preparation for the new bounds 
     #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
@@ -353,7 +353,6 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
     #endif 
 
     // add the new vertices
-    const PI old_nb_vertices = nb_vertices();
     for( PI n0 = 0; n0 < old_nb_vertices; ++n0  ) {
         const auto c0 = vertex_refs[ n0 ].num_cuts;
         const Pt p0 = vertex_coords[ n0 ];
@@ -406,14 +405,11 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut ) {
                 edge_op_id = op_id + n0;
         } );
     }
-
-    // remove ext vertices
-    _remove_ext_vertices( old_nb_vertices );
 }
 
 void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item ) {
     // 
-    if ( ! bounded() )
+    if ( ! _bounded )
         return _cut_unbounded( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 
     // test if all points are inside, make the TF products and get used cuts
@@ -428,10 +424,21 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
     PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 
     // make the new vertices + deref the ext ones
-    _add_cut_vertices( dir, off, new_cut );
+    PI old_nb_vertices = nb_vertices();
+    _add_cut_vertices( dir, off, new_cut, old_nb_vertices );
+
+    // remove ext vertices
+    _remove_ext_vertices( old_nb_vertices );
+
+    // no remaining vertex => cell is empty
+    if ( nb_vertices() == 0 )
+        _empty = true;
 }
 
 void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
+    if ( _empty )
+        return;
+
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
         if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
@@ -458,7 +465,7 @@ void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF
             if ( ! coords )
                 return;
 
-            // // early return if the new vertex is outside
+            // early return if the new vertex is outside
             for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
                 if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].off )
                     return;
@@ -469,11 +476,16 @@ void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF
         }, nb_dims - 1, new_cut );
     }
 
-    // remove the inactive cuts
-    if ( _became_bounded() ) {
-        remove_inactive_cuts();
+    // removing the inactive cuts is needed to allow the emptyness test
+    remove_inactive_cuts();
+
+    // 
+    if ( cuts.empty() )
+        _empty = true;
+
+    // check if still unbounded
+    if ( _became_bounded() )
         _bounded = true;
-    }
 }
 
 bool Cell::_became_bounded() {
@@ -514,7 +526,15 @@ bool Cell::_became_bounded() {
     return true;
 }
 
+void Cell::_remove_inactive_cuts_ubnd() {
+    TODO;
+}
+
 void Cell::remove_inactive_cuts() {
+    //
+    if ( ! _bounded )
+        return _remove_inactive_cuts_ubnd();
+
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
     for( PI i = 0; i < nb_vertices(); ++i )
