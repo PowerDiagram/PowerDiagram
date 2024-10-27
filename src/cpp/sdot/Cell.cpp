@@ -527,7 +527,34 @@ bool Cell::_became_bounded() {
 }
 
 void Cell::_remove_inactive_cuts_ubnd() {
-    TODO;
+    using TM = Eigen::Matrix<TF,nb_dims,nb_dims>;
+    using TV = Eigen::Matrix<TF,nb_dims,1>;
+
+    // for each cut, if the inverted cut would lead to an empty cell, we can remove the cut
+    for( PI n0 = 0; n0 < cuts.size(); ++n0 ) {
+        TM m;
+        TV v;
+        for( PI i = 0; i < nb_dims; ++i ) {
+            for( PI j = 0; j < nb_dims; ++j )
+                m.coeffRef( i, j ) = 0;
+            v[ i ] = 0;
+        }
+
+        for( PI n1 = 0; n1 < cuts.size(); ++n1 ) {
+            TF c = ( n1 == n0 ? -1 : 1 );
+            for( PI i = 0; i < nb_dims; ++i ) {
+                for( PI j = 0; j < nb_dims; ++j )
+                    m.coeffRef( i, j ) += c * cuts[ n1 ].dir[ i ] * cuts[ n1 ].dir[ j ];
+                v[ i ] += c * cuts[ n1 ].off;
+            }
+        }
+
+        Eigen::FullPivLU<TM> lu( m );
+        TV x = lu.solve( v );
+        TODO;
+        return Pt(  );
+
+    }
 }
 
 void Cell::remove_inactive_cuts() {
