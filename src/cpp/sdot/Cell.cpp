@@ -12,12 +12,13 @@
 
 #include <tl/support/compare.h>
 #include <tl/support/conv.h>
-
-#include <Eigen/LU>  
+ 
+#include <Eigen/LU>
 
 #include "sdot/VertexRefs.h"
 #include "sdot/Config.h"
 
+#include "BigRational.h"
 #include "Cell.h"
 
 namespace sdot {
