@@ -25,6 +25,8 @@ PI RegularGrid::index( const Pt &pos ) const {
 }
 
 RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &periodicity, TF nb_diracs_per_box ) {
+    using std::max;
+
     //
     auto mima = dv.global_min_max();
     min_pos = mima[ 0 ];
@@ -33,7 +35,7 @@ RegularGrid::PD_NAME( RegularGrid )( const DiracVec &dv, const Periodicity &peri
     //
     TF step = pow( dv.global_size() / ( nb_diracs_per_box * product( max_pos - min_pos ) ), double( 1 ) / nb_dims );
     for( PI d = 0; d < nb_dims; ++d ) {
-        nb_divs[ d ] = ceil( ( max_pos[ d ] - min_pos[ d ] ) / step );
+        nb_divs[ d ] = max( TF( 1 ), ceil( ( max_pos[ d ] - min_pos[ d ] ) / step ) );
         steps[ d ] = TF( max_pos[ d ] - min_pos[ d ] ) / nb_divs[ d ];
     }
 

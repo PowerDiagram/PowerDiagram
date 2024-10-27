@@ -21,6 +21,15 @@ def normalized_dtype( dtype, raise_exception_if_not_found = True ):
         raise RuntimeError( f"unknown dtype `{ dtype }`" )
     return None
 
+def numpy_dtype_for( dtype ):
+    if dtype in [ "FP128" ]:
+        return numpy.float128
+    if dtype in [ "FP64" ]:
+        return numpy.float64
+    if dtype in [ "FP32" ]:
+        return numpy.float32
+    return None
+
 def type_score( dtype: str ):
     if dtype.startswith( "FP" ):
         return int( dtype[ 2: ] )
@@ -70,7 +79,7 @@ def module_for( **kwargs ):
 
     # names
     suffix = "_".join( vlist )
-    module_name = f'PowerDiagram_bindings_for_{ suffix }'
+    module_name = f'sdot_bindings_for_{ suffix }'
 
     # in the cache
     if module_name in loader_cache:

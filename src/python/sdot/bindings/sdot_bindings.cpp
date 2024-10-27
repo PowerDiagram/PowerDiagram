@@ -266,7 +266,7 @@ PYBIND11_MODULE( SDOT_CONFIG_module_name, m ) { // py::module_local()
         ;
 
     pybind11::class_<HomogeneousWeights,WeightsWithBounds>( m, PD_STR( HomogeneousWeights ) )
-        .def( pybind11::init<>() )
+        .def( pybind11::init<TF>() )
         // .def( "__repr__", []( const HomogeneousWeights &a ) { return to_string( a ); } )
         ;
 
@@ -295,5 +295,9 @@ PYBIND11_MODULE( SDOT_CONFIG_module_name, m ) { // py::module_local()
             cell.display_vtk( vo );
             m.unlock();
         } );
+    } );
+    
+    m.def( "ndim", []() {
+        return sdot::nb_dims;
     } );
 }

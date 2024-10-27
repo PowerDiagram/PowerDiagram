@@ -1,4 +1,4 @@
-from .bindings.loader import normalized_dtype, type_promote, module_for
+from .bindings.loader import numpy_dtype_for, normalized_dtype, type_promote, module_for
 import numpy as np
 
 class PowerDiagram:
@@ -19,13 +19,13 @@ class PowerDiagram:
     """
     def __init__( self, positions = None, weights = None, boundaries = None, dtype = None, ndim = None ):
         # 
+        self._binding_module = None
         self._boundaries = None
         self._positions = None
         self._weights = None
         self._dtype = None
         self._inst = None
         self._ndim = None
-        self._mod = None
 
         # 
         self.dtype = dtype # used to force the type
@@ -117,7 +117,19 @@ class PowerDiagram:
     def for_each_cell( self, function ):
         if not self._update_bindings():
             return
-        # self._bindings.for_each_cell( function )
+        
+        # make base_cell from boundaries
+        base_cell = self._binding_module.Cell()
+        if self._boundaries:
+            ndim = self._binding_module.ndim()
+            for n, bnd in enumerate( self._boundaries ):
+                base_cell.cut_boundary( bnd[ : ndim ],  bnd[ ndim ], n )
+
+        print( base_cell )
+        print( self._positions )
+        
+        # call module function
+        self._positions.for_each_cell( base_cell, self._weights, function )
 
     def _update_bindings( self ):
         # get the right module
@@ -126,23 +138,28 @@ class PowerDiagram:
         if dtype is None or ndim is None:
             return False
 
-        mod = module_for( scalar_type = dtype, nb_dims = ndim )
+        self._binding_module = module_for( scalar_type = dtype, nb_dims = ndim )
 
-        # transform positions, weights and boundaries to the right format
-        print( type( self.boundaries ) )
-        print( type( self.positions ) )
+        # check format of _positions
+        if type( self._positions ) == np.ndarray:
+            dv = self._binding_module.DiracVecFromLocallyKnownValues( self._positions )
+            self._positions = self._binding_module.RegularGrid( dv )
+        else:
+            raise "TODO"
+
+        # check format of _weights
+        if self._weights is None:
+            self._weights = self._binding_module.HomogeneousWeights( 1 )
+        else:
+            raise "TODO"
+
+        # check format of _boundaries
+        if self._boundaries is None:
+            self._boundaries = np.empty( [ 0, ndim ], dtype = numpy_dtype_for( dtype ) )
+        else:
+            raise "TODO"
 
         return True
-    
-    @staticmethod
-    def numpy_dtype_for( dtype ):
-        if dtype in [ "FP128" ]:
-            return np.float128
-        if dtype in [ "FP64" ]:
-            return np.float64
-        if dtype in [ "FP32" ]:
-            return np.float32
-        return None
 
 
 # # pre-loaded functions

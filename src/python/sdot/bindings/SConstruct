@@ -77,7 +77,7 @@ LIBPATH = [
 
 # 
 sources = [
-    'build/src/python/sdot/bindings/PowerDiagram_bindings.cpp',
+    'build/src/python/sdot/bindings/sdot_bindings.cpp',
 
     "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Pointer.cpp",
     "build/ext/tl20/src/cpp/tl/support/display/DisplayItem_Number.cpp",

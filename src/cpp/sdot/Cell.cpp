@@ -37,6 +37,7 @@ Cell::PD_NAME( Cell )() {
     num_cut_oid = 1;
 
     _bounded = false;
+    _empty = false;
 }
 
 void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
@@ -802,7 +803,7 @@ TF Cell::height( const Pt &point ) const {
 }
 
 bool Cell::empty() const {
-    return nb_vertices() == 0;
+    return _empty;
 }
 
 } // namespace sdot

@@ -18,7 +18,7 @@ PD_CLASS_DECL_AND_USE( Cell );
  * @brief
  *
  */
-class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_refs, cuts )
+class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_refs, _empty, cuts )
 public:
     using                        VertexCoords              = SimdTensor<TF,nb_dims>;
     
@@ -92,6 +92,7 @@ private:
     mutable NumCutMap            num_cut_map;              ///<
     mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
     bool                         _bounded;                 ///<
+    bool                         _empty;                   ///<
     Vec<TF>                      sps;                      ///< scalar products for each vertex
 };
 

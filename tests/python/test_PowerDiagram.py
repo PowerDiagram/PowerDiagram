@@ -39,8 +39,10 @@ import numpy as np
 
 # # cell.display_vtk( vo )
 p = PowerDiagram()
-p.positions = [ [ 0.5, 0.5 ] ]
+p.positions = [
+    [ 0.5, 0.5 ],
+    [ 1.5, 0.5 ]
+]
+
 p.for_each_cell( print )
 
-
-# print( PowerDiagram.normalized_dtype( np.flo ) )
