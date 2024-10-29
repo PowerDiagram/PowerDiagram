@@ -109,7 +109,8 @@ Pt Cell::compute_pos( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const {
     return p0 - s0 / ( s1 - s0 ) * ( p1 - p0 );
 }
 
-Opt<Pt> Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
+Opt<Pt> Cell::compute_pos( const auto &vertex_coords, const auto &vertex_ref ) const {
+    constexpr int nb_dims = DECAYED_TYPE_OF( vertex_ref )::ct_size;
     if constexpr ( nb_dims == 0 ) {
         return {};
     } else {
@@ -132,8 +133,8 @@ Opt<Pt> Cell::compute_pos( Vec<PI,nb_dims> num_cuts ) const {
         TV v;
         for( PI i = 0; i < nb_dims; ++i ) {
             for( PI j = 0; j < nb_dims; ++j )
-                m.coeffRef( i, j ) = cuts[ num_cuts[ i ] ].dir[ j ];
-            v[ i ] = cuts[ num_cuts[ i ] ].off;
+                m.coeffRef( i, j ) = cuts[ vertex_ref[ i ] ].dir[ j ];
+            v[ i ] = cuts[ vertex_ref[ i ] ].off;
         }
 
         Eigen::FullPivLU<TM> lu( m );
@@ -467,7 +468,7 @@ void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, T
             num_cuts[ true_nb_dims - 1 ] = new_cut;
 
             // early return if parallel cuts
-            Opt<Pt> coords = compute_pos( num_cuts );
+            Opt<Pt> coords = compute_pos( cuts, num_cuts );
             if ( ! coords )
                 return;
 
@@ -481,6 +482,10 @@ void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, T
             vertex_refs << num_cuts;
         }, true_nb_dims - 1, new_cut );
     }
+
+    P( vertex_coords );
+    P( vertex_refs );
+    P( cuts );
 
     // removing the inactive cuts is needed to allow the emptyness test
     _remove_inactive_cuts( vertex_refs, cuts );
@@ -504,10 +509,8 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
 
             // remove directions of the previous cuts
             Vec<BigRational,nb_dims> new_base_item = dir;
-            for( const Cut &cut : cuts ) {
-                Vec<BigRational,nb_dims> cut_dir = cut.dir;
-                new_base_item = new_base_item - sp( cut_dir, new_base_item ) / norm_2_p2( cut.dir ) * cut.dir;
-            }
+            for( const auto &dir : sv.base )
+                new_base_item = new_base_item - sp( dir, new_base_item ) / norm_2_p2( dir ) * dir;
 
             // if independant, we have a new dimension => move the base + the cuts to the right _lower_dim_data 
             if ( BigRational n1 = norm_1( new_base_item ) ) {
@@ -542,14 +545,17 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
         CtRange<0,nb_dims>::find_item( [&]( auto td ) {
             if ( td != _true_dimensionnality )
                 return false;
+            
+            // current cut/vertex data
             auto &sv = _lower_dim_data[ td ];
 
             // add cut info in _lower_dim_data
-            auto ndir = Vec<BigRational,nb_dims>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
+            auto ndir = Vec<BigRational,td>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
                 new ( b ) BigRational( sp( sv.base[ i ], dir ) / norm_2_p2( sv.base[ i ] ) );
             } };
 
             sv.cuts.push_back( ndir, off );
+            P( sv.base, ndir );
 
             //
             _vertex_phase_unbounded_cuts( td, ndir, off, sv.vertex_coords, sv.vertex_refs, sv.cuts );
@@ -710,8 +716,8 @@ void Cell::remove_inactive_cuts() {
 void Cell::_remove_inactive_cuts( auto &vertex_refs, auto &cuts ) {
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
-    for( PI i = 0; i < nb_vertices(); ++i )
-        for( auto num_cut : vertex_refs[ i ] ) 
+    for( auto &vertex_ref : vertex_refs )
+        for( auto num_cut : vertex_ref ) 
             active_cuts[ num_cut ] = true;
 
     // update cuts + transform active_cuts as cut index correction
@@ -730,9 +736,9 @@ void Cell::_remove_inactive_cuts( auto &vertex_refs, auto &cuts ) {
     cuts.resize( nb_cuts );
 
     // num cuts
-    for( auto &v : vertex_refs )
-        for( auto &ind : v )
-            ind = active_cuts[ ind ];
+    for( auto &vertex_ref : vertex_refs )
+        for( auto &num_cut : vertex_ref )
+            num_cut = active_cuts[ num_cut ];
 }
 
 void Cell::memory_compaction() {

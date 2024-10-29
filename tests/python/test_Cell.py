@@ -43,15 +43,25 @@ def test_Cell_emptyness_bounded():
     assert c.empty == True
 
 def test_Cell_emptyness_unbounded():
-    c = Cell( ndim = 2 )
+    c = Cell( ndim = 3 )
     assert c.nb_vertices == 0
     assert c.bounded == False
     assert c.empty == False
 
-    c.cut_boundary( [ -1, 0 ], 0 )
-    print( c.nb_vertices )
-    print( c.bounded )
-    print( c.empty )
+    c.cut_boundary( [ 1, 1, 0 ], 1 )
+    print( "nb_vertices", c.nb_vertices )
+    print( "bounded", c.bounded )
+    print( "empty", c.empty )
+
+    c.cut_boundary( [ -1, 0, 0 ], 0 )
+    print( "nb_vertices", c.nb_vertices )
+    print( "bounded", c.bounded )
+    print( "empty", c.empty )
+
+    c.cut_boundary( [ 0, -1, 0 ], 0 )
+    print( "nb_vertices", c.nb_vertices )
+    print( "bounded", c.bounded )
+    print( "empty", c.empty )
 
     # assert c.nb_vertices == 0
     # assert c.bounded == False

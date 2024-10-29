@@ -16,6 +16,7 @@ void BigRational::display( Displayer &ds ) const {
     ds.append_attribute( "num", num );
     ds.append_attribute( "den", den );
     ds.append_attribute( "exp", exp );
+    ds.append_attribute( "apx", to<FP64>() );
     ds.end_object();
 }
 

@@ -70,9 +70,9 @@ private:
     template<int d> class        NumCutMapForDim             { public: MapOfUniquePISortedArray<d,PI32,PI> map; };
     using                        NumCutMap                   = RangeOfClasses<NumCutMapForDim,0,nb_dims>;
   
-    template<int d> struct       LowerDimCut                 { Vec<BigRational,d> dir; BigRational off; };
+    template<int d> struct       LowerDimCut                 { Vec<BigRational,d> dir; BigRational off; void display( Displayer &ds ) const { ds << dir << off; } };
 
-    template<int d> class        LowerDimDataForDim          { public: Vec<Vec<BigRational,nb_dims>,d> base; Vec<Vec<TF,d>> vertex_coords; Vec<Vec<PI32,d>> vertex_refs; Vec<LowerDimCut<d>> cuts; };
+    template<int d> class        LowerDimDataForDim          { public: Vec<Vec<BigRational,nb_dims>,d> base; Vec<Vec<BigRational,d>> vertex_coords; Vec<Vec<PI32,d>> vertex_refs; Vec<LowerDimCut<d>> cuts; };
     using                        LowerDimData                = RangeOfClasses<LowerDimDataForDim,0,nb_dims>;
   
     void                         add_measure_rec             ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;
@@ -80,7 +80,7 @@ private:
     PI                           new_cut_oid                 ( PI s = 0 ) const;
    
     Pt                           compute_pos                 ( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const;
-    Opt<Pt>                      compute_pos                 ( Vec<PI,nb_dims> num_cuts ) const;
+    Opt<Pt>                      compute_pos                 ( const auto &cuts, const auto &num_cuts ) const;
   
     void                         _remove_inactive_cuts       ( auto &vertex_refs, auto &cuts );
     void                         _remove_ext_vertices        ( PI old_nb_vertices ); ///< return new size
