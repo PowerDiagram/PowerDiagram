@@ -443,7 +443,7 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
 }
 
 template<int true_dim>
-void Cell::_clean_unbounded_cuts( CtInt<true_dim>, const auto &sub_dir, TF sub_off, auto &coords, auto &refs ) {
+void Cell::_vertex_phase_unbounded_cuts( CtInt<true_dim>, const auto &sub_dir, TF sub_off, auto &coords, auto &refs ) {
 
 }
 
@@ -464,17 +464,24 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
                     new_base_item = new_base_item - sp( cut_dir, new_base_item ) / norm_2_p2( cut.dir ) * cut.dir;
                 }
 
-                // if independant, we have a new dimension
+                // if independant, we have a new dimension => move the base + the cuts to the right _sub_vertices 
                 if ( BigRational n1 = norm_1( new_base_item ) ) {
                     auto &nsv = _sub_vertices[ CtInt<td.value + 1>() ];
-                    constexpr int ntd = td.value + 1;
+                    ++_true_dimensionnality;
 
                     for( PI d = 0; d < td; ++d )
                        nsv.base[ d ] = sv.base[ d ];
                     nsv.base[ td ] = new_base_item / n1;
 
+                    for( PI n = 0; n < sv.cut_dirs.size(); ++n ) {
+                        nsv.cut_dirs << sv.cut_dirs[ n ].with_pushed_value( 0 );
+                        nsv.cut_offs << sv.cut_offs[ n ];
+                    }
+
                     sv.vertex_coords.clear();
                     sv.vertex_refs.clear();
+                    sv.cut_dirs.clear();
+                    sv.cut_offs.clear();
                 }
             }
         } );
@@ -489,14 +496,21 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
     if ( _true_dimensionnality < nb_dims ) {
         CtRange<0,nb_dims>::for_each_item( [&]( auto td ) {
             if ( td == _true_dimensionnality ) {
-                // make the new vertices
                 auto &sv = _sub_vertices[ td ];
+
+                auto ndir = Vec<BigRational,nb_dims>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
+                    new ( b ) BigRational( sp( sv.base[ i ], dir ) );
+                } };
+
+                sv.cut_dirs << ndir;
+                sv.cut_offs << 0;
                 TODO;
-                //_clean_unbounded_cuts( td, sub_dir, sub_off, sv.coords, sv.refs );
+                //_vertex_phase_unbounded_cuts( td, const auto &sub_dir, TF sub_off, sv.vertex_coords, sv.vertex_refs );
             }
         } );
     } else {
         // make the new vertices
+        _vertex_phase_unbounded_cuts( td, dir, off, vertex_coords, vertex_refs );
         _clean_unbounded_cuts( CtInt<nb_dims>(), dir, off, vertex_coords, vertex_refs );
         if ( _became_bounded() )
             _bounded = true;
