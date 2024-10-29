@@ -15,6 +15,7 @@
 #include <tl/support/conv.h>
  
 #include <Eigen/LU>
+#include <type_traits>
 
 #include "sdot/BigRational.h"
 #include "sdot/VertexRefs.h"
@@ -30,7 +31,7 @@ Cell::PD_NAME( Cell )( const Cell &that ) : Cell() {
 
 Cell::PD_NAME( Cell )() {
     _true_dimensionnality = 0;
-    _sub_vertices.for_each_item( []( auto &obj ) { obj.vertex_coords.reserve( 2 * nb_dims ); obj.vertex_refs.reserve( 2 * nb_dims ); } );
+    _lower_dim_data.for_each_item( []( auto &obj ) { obj.vertex_coords.reserve( 2 * nb_dims ); obj.vertex_refs.reserve( 2 * nb_dims ); } );
     _num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
     _num_cut_oid = 1;
     _bounded = false;
@@ -40,6 +41,8 @@ Cell::PD_NAME( Cell )() {
     vertex_coords.reserve( 128 );
     vertex_refs.reserve( 128 );
     cuts.reserve( 128 );
+
+    p0 = { FromItemValue(), 0 }; // needed 
 }
 
 void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
@@ -66,7 +69,7 @@ void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
     // sub vertices
     _true_dimensionnality = that._true_dimensionnality;
     if ( that._true_dimensionnality != nb_dims )
-        _sub_vertices = that._sub_vertices;
+        _lower_dim_data = that._lower_dim_data;
 }
 
 // Cell Cell::simplex( const Pt &mi, const Pt &ma ) {
@@ -243,7 +246,7 @@ TF Cell::for_each_cut_with_measure( const std::function<void( const Cut &cut, TF
     TF res = 0;
     Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n )
-        add_measure_rec( res, M, vertex_refs[ n ].num_cuts, n, op_id, measure_for_each_cut );
+        add_measure_rec( res, M, vertex_refs[ n ], n, op_id, measure_for_each_cut );
 
     // cuts
     TF coe = 1;
@@ -361,7 +364,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_ver
 
     // add the new vertices
     for( PI n0 = 0; n0 < old_nb_vertices; ++n0  ) {
-        const auto c0 = vertex_refs[ n0 ].num_cuts;
+        const auto c0 = vertex_refs[ n0 ];
         const Pt p0 = vertex_coords[ n0 ];
         TF s0;
 
@@ -405,8 +408,8 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_ver
                     #endif
 
                     // append/insert the new
-                    vertex_refs << VertexRefs{ cn };
                     vertex_coords << pn;
+                    vertex_refs << cn;
                 }
             } else
                 edge_op_id = op_id + n0;
@@ -442,48 +445,90 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
         _empty = true;
 }
 
-template<int true_dim>
-void Cell::_vertex_phase_unbounded_cuts( CtInt<true_dim>, const auto &sub_dir, TF sub_off, auto &coords, auto &refs ) {
+template<int true_nb_dims>
+void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, TF off, auto &vertex_coords, auto &vertex_refs, auto &cuts ) {
+    // remove vertices that are outside the cut
+    for( PI num_vertex = 0; num_vertex < vertex_coords.size(); ++num_vertex ) {
+        if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
+            vertex_coords.set_item( num_vertex, vertex_coords.pop_back_val() );
+            vertex_refs.set_item( num_vertex, vertex_refs.pop_back_val() );
+            --num_vertex;
+        }
+    }
 
+    // create the new vertices (from all the new cut combinations)
+    const PI new_cut = this->cuts.size() - 1;
+    if ( true_nb_dims ) {
+        for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
+            // get the new coordinates
+            Vec<PI,true_nb_dims> num_cuts;
+            for( PI i = 0; i < PI( true_nb_dims - 1 ); ++i )
+                num_cuts[ i ] = selection_of_cuts[ i ];
+            num_cuts[ true_nb_dims - 1 ] = new_cut;
+
+            // early return if parallel cuts
+            Opt<Pt> coords = compute_pos( num_cuts );
+            if ( ! coords )
+                return;
+
+            // early return if the new vertex is outside
+            for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
+                if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].off )
+                    return;
+
+            // else, register the new vertex
+            vertex_coords << *coords;
+            vertex_refs << num_cuts;
+        }, true_nb_dims - 1, new_cut );
+    }
+
+    // removing the inactive cuts is needed to allow the emptyness test
+    _remove_inactive_cuts( vertex_refs, cuts );
+
+    // 
+    if ( cuts.empty() )
+        _empty = true;
 }
 
 void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
     if ( _empty )
         return;
 
-    // update _true_dimensionnality
+    // update _true_dimensionnality (and fill the new _lower_dim_data if necessary)
     if ( _true_dimensionnality < nb_dims ) {
-        CtRange<0,nb_dims>::for_each_item( [&]( auto td ) {
-            if ( td == _true_dimensionnality ) {
-                auto &sv = _sub_vertices[ td ];
+        CtRange<0,nb_dims>::find_item( [&]( auto td ) {
+            if ( td != _true_dimensionnality )
+                return false;
 
-                // remove directions of the previous cuts
-                Vec<BigRational,nb_dims> new_base_item = dir;
-                for( const Cut &cut : cuts ) {
-                    Vec<BigRational,nb_dims> cut_dir = cut.dir;
-                    new_base_item = new_base_item - sp( cut_dir, new_base_item ) / norm_2_p2( cut.dir ) * cut.dir;
-                }
+            auto &sv = _lower_dim_data[ td ];
 
-                // if independant, we have a new dimension => move the base + the cuts to the right _sub_vertices 
-                if ( BigRational n1 = norm_1( new_base_item ) ) {
-                    auto &nsv = _sub_vertices[ CtInt<td.value + 1>() ];
-                    ++_true_dimensionnality;
+            // remove directions of the previous cuts
+            Vec<BigRational,nb_dims> new_base_item = dir;
+            for( const Cut &cut : cuts ) {
+                Vec<BigRational,nb_dims> cut_dir = cut.dir;
+                new_base_item = new_base_item - sp( cut_dir, new_base_item ) / norm_2_p2( cut.dir ) * cut.dir;
+            }
 
+            // if independant, we have a new dimension => move the base + the cuts to the right _lower_dim_data 
+            if ( BigRational n1 = norm_1( new_base_item ) ) {
+                ++_true_dimensionnality;
+
+                if constexpr ( td.value + 1 < nb_dims ) {
+                    auto &nsv = _lower_dim_data[ CtInt<td.value + 1>() ];
                     for( PI d = 0; d < td; ++d )
-                       nsv.base[ d ] = sv.base[ d ];
+                        nsv.base[ d ] = sv.base[ d ];
                     nsv.base[ td ] = new_base_item / n1;
 
-                    for( PI n = 0; n < sv.cut_dirs.size(); ++n ) {
-                        nsv.cut_dirs << sv.cut_dirs[ n ].with_pushed_value( 0 );
-                        nsv.cut_offs << sv.cut_offs[ n ];
-                    }
-
-                    sv.vertex_coords.clear();
-                    sv.vertex_refs.clear();
-                    sv.cut_dirs.clear();
-                    sv.cut_offs.clear();
+                    for( PI n = 0; n < sv.cuts.size(); ++n )
+                        nsv.cuts.push_back( sv.cuts[ n ].dir.with_pushed_value( 0 ), sv.cuts[ n ].off );
                 }
+
+                sv.vertex_coords.clear();
+                sv.vertex_refs.clear();
+                sv.cuts.clear();
             }
+
+            return true;
         } );
     }
 
@@ -494,70 +539,31 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
 
     //
     if ( _true_dimensionnality < nb_dims ) {
-        CtRange<0,nb_dims>::for_each_item( [&]( auto td ) {
-            if ( td == _true_dimensionnality ) {
-                auto &sv = _sub_vertices[ td ];
+        CtRange<0,nb_dims>::find_item( [&]( auto td ) {
+            if ( td != _true_dimensionnality )
+                return false;
+            auto &sv = _lower_dim_data[ td ];
 
-                auto ndir = Vec<BigRational,nb_dims>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
-                    new ( b ) BigRational( sp( sv.base[ i ], dir ) );
-                } };
+            // add cut info in _lower_dim_data
+            auto ndir = Vec<BigRational,nb_dims>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
+                new ( b ) BigRational( sp( sv.base[ i ], dir ) / norm_2_p2( sv.base[ i ] ) );
+            } };
 
-                sv.cut_dirs << ndir;
-                sv.cut_offs << 0;
-                TODO;
-                //_vertex_phase_unbounded_cuts( td, const auto &sub_dir, TF sub_off, sv.vertex_coords, sv.vertex_refs );
-            }
+            sv.cuts.push_back( ndir, off );
+
+            //
+            _vertex_phase_unbounded_cuts( td, ndir, off, sv.vertex_coords, sv.vertex_refs, sv.cuts );
+            
+            return true;
         } );
     } else {
         // make the new vertices
-        _vertex_phase_unbounded_cuts( td, dir, off, vertex_coords, vertex_refs );
-        _clean_unbounded_cuts( CtInt<nb_dims>(), dir, off, vertex_coords, vertex_refs );
+        _vertex_phase_unbounded_cuts( CtInt<nb_dims>(), dir, off, vertex_coords, vertex_refs, cuts );
+
+        // check if this cut made the cell bounded
         if ( _became_bounded() )
             _bounded = true;
     }
-
-
-
-    // // remove vertices that are outside the cut
-    // for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
-    //     if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
-    //         vertex_coords.set_item( num_vertex, vertex_coords.pop_back_val() );
-    //         vertex_refs.set_item( num_vertex, vertex_refs.pop_back_val() );
-    //         --num_vertex;
-    //     }
-    // }
-
-    // // create the new vertices (from all the new cut combinations)
-    // if ( nb_dims && new_cut >= PI( nb_dims - 1 ) ) {
-    //     for_each_selection( [&]( const Vec<int> &selection_of_cuts ) {
-    //         // get the new coordinates
-    //         Vec<PI,nb_dims> num_cuts;
-    //         for( PI i = 0; i < PI( nb_dims - 1 ); ++i )
-    //             num_cuts[ i ] = selection_of_cuts[ i ];
-    //         num_cuts[ nb_dims - 1 ] = new_cut;
-
-    //         // early return if parallel cuts
-    //         Opt<Pt> coords = compute_pos( num_cuts );
-    //         if ( ! coords )
-    //             return;
-
-    //         // early return if the new vertex is outside
-    //         for( PI num_cut = 0; num_cut < new_cut; ++num_cut )
-    //             if ( selection_of_cuts.contains( int( num_cut ) ) == false && sp( *coords, cuts[ num_cut ].dir ) > cuts[ num_cut ].off )
-    //                 return;
-
-    //         // else, register the new vertex
-    //         vertex_coords << *coords;
-    //         vertex_refs << num_cuts;
-    //     }, nb_dims - 1, new_cut );
-    // }
-
-    // // removing the inactive cuts is needed to allow the emptyness test
-    // remove_inactive_cuts();
-
-    // // 
-    // if ( cuts.empty() )
-    //     _empty = true;
 }
 
 bool Cell::_became_bounded() {
@@ -572,7 +578,7 @@ bool Cell::_became_bounded() {
 
     for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
-            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
+            auto edge_cuts = vertex_refs[ n0 ].without_index( ind_cut );
             PI &edge_op_id = edge_map[ edge_cuts ];
 
             if ( edge_op_id >= op_id )
@@ -586,7 +592,7 @@ bool Cell::_became_bounded() {
     for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
         bool found_edge_with_1_vertex = false;
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
-            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
+            auto edge_cuts = vertex_refs[ n0 ].without_index( ind_cut );
             if ( edge_map[ edge_cuts ] == op_id )
                 found_edge_with_1_vertex = true;
         } );
@@ -697,18 +703,26 @@ void Cell::remove_inactive_cuts() {
     if ( ! _bounded )
         return;
 
+    //
+    _remove_inactive_cuts( vertex_refs, cuts );
+}
+
+void Cell::_remove_inactive_cuts( auto &vertex_refs, auto &cuts ) {
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
     for( PI i = 0; i < nb_vertices(); ++i )
-        for( auto num_cut : vertex_refs[ i ].num_cuts )
+        for( auto num_cut : vertex_refs[ i ] ) 
             active_cuts[ num_cut ] = true;
 
     // update cuts + transform active_cuts as cut index correction
     PI nb_cuts = 0;
     for( PI num_cut = 0; num_cut < cuts.size(); ++num_cut ) {
         if ( active_cuts[ num_cut ] ) {
-            if ( nb_cuts != num_cut )
+            if ( nb_cuts != num_cut ) {
                 cuts[ nb_cuts ] = std::move( cuts[ num_cut ] );
+                if ( ! std::is_same_v<DECAYED_TYPE_OF(cuts),DECAYED_TYPE_OF(this->cuts)> )
+                    this->cuts[ nb_cuts ] = std::move( this->cuts[ num_cut ] );
+            }
             active_cuts[ num_cut ] = nb_cuts++;
         }
     }
@@ -716,8 +730,8 @@ void Cell::remove_inactive_cuts() {
     cuts.resize( nb_cuts );
 
     // num cuts
-    for( VertexRefs &v : vertex_refs )
-        for( auto &ind : v.num_cuts )
+    for( auto &v : vertex_refs )
+        for( auto &ind : v )
             ind = active_cuts[ ind ];
 }
 
@@ -747,7 +761,7 @@ void Cell::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1> &n
 
     for( PI32 n0 = 0; n0 < nb_vertices(); ++n0 ) {
         CtRange<0,nb_dims>::for_each_item( [&]( auto ind_cut ) {
-            auto edge_cuts = vertex_refs[ n0 ].num_cuts.without_index( ind_cut );
+            auto edge_cuts = vertex_refs[ n0 ].without_index( ind_cut );
             PI &edge_op_id = edge_map[ edge_cuts ];
 
             if ( edge_op_id >= op_id ) {
@@ -888,7 +902,7 @@ TF Cell::measure() const {
     TF res = 0;
     Vec<Vec<TF,nb_dims>,nb_dims> M;
     for( PI n = 0; n < nb_vertices(); ++n )
-        add_measure_rec( res, M, vertex_refs[ n ].num_cuts, n, op_id );
+        add_measure_rec( res, M, vertex_refs[ n ], n, op_id );
 
     TF coe = 1;
     for( int d = 2; d <= nb_dims; ++d )
@@ -904,7 +918,7 @@ void Cell::display_vtk( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>(
         Vec<VtkOutput::Pt> points;
         for( PI32 num_vertex : vertices ) {
             convex_function << conv( CtType<VtkOutput::TF>(), sp( vertex_coords[ num_vertex ], p0 ) - ( norm_2_p2( p0 ) - w0 ) / 2 );
-            is_outside << any( vertex_refs[ num_vertex ].num_cuts, [&]( PI32 num_cut ) { return cuts[ num_cut ].is_inf(); } );
+            is_outside << any( vertex_refs[ num_vertex ], [&]( PI32 num_cut ) { return cuts[ num_cut ].is_inf(); } );
             points << to_vtk( vertex_coords[ num_vertex ] );
         }
         return { { "convex_function", convex_function }, { "is_outside", is_outside } };

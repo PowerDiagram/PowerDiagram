@@ -22,7 +22,8 @@ PD_CLASS_DECL_AND_USE( Cell );
 class PD_NAME( Cell ) { STD_TL_TYPE_INFO( Cell, "", vertex_coords, vertex_refs, _empty, cuts )
 public:
     using                        VertexCoords                = SimdTensor<TF,nb_dims>;
-      
+    using                        VertexRef                   = Vec<PI32,nb_dims>;
+
     /**/                         PD_NAME( Cell )             ( const Cell &that );
     /**/                         PD_NAME( Cell )             ();
   
@@ -53,7 +54,7 @@ public:
     TF                           height                      ( const Pt &point ) const;
   
     VertexCoords                 vertex_coords;              ///< positions of the vertices
-    Vec<VertexRefs>              vertex_refs;                ///< [num_cut] fir each vertex
+    Vec<VertexRef>               vertex_refs;                ///< [num_cut] for each vertex
     Vec<Cut>                     cuts;                       ///< some of them may be inactive
   
     #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS  
@@ -66,11 +67,13 @@ public:
     PI                           i0;                         ///< dirac index
   
 private:  
-    template<int i> class        NumCutMapForDim             { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
+    template<int d> class        NumCutMapForDim             { public: MapOfUniquePISortedArray<d,PI32,PI> map; };
     using                        NumCutMap                   = RangeOfClasses<NumCutMapForDim,0,nb_dims>;
   
-    template<int i> class        SubVerticesForDim           { public: Vec<Vec<BigRational,nb_dims>,i> base; Vec<Vec<BigRational,nb_dims>> cut_dirs; Vec<BigRational> cut_offs; Vec<Vec<TF,i>> vertex_coords; Vec<Vec<PI32,i>> vertex_refs; };
-    using                        SubVertices                 = RangeOfClasses<SubVerticesForDim,0,nb_dims>;
+    template<int d> struct       LowerDimCut                 { Vec<BigRational,d> dir; BigRational off; };
+
+    template<int d> class        LowerDimDataForDim          { public: Vec<Vec<BigRational,nb_dims>,d> base; Vec<Vec<TF,d>> vertex_coords; Vec<Vec<PI32,d>> vertex_refs; Vec<LowerDimCut<d>> cuts; };
+    using                        LowerDimData                = RangeOfClasses<LowerDimDataForDim,0,nb_dims>;
   
     void                         add_measure_rec             ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;
     void                         add_measure_rec             ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
@@ -79,20 +82,20 @@ private:
     Pt                           compute_pos                 ( const Pt &p0, const Pt &p1, TF s0, TF s1 ) const;
     Opt<Pt>                      compute_pos                 ( Vec<PI,nb_dims> num_cuts ) const;
   
+    void                         _remove_inactive_cuts       ( auto &vertex_refs, auto &cuts );
     void                         _remove_ext_vertices        ( PI old_nb_vertices ); ///< return new size
     void                         _add_cut_vertices           ( const Pt &dir, TF off, PI32 new_cut, PI old_nb_vertices );
     bool                         _all_inside                 ( const Pt &dir, TF off );
     void                         _get_sps                    ( const Pt &dir, TF off );
     void                         _cut                        ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
-    T_i void                     _vertex_phase_unbounded_cuts( CtInt<i> true_dim, const auto &sub_dir, TF sub_off, auto &coords, auto &refs );
+    T_i void                     _vertex_phase_unbounded_cuts( CtInt<i> true_nb_dims, const auto &dir, TF off, auto &vertex_coords, auto &vertex_refs, auto &cuts );
     bool                         _became_bounded             ();
     void                         _unbounded_cut              ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
   
     // intermediate data  
-  
     PI                           _true_dimensionnality;      ///< span of cuts[ ... ].dir
-    SubVertices                  _sub_vertices;              ///< vertex lists that are used when "true" dimensionnality is not yet nb_dims
+    LowerDimData                 _lower_dim_data;            ///< data used when "true" dimensionnality is not yet nb_dims
     mutable NumCutMap            _num_cut_map;               ///<
     mutable PI                   _num_cut_oid;               ///< curr op id for num_cut_map
     bool                         _bounded;                   ///<
