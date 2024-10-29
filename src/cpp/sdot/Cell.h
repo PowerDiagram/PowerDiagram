@@ -5,6 +5,7 @@
 #include "MapOfUniquePISortedArray.h"
 #include "RangeOfClasses.h"
 #include "PrevCutInfo.h"
+#include "BigRational.h"
 #include "SimdTensor.h"
 #include "VertexRefs.h"
 #include "VtkOutput.h"
@@ -68,7 +69,7 @@ private:
     template<int i> class        NumCutMapForDim           { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
     using                        NumCutMap                 = RangeOfClasses<NumCutMapForDim,0,nb_dims>;
 
-    template<int i> class        SubVerticesForDim         { public: Vec<Vec<TF,i>> coords; Vec<Vec<PI32,i>> refs; };
+    template<int i> class        SubVerticesForDim         { public: Vec<Vec<BigRational,nb_dims>,i> base; Vec<Vec<TF,i>> vertex_coords; Vec<Vec<PI32,i>> vertex_refs; };
     using                        SubVertices               = RangeOfClasses<SubVerticesForDim,0,nb_dims>;
 
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;

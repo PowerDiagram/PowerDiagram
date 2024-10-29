@@ -11,15 +11,16 @@ BigRational::BigRational( BI num, BI den, SI64 exp ) : num( num ), den( den ), e
     normalize();
 }
 
-BigRational::BigRational( int num ) : BigRational( num, 1, 0 ) {
-}
-
 void BigRational::display( Displayer &ds ) const {
     ds.start_object();
     ds.append_attribute( "num", num );
     ds.append_attribute( "den", den );
     ds.append_attribute( "exp", exp );
     ds.end_object();
+}
+
+BigRational::operator bool() const {
+    return bool( num );
 }
 
 BigRational operator+( const BigRational &a, const BigRational &b ) {
@@ -143,13 +144,23 @@ void BigRational::normalize() {
     }
 }
 
-BigRational BigRationalFrom<FP64>::make( FP64 value ) {
+bool BigRationalInitFrom<FP64>::init( BigRational::BI &num, BigRational::BI &den, SI64 &exp, FP64 value ) {
     auto res = ( boost::multiprecision::cpp_int( 1 ) << 52 ) + ( reinterpret_cast<const PI64 &>( value ) & ( ( 1ul << 52 ) - 1 ) ); 
     SI64 bex = ( reinterpret_cast<const PI64 &>( value ) >> 52 ) & ( ( 1ul << 11 ) - 1 );
-    if ( bex == 0 )
-        return { 0, 1, 0 };
+
+    // zero ?
+    if ( bex == 0 ) {
+        num = 0;
+        den = 1;
+        exp = 0;
+        return false;
+    }
+
     bool sgn = reinterpret_cast<const PI64 &>( value ) & ( 1ul << 63 );
-    return { sgn ? - res : res, 1, bex - ( 1023 + 52 ) };
+    exp = bex - ( 1023 + 52 );
+    num = sgn ? - res : res;
+    den = 1;
+    return true;
 }
 
 } // namespace sdot

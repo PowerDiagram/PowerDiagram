@@ -2,11 +2,11 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <tl/support/Displayer.h>
-#include <Eigen/LU>
+#include <Eigen/Dense>
 #include <cmath>
 
 namespace sdot {
-T_T struct BigRationalFrom;
+T_T struct BigRationalInitFrom;
 
 /**
  * @brief a (slow) rational class represented as num / den * 2 ^ exp
@@ -19,11 +19,10 @@ public:
                         
     /**/               BigRational( Normalized, BI num = 0, BI den = 1, SI64 exp = 0 );
     /**/               BigRational( BI num = 0, BI den = 1, SI64 exp = 0 );
-    /**/               BigRational( int num );
+    /**/               BigRational( const auto &value ) requires requires ( BI b, SI64 e ) { BigRationalInitFrom<DECAYED_TYPE_OF( value )>::init( b, b, e, value ); } { if ( BigRationalInitFrom<DECAYED_TYPE_OF( value )>::init( num, den, exp, value ) ) normalize(); }
 
-    static BigRational from_value ( const auto &value ) { return BigRationalFrom<DECAYED_TYPE_OF( value )>::make( value ); }
-           
     void               display    ( Displayer &ds ) const;
+    explicit operator  bool       () const;
 
     T_T T              to         () const { using std::pow; return T( num ) * pow( T( 2 ), exp ) / T( den ); }
 
@@ -56,7 +55,16 @@ private:
     SI64               exp;
 };
 
-template<> struct BigRationalFrom<FP64> { static BigRational make( FP64 value ); };
+template<class I> requires std::is_integral_v<I> struct BigRationalInitFrom<I> {
+    static bool init( BigRational::BI &num, BigRational::BI &den, SI64 &exp, const I &value ) {
+        num = value;
+        den = 1;
+        exp = 0;
+        return false;
+    }
+};
+
+template<> struct BigRationalInitFrom<FP64> { static bool init( BigRational::BI &num, BigRational::BI &den, SI64 &exp, FP64 value ); };
 
 } // namespace sdot
 

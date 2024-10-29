@@ -6,27 +6,6 @@
 using namespace sdot;
 using BR = BigRational;
 
-namespace Eigen {
-    template<> struct NumTraits<BR> : GenericNumTraits<BR> {
-        typedef BR Real;
-        typedef BR NonInteger;
-        typedef BR Nested;
-        static inline Real epsilon() { return 0; }
-        static inline Real dummy_precision() { return 0; }
-        static inline Real digits10() { return 0; }
-
-        enum {
-            IsInteger = 0,
-            IsSigned = 1,
-            IsComplex = 0,
-            RequireInitialization = 1,
-            ReadCost = 6,
-            AddCost = 150,
-            MulCost = 100
-        };
-    };
-}
-
 TEST_CASE( "BigRational ctors", "" ) {
     P( BR() );
     P( BR( 2 ) / BR( 4 ) );
@@ -37,17 +16,17 @@ TEST_CASE( "BigRational ctors", "" ) {
     P( ( BR( 2 ) + BR( 8 ) ).to<SI32>() );
     P( ( BR( 2 ) + BR( 8 ) ).to<FP64>() );
 
-    P( BR::from_value( +0.5 ) );
-    P( BR::from_value( -0.5 ) );
-    P( BR::from_value( +2.5 ) );
-    P( BR::from_value( -2.5 ) );
-    P( BR::from_value( 10.0 ) );
-    P( BR::from_value( 11.0 ) );
-    P( BR::from_value( +0.0 ) );
-    P( BR::from_value( -0.0 ) );
+    P( BR( +0.5 ) );
+    P( BR( -0.5 ) );
+    P( BR( +2.5 ) );
+    P( BR( -2.5 ) );
+    P( BR( 10.0 ) );
+    P( BR( 11.0 ) );
+    P( BR( +0.0 ) );
+    P( BR( -0.0 ) );
 
-    P( abs( BR::from_value( +0.5 ) ) );
-    P( abs( BR::from_value( -0.5 ) ) );
+    P( abs( BR( +0.5 ) ) );
+    P( abs( BR( -0.5 ) ) );
 
     BR a( 1, 2 );
     a += 5;
