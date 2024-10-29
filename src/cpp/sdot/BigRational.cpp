@@ -110,6 +110,9 @@ BigRational &BigRational::operator/=( const BigRational &that ) {
     return *this;
 }
 
+BigRational BigRational::operator-() const {
+    return { Normalized(), -num, den, exp };
+}
 
 BigRational abs( const BigRational &a ) {
     return { BigRational::Normalized(), boost::multiprecision::abs( a.num ), a.den, a.exp };

@@ -2,6 +2,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <tl/support/Displayer.h>
+#include <Eigen/LU>
 #include <cmath>
 
 namespace sdot {
@@ -45,6 +46,8 @@ public:
     BigRational&       operator*= ( const BigRational &that );
     BigRational&       operator/= ( const BigRational &that );
 
+    BigRational        operator-  () const;
+
 private:
     void               normalize  ();
 
@@ -56,3 +59,25 @@ private:
 template<> struct BigRationalFrom<FP64> { static BigRational make( FP64 value ); };
 
 } // namespace sdot
+
+namespace Eigen {
+    template<> struct NumTraits<sdot::BigRational> : GenericNumTraits<sdot::BigRational> {
+        typedef sdot::BigRational NonInteger;
+        typedef sdot::BigRational Nested;
+        typedef sdot::BigRational Real;
+
+        static inline Real dummy_precision() { return 0; }
+        static inline Real digits10() { return 0; }
+        static inline Real epsilon() { return 0; }
+
+        enum {
+            IsInteger = 0,
+            IsSigned = 1,
+            IsComplex = 0,
+            RequireInitialization = 1,
+            ReadCost = 6,
+            AddCost = 150,
+            MulCost = 100
+        };
+    };
+}

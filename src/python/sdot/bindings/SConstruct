@@ -98,6 +98,7 @@ sources = [
     "build/src/cpp/sdot/PavingWithDiracs.cpp",
     "build/src/cpp/sdot/RegularGrid.cpp",
     
+    "build/src/cpp/sdot/BigRational.cpp",
     "build/src/cpp/sdot/VtkOutput.cpp",
     "build/src/cpp/sdot/Cell.cpp",
     "build/src/cpp/sdot/Mpi.cpp",

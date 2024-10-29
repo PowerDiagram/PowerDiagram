@@ -28,17 +28,17 @@ Cell::PD_NAME( Cell )( const Cell &that ) : Cell() {
 }
 
 Cell::PD_NAME( Cell )() {
+    _true_dimensionnality = 0;
+    _sub_vertices.for_each_item( []( auto &obj ) { obj.coords.reserve( 2 * nb_dims ); obj.refs.reserve( 2 * nb_dims ); } );
+    _num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
+    _num_cut_oid = 1;
+    _bounded = false;
+    _empty = false;
+    _sps.aligned_reserve( 128, CtInt<VertexCoords::simd_size * sizeof( TF )>() );
+
     vertex_coords.reserve( 128 );
     vertex_refs.reserve( 128 );
     cuts.reserve( 128 );
-
-    sps.aligned_reserve( 128, CtInt<VertexCoords::simd_size * sizeof( TF )>() );
-
-    num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
-    num_cut_oid = 1;
-
-    _bounded = false;
-    _empty = false;
 }
 
 void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
@@ -61,9 +61,14 @@ void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
         min_pos = that.min_pos;
         max_pos = that.max_pos;
     #endif
+
+    // sub vertices
+    _true_dimensionnality = that._true_dimensionnality;
+    if ( that._true_dimensionnality != nb_dims )
+        _sub_vertices = that._sub_vertices;
 }
 
-// void Cell::init_geometry_to_encompass( const Pt &mi, const Pt &ma ) {
+// Cell Cell::simplex( const Pt &mi, const Pt &ma ) {
 //     // first value. max_pos will be updated
 //     min_pos = mi - ( ma - mi ) / 2;
 //     max_pos = ma + ( ma - mi ) / 2;
@@ -149,7 +154,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
     using SimdVec = VertexCoords::SimdVec;
 
     if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
-        sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
+        _sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     bool has_ext = false;
     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
@@ -159,7 +164,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
             for( ; num_vertex < nb_vertices(); ++num_vertex ) {
                 TF csp = sp( vertex_coords[ num_vertex ], dir ) - off;
                 if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
-                    sps[ num_vertex ] = csp;
+                    _sps[ num_vertex ] = csp;
                 has_ext |= csp > 0;
             }
             return ! has_ext;
@@ -172,7 +177,7 @@ bool Cell::_all_inside( const Pt &dir, TF off ) {
             csp += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
         if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 0 )
-            csp.store_aligned( sps.data() + num_vertex );
+            csp.store_aligned( _sps.data() + num_vertex );
         has_ext |= asimd::any( csp > 0 );
     }
 
@@ -204,7 +209,7 @@ void Cell::_get_sps( const Pt &dir, TF off ) {
     constexpr PI simd_size = VertexCoords::simd_size;
     using SimdVec = VertexCoords::SimdVec;
 
-    sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
+    _sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     const PI floor_of_nb_vertices = nb_vertices() / simd_size * simd_size;
     for( PI num_vertex = 0; num_vertex < floor_of_nb_vertices; num_vertex += simd_size ) {
@@ -213,23 +218,23 @@ void Cell::_get_sps( const Pt &dir, TF off ) {
         for( int d = 1; d < nb_dims; ++d )
             s += SimdVec::load_aligned( ptr + d * simd_size ) * dir[ d ];
 
-        s.store_aligned( sps.data() + num_vertex );
+        s.store_aligned( _sps.data() + num_vertex );
     }
 
     for( PI num_vertex = floor_of_nb_vertices; num_vertex < nb_vertices(); ++num_vertex )
-        sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
+        _sps[ num_vertex ] = sp( vertex_coords[ num_vertex ], dir ) - off;
 }
 
 PI Cell::new_cut_oid( PI s ) const {
     // reservation for the test
-    ++num_cut_oid;
+    ++_num_cut_oid;
 
     // + room for some PI data
-    return std::exchange( num_cut_oid, num_cut_oid + s );
+    return std::exchange( _num_cut_oid, _num_cut_oid + s );
 }
 
 TF Cell::for_each_cut_with_measure( const std::function<void( const Cut &cut, TF measure )> &f ) const {
-    num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
+    _num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( nb_vertices() );
 
     Vec<TF> measure_for_each_cut( FromSizeAndItemValue(), cuts.size(), 0 );
@@ -279,7 +284,7 @@ void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
     PI new_size = nb_vertices(), i = 0;
     while( true ) {
         // find an ext vertex
-        while ( ! ( sps[ i ] > 0 ) ) {
+        while ( ! ( _sps[ i ] > 0 ) ) {
             if ( ++i >= old_nb_vertices ) {
                 vertex_coords.resize( new_size );
                 vertex_refs.resize( new_size );
@@ -306,7 +311,7 @@ void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
     // second phase: use of the old nodes
     while( true ) {
         // find an ext vertex
-        while ( ! ( sps[ i ] > 0 ) ) {
+        while ( ! ( _sps[ i ] > 0 ) ) {
             if ( ++i >= new_size ) {
                 vertex_coords.resize( new_size );
                 vertex_refs.resize( new_size );
@@ -322,7 +327,7 @@ void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
                 return;
             }
             
-            if ( ! ( sps[ new_size ] > 0 ) )
+            if ( ! ( _sps[ new_size ] > 0 ) )
                 break;
         }
 
@@ -340,12 +345,12 @@ void Cell::_remove_ext_vertices( PI old_nb_vertices ) {
 
 void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_vertices ) {
     // prepare an edge map to get the first vertex the second time one sees a given edge
-    auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    auto &edge_map = _num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
     if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 2 )
-        sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
+        _sps.aligned_reserve( nb_vertices(), CtInt<VertexCoords::simd_size * sizeof( TF )>() );
 
     // preparation for the new bounds 
     #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
@@ -361,9 +366,9 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_ver
 
         if constexpr ( SDOT_CONFIG_PHASE_OF_SPS == 2 ) {
             s0 = sp( p0, dir ) - off;
-            sps[ n0 ] = s0;
+            _sps[ n0 ] = s0;
         } else
-            s0 = sps[ n0 ];
+            s0 = _sps[ n0 ];
         const bool e0 = s0 > 0;
 
         // if ext, move the vertex ref to [ new inactive vertices ]
@@ -383,7 +388,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_ver
             if ( edge_op_id >= op_id ) {
                 const PI32 n1 = edge_op_id - op_id;
                 const Pt   p1 = vertex_coords[ n1 ];
-                const TF   s1 = sps[ n1 ];
+                const TF   s1 = _sps[ n1 ];
                 const bool e1 = s1 > 0;
 
                 if ( e0 != e1 ) {
@@ -411,7 +416,7 @@ void Cell::_add_cut_vertices( const Pt &dir, TF off, PI32 new_cut, PI old_nb_ver
 void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 num_in_paving_item ) {
     // 
     if ( ! _bounded )
-        return _cut_unbounded( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
+        return _unbounded_cut( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 
     // test if all points are inside, make the TF products and get used cuts
     if ( _all_inside( dir, off ) )
@@ -436,9 +441,49 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
         _empty = true;
 }
 
-void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
+template<int true_dim>
+void Cell::_clean_unbounded_cuts( CtInt<true_dim>, const auto &sub_dir, TF sub_off, auto &coords, auto &refs ) {
+
+}
+
+void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr ) {
     if ( _empty )
         return;
+
+    // update _true_dimensionnality
+    if ( _true_dimensionnality < nb_dims ) {
+        CtRange<0,nb_dims>::for_each_item( [&]( auto td ) {
+            if ( td == _true_dimensionnality ) {
+                auto &sv = _sub_vertices[ td ];
+
+                // determinant of the covariant matrix
+                using TM = Eigen::Matrix<BigRational,nb_dims+1,nb_dims+1>;
+                using TV = Eigen::Matrix<BigRational,nb_dims+1,1>;
+
+                TM m = TM::Zero();
+                TV v = TV::Zero();
+            }
+        } );
+    }
+
+    // add the new cut
+    cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
+
+    //
+    if ( _true_dimensionnality < nb_dims ) {
+        CtRange<0,nb_dims>::for_each_item( [&]( auto td ) {
+            if ( td == _true_dimensionnality ) {
+                auto &sv = _sub_vertices[ td ];
+                _clean_unbounded_cuts( td, sub_dir, sub_off, sv.coords, sv.refs );
+            }
+        } );
+    } else {
+        _clean_unbounded_cuts( CtInt<nb_dims>(), dir, off, vertex_coords, vertex_refs );
+        if ( _became_bounded() )
+            _bounded = true;
+    }
+
+
 
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < nb_vertices(); ++num_vertex ) {
@@ -485,17 +530,15 @@ void Cell::_cut_unbounded( CutType type, const Pt &dir, TF off, const Pt &p1, TF
         _empty = true;
 
     // check if still unbounded
-    if ( _became_bounded() )
-        _bounded = true;
 }
 
 bool Cell::_became_bounded() {
-    // we need some vertices
-    if ( nb_vertices() < nb_dims + 1 )
+    // it can't be bounded if span of the cut dirs is not large enough
+    if ( _true_dimensionnality < nb_dims )
         return false;
 
     // get the number of vertices for each edge
-    auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    auto &edge_map = _num_cut_map[ CtInt<nb_dims-1>() ].map;
     edge_map.prepare_for( cuts.size() );
     const PI op_id = new_cut_oid( 2 );
 
@@ -527,41 +570,104 @@ bool Cell::_became_bounded() {
     return true;
 }
 
-void Cell::_remove_inactive_cuts_ubnd() {
-    using TM = Eigen::Matrix<TF,nb_dims,nb_dims>;
-    using TV = Eigen::Matrix<TF,nb_dims,1>;
+// void Cell::_remove_inactive_cuts_ubnd() {
+//     using TM = Eigen::Matrix<BigRational,nb_dims+1,nb_dims+1>;
+//     using TV = Eigen::Matrix<BigRational,nb_dims+1,1>;
 
-    // for each cut, if the inverted cut would lead to an empty cell, we can remove the cut
-    for( PI n0 = 0; n0 < cuts.size(); ++n0 ) {
-        TM m;
-        TV v;
-        for( PI i = 0; i < nb_dims; ++i ) {
-            for( PI j = 0; j < nb_dims; ++j )
-                m.coeffRef( i, j ) = 0;
-            v[ i ] = 0;
-        }
+//     // for each cut, if the inverted cut would lead to an empty cell, we can remove the cut
 
-        for( PI n1 = 0; n1 < cuts.size(); ++n1 ) {
-            TF c = ( n1 == n0 ? -1 : 1 );
-            for( PI i = 0; i < nb_dims; ++i ) {
-                for( PI j = 0; j < nb_dims; ++j )
-                    m.coeffRef( i, j ) += c * cuts[ n1 ].dir[ i ] * cuts[ n1 ].dir[ j ];
-                v[ i ] += c * cuts[ n1 ].off;
-            }
-        }
+//     // la proposition, c'est de chercher un point qui soit au mieux sur tous les autres cuts
+//     // et qui soit exactement sur le cut qu'on teste.
+//     // si ce point est strictement extérieur, ça veut dire ou bien 
+//     //  * que la coupe ne sert à rien
+//     //  * que la coupe élimine tout. On pourra se baser sur le signe du multiplicateur pour le déterminer
+//     // si ce point est strictement intérieur, 
+//     //  * la coupe est utile
+//     // si ce point est strictement sur un bord,
+//     //  * soit le système n'est pas assez contraint et le nouveau cut ajoute une contrainte utile
+//     //  * soit le système est assez contraint et
+//     //    * 
+    
 
-        Eigen::FullPivLU<TM> lu( m );
-        TV x = lu.solve( v );
-        TODO;
-        return Pt(  );
 
-    }
-}
+//     // Si les autres coupes
+    
+//     // Rq: on ne teste par les orientation
+//     for( PI n0 = 0; n0 < cuts.size(); ++n0 ) {
+//         TM m = TM::Zero();
+//         TV v = TV::Zero();
+
+//         // constraint
+//         for( PI i = 0; i < nb_dims; ++i ) {
+//             m.coeffRef( i, nb_dims ) = BigRational::from_value( cuts[ n0 ].dir[ i ] );
+//             m.coeffRef( nb_dims, i ) = BigRational::from_value( cuts[ n0 ].dir[ i ] );
+//             v[ i ] = BigRational::from_value( cuts[ n0 ].off );
+//         }
+
+//         // sum dist^2
+//         for( PI n1 = 0; n1 < cuts.size(); ++n1 ) {
+//             if ( n1 == n0 )
+//                 continue;
+//             for( PI i = 0; i < nb_dims; ++i ) {
+//                 for( PI j = 0; j < nb_dims; ++j )
+//                     m.coeffRef( i, j ) += BigRational::from_value( cuts[ n1 ].dir[ i ] ) * BigRational::from_value( cuts[ n1 ].dir[ j ] );
+//                 v[ i ] += BigRational::from_value( cuts[ n1 ].dir[ i ] ) * BigRational::from_value( cuts[ n1 ].off );
+//             }
+//         }
+
+//         // solve
+//         Eigen::FullPivLU<TM> lu( m );
+//         TV x = lu.solve( v );
+
+//         P( cuts.size() );
+//         P( map_vec( x, []( auto v ) { return v.template to<double>(); } ) ); 
+
+//         // helper to test relative position of the solution. s < 0 => interior, s == 0 => boundary, s > 0 => exterior
+//         auto sgn_tst = [&]() {
+//             int res = -1;
+
+//             for( PI n1 = 0; n1 < cuts.size(); ++n1 ) {
+//                 if ( n1 == n0 )
+//                     continue;
+//                 auto s = - BigRational::from_value( cuts[ n1 ].off );
+//                 for( PI d = 0; d < nb_dims; ++d )
+//                     s += BigRational::from_value( cuts[ n1 ].dir[ d ] ) * x[ d ];
+//                 P( n1, s );
+
+//                 if ( s > 0 )
+//                     return 1;
+
+//                 if ( s == 0 )
+//                     res = 0;
+//             }
+
+//             return res;
+//         };
+
+//         // purely interior => this cut is useful
+//         int sgn = sgn_tst();
+//         if ( sgn < 0 )
+//             continue;
+
+//         // purely exterior =>
+//         if ( sgn > 0 ) {
+//             TODO;
+//         }
+
+//         // boundary =>
+//         //  
+//         P( lu.dimensionOfKernel() );
+//         P( map_vec( m.row( 0 ), []( auto v ) { return v.template to<double>(); } ) ); 
+//         P( map_vec( m.row( 1 ), []( auto v ) { return v.template to<double>(); } ) ); 
+//         P( map_vec( m.row( 2 ), []( auto v ) { return v.template to<double>(); } ) ); 
+//         TODO;
+//     }
+// }
 
 void Cell::remove_inactive_cuts() {
-    //
+    // if not bounded, the inactive cuts are removed by construction
     if ( ! _bounded )
-        return _remove_inactive_cuts_ubnd();
+        return;
 
     // update active_cuts
     Vec<PI32> active_cuts( FromSizeAndItemValue(), cuts.size(), false );
@@ -606,20 +712,8 @@ void Cell::cut_dirac( const Pt &p1, TF w1, PI i1, PavingItem *paving_item, PI32 
     _cut( CutType::Dirac, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
 }
 
-// bool Cell::test_each_vertex( const std::function<bool( const Vertex &vertex )> &f ) const {
-//     for( PI32 i = 0; i < nb_active_vertices; ++i )
-//         if ( f( vertices[ vertex_indices[ i ] ] ) )
-//             return true;
-//     return false;
-// }
-
-// void Cell::for_each_vertex( const std::function<void( const Vertex &vertex )> &f ) const {
-//     for( PI32 i = 0; i < nb_active_vertices; ++i )
-//         f( vertices[ vertex_indices[ i ] ] );
-// }
-
 void Cell::for_each_edge( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> num_vertices )> &f ) const {
-    auto &edge_map = num_cut_map[ CtInt<nb_dims-1>() ].map;
+    auto &edge_map = _num_cut_map[ CtInt<nb_dims-1>() ].map;
     const PI op_id = new_cut_oid( nb_vertices() );
     edge_map.prepare_for( cuts.size() );
 
@@ -683,7 +777,7 @@ void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_
     using std::abs;
     using std::pow;
 
-    if constexpr ( constexpr PI c = num_cuts.ct_size ) {
+    if constexpr ( constexpr PI c = DECAYED_TYPE_OF( num_cuts )::ct_size ) {
         //
         if ( c == 1 ) {
             Vec<Vec<TF,nb_dims-1>,nb_dims> woc( FromInitFunctionOnIndex(), [&]( Vec<TF,nb_dims-1> *v, PI i ) {
@@ -704,7 +798,7 @@ void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_
             auto next_num_cuts = num_cuts.without_index( n );
 
             // vertex choice for this item
-            auto &iv = num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
+            auto &iv = _num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
             if ( iv < op_id ) {
                 iv = op_id + prev_vertex;
                 return;
@@ -730,13 +824,13 @@ void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_
 void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const {
     using std::abs;
 
-    if constexpr ( constexpr PI c = num_cuts.ct_size ) {
+    if constexpr ( constexpr PI c = DECAYED_TYPE_OF( num_cuts )::ct_size ) {
         CtRange<0,c>::for_each_item( [&]( auto n ) {
             // next item ref
             auto next_num_cuts = num_cuts.without_index( n );
 
             // vertex choice for this item
-            auto &iv = num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
+            auto &iv = _num_cut_map[ CtInt<c-1>() ].map[ next_num_cuts ];
             if ( iv < op_id ) {
                 iv = op_id + prev_vertex;
                 return;
@@ -760,7 +854,7 @@ void Cell::add_measure_rec( auto &res, auto &M, const auto &num_cuts, PI32 prev_
 }
 
 TF Cell::measure() const {
-    num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
+    _num_cut_map.for_each_item( [&]( auto &obj ) { obj.map.prepare_for( cuts.size() ); } );
     PI op_id = new_cut_oid( nb_vertices() );
 
     TF res = 0;
@@ -826,17 +920,6 @@ void Cell::display_vtk( VtkOutput &vo ) const {
             res[ i ] = 0;
         return res;
     } );
-}
-
-bool Cell::is_inf() const {
-    if ( nb_vertices() == 0 )
-        return true;
-    TODO;
-    // for( const auto &num_cuts : vertex_refs )
-    //     for( auto num_cut : num_cuts )
-    //         if ( cuts[ num_cut ].is_inf() )
-    //             return true;
-    return false;
 }
 
 bool Cell::contains( const Pt &x ) const {

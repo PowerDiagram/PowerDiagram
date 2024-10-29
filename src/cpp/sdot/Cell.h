@@ -27,36 +27,32 @@ public:
 
     void                         init_from                 ( const Cell &that, const Pt &p0, TF w0, PI i0 );
 
-    void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
-    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, PavingItem *paving_item = nullptr, PI32 num_in_paving_item = 0 );
-
     void                         remove_inactive_cuts      ();
     void                         memory_compaction         ();
+    void                         cut_boundary              ( const Pt &dir, TF off, PI num_boundary );
+    void                         cut_dirac                 ( const Pt &p1, TF w1, PI i1, PavingItem *paving_item = nullptr, PI32 num_in_paving_item = 0 );
  
+    void                         get_prev_cut_info         ( PrevCutInfo &pci );
     void                         for_each_edge             ( const std::function<void( const Vec<PI32,nb_dims-1> &num_cuts, Span<PI32,2> vertices )> &f ) const;
     void                         for_each_face             ( const std::function<void( const Vec<PI32,nb_dims-2> &num_cuts, Span<PI32> vertices )> &f ) const;
  
     void                         display_vtk               ( VtkOutput &vo, const std::function<Vec<VtkOutput::TF,3>( const Pt &pt )> &to_vtk ) const; ///<
     void                         display_vtk               ( VtkOutput &vo ) const; ///<
 
-    PI                           nb_vertices               () const { return vertex_refs.size(); }
-    PI                           nb_cuts                   () const { return cuts.size(); }
-
-    bool                         bounded                   () const { return _bounded; }
- 
-    void                         get_prev_cut_info         ( PrevCutInfo &pci );
-
     // areas/...
     TF                           for_each_cut_with_measure ( const std::function<void( const Cut &cut, TF measure )> &f ) const;
     TF                           measure                   () const;
 
-    bool                         contains                  ( const Pt &x ) const;
-    bool                         is_inf                    () const;
-    TF                           height                    ( const Pt &point ) const;
+    PI                           nb_vertices               () const { return vertex_refs.size(); }
+    PI                           nb_cuts                   () const { return cuts.size(); }
+    bool                         bounded                   () const { return _bounded; }
     bool                         empty                     () const;
 
-    VertexCoords                 vertex_coords;
-    Vec<VertexRefs>              vertex_refs;
+    bool                         contains                  ( const Pt &point ) const;
+    TF                           height                    ( const Pt &point ) const;
+
+    VertexCoords                 vertex_coords;            ///< positions of the vertices
+    Vec<VertexRefs>              vertex_refs;              ///< [num_cut] fir each vertex
     Vec<Cut>                     cuts;                     ///< some of them may be inactive
 
     #if SDOT_CONFIG_AABB_BOUNDS_ON_CELLS
@@ -64,13 +60,16 @@ public:
     Pt                           max_pos;                  ///<
     #endif
     
-    Pt                           p0;                       ///<
-    TF                           w0;                       ///<
-    PI                           i0;                       ///<
+    Pt                           p0;                       ///< dirac pos
+    TF                           w0;                       ///< dirac weight
+    PI                           i0;                       ///< dirac index
 
 private:
-    template<int i> class        MapOfNumCuts              { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
-    using                        NumCutMap                 = RangeOfClasses<MapOfNumCuts,0,nb_dims>;
+    template<int i> class        NumCutMapForDim           { public: MapOfUniquePISortedArray<i,PI32,PI> map; };
+    using                        NumCutMap                 = RangeOfClasses<NumCutMapForDim,0,nb_dims>;
+
+    template<int i> class        SubVerticesForDim         { public: Vec<Vec<TF,i>> coords; Vec<Vec<PI32,i>> refs; };
+    using                        SubVertices               = RangeOfClasses<SubVerticesForDim,0,nb_dims>;
 
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;
     void                         add_measure_rec           ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id ) const;
@@ -85,16 +84,19 @@ private:
     void                         _get_sps                  ( const Pt &dir, TF off );
     void                         _cut                      ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
-    void                         _remove_inactive_cuts_ubnd();
+    T_i void                     _clean_unbounded_cuts     ( CtInt<i> true_dim, const auto &sub_dir, TF sub_off, auto &coords, auto &refs );
     bool                         _became_bounded           ();
-    void                         _cut_unbounded            ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
+    void                         _unbounded_cut            ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
 
     // intermediate data
-    mutable NumCutMap            num_cut_map;              ///<
-    mutable PI                   num_cut_oid;              ///< curr op id for num_cut_map
+
+    PI                           _true_dimensionnality;    ///< span of cuts[ ... ].dir
+    SubVertices                  _sub_vertices;            ///< vertex lists that are used when "true" dimensionnality is not yet nb_dims
+    mutable NumCutMap            _num_cut_map;             ///<
+    mutable PI                   _num_cut_oid;             ///< curr op id for num_cut_map
     bool                         _bounded;                 ///<
     bool                         _empty;                   ///<
-    Vec<TF>                      sps;                      ///< scalar products for each vertex
+    Vec<TF>                      _sps;                     ///< scalar products for each vertex
 };
 
 } // namespace sdot
