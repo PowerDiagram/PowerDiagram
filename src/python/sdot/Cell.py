@@ -15,7 +15,7 @@ class Cell:
 
     def __repr__( self ):
         return self._cell.__repr__()
-    
+
     @property
     def nb_vertices( self ):
         return self._cell.nb_vertices
@@ -31,6 +31,10 @@ class Cell:
     @property
     def empty( self ):
         return self._cell.empty
+    
+    @property
+    def true_dimensionality( self ):
+        return self._cell.true_dimensionality
 
     def cut_boundary( self, dir, val, ind = 0 ):
         return self._cell.cut_boundary( np.ascontiguousarray( dir ), val, int( ind ) )

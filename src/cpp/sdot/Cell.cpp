@@ -15,10 +15,7 @@
 #include <tl/support/conv.h>
  
 #include <Eigen/LU>
-#include <type_traits>
 
-#include "sdot/BigRational.h"
-#include "sdot/VertexRefs.h"
 #include "sdot/Config.h"
 
 #include "Cell.h"
@@ -30,6 +27,7 @@ Cell::PD_NAME( Cell )( const Cell &that ) : Cell() {
 }
 
 Cell::PD_NAME( Cell )() {
+    _may_have_unused_cuts = false;
     _true_dimensionnality = 0;
     _lower_dim_data.for_each_item( []( auto &obj ) { obj.vertex_coords.reserve( 2 * nb_dims ); obj.vertex_refs.reserve( 2 * nb_dims ); } );
     _num_cut_map.for_each_item( []( auto &obj ) { obj.map.prepare_for( 128 ); } );
@@ -56,6 +54,7 @@ void Cell::init_from( const Cell &that, const Pt &p0, TF w0, PI i0 ) {
     vertex_refs = that.vertex_refs;
 
     // cuts
+    _may_have_unused_cuts = that._may_have_unused_cuts;
     cuts = that.cuts;
 
     // limits
@@ -263,6 +262,12 @@ TF Cell::for_each_cut_with_measure( const std::function<void( const Cut &cut, TF
     return res / coe;
 }
 
+PI Cell::nb_cuts() {
+    if ( _may_have_unused_cuts )
+        remove_inactive_cuts();
+    return cuts.size();
+}
+
 void Cell::get_prev_cut_info( PrevCutInfo &pci ) {
     memory_compaction();
 
@@ -433,6 +438,7 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
 
     // store the new cut
     PI new_cut = cuts.push_back_ind( type, dir, off, p1, w1, i1, paving_item, num_in_paving_item );
+    _may_have_unused_cuts = true;
 
     // make the new vertices + deref the ext ones
     PI old_nb_vertices = nb_vertices();
@@ -448,6 +454,8 @@ void Cell::_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1
 
 template<int true_nb_dims>
 void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, TF off, auto &vertex_coords, auto &vertex_refs, auto &cuts ) {
+    P( __LINE__, vertex_refs, vertex_coords, dir, off );
+
     // remove vertices that are outside the cut
     for( PI num_vertex = 0; num_vertex < vertex_coords.size(); ++num_vertex ) {
         if ( sp( vertex_coords[ num_vertex ], dir ) > off ) {
@@ -456,6 +464,8 @@ void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, T
             --num_vertex;
         }
     }
+
+    P( __LINE__, vertex_refs );
 
     // create the new vertices (from all the new cut combinations)
     const PI new_cut = this->cuts.size() - 1;
@@ -483,12 +493,10 @@ void Cell::_vertex_phase_unbounded_cuts( CtInt<true_nb_dims>, const auto &dir, T
         }, true_nb_dims - 1, new_cut );
     }
 
-    P( vertex_coords );
-    P( vertex_refs );
-    P( cuts );
-
     // removing the inactive cuts is needed to allow the emptyness test
     _remove_inactive_cuts( vertex_refs, cuts );
+
+    P( __LINE__, vertex_refs );
 
     // 
     if ( cuts.empty() )
@@ -508,12 +516,12 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
             auto &sv = _lower_dim_data[ td ];
 
             // remove directions of the previous cuts
-            Vec<BigRational,nb_dims> new_base_item = dir;
+            Vec<BR,nb_dims> new_base_item = dir;
             for( const auto &dir : sv.base )
                 new_base_item = new_base_item - sp( dir, new_base_item ) / norm_2_p2( dir ) * dir;
 
             // if independant, we have a new dimension => move the base + the cuts to the right _lower_dim_data 
-            if ( BigRational n1 = norm_1( new_base_item ) ) {
+            if ( BR n1 = norm_1( new_base_item ) ) {
                 ++_true_dimensionnality;
 
                 if constexpr ( td.value + 1 < nb_dims ) {
@@ -535,8 +543,6 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
         } );
     }
 
-    P( _true_dimensionnality );
-
     // add the new cut
     cuts.push_back_ind( type, dir, off, p1, w1, i1, ptr, num_in_ptr );
 
@@ -550,12 +556,11 @@ void Cell::_unbounded_cut( CutType type, const Pt &dir, TF off, const Pt &p1, TF
             auto &sv = _lower_dim_data[ td ];
 
             // add cut info in _lower_dim_data
-            auto ndir = Vec<BigRational,td>{ FromInitFunctionOnIndex(), [&]( BigRational *b, PI i ) {
-                new ( b ) BigRational( sp( sv.base[ i ], dir ) / norm_2_p2( sv.base[ i ] ) );
+            auto ndir = Vec<BR,td>{ FromInitFunctionOnIndex(), [&]( BR *b, PI i ) {
+                new ( b ) BR( sp( sv.base[ i ], dir ) / norm_2_p2( sv.base[ i ] ) );
             } };
-
+            BR noff = ;
             sv.cuts.push_back( ndir, off );
-            P( sv.base, ndir );
 
             //
             _vertex_phase_unbounded_cuts( td, ndir, off, sv.vertex_coords, sv.vertex_refs, sv.cuts );
@@ -611,8 +616,8 @@ bool Cell::_became_bounded() {
 }
 
 // void Cell::_remove_inactive_cuts_ubnd() {
-//     using TM = Eigen::Matrix<BigRational,nb_dims+1,nb_dims+1>;
-//     using TV = Eigen::Matrix<BigRational,nb_dims+1,1>;
+//     using TM = Eigen::Matrix<BR,nb_dims+1,nb_dims+1>;
+//     using TV = Eigen::Matrix<BR,nb_dims+1,1>;
 
 //     // for each cut, if the inverted cut would lead to an empty cell, we can remove the cut
 
@@ -639,9 +644,9 @@ bool Cell::_became_bounded() {
 
 //         // constraint
 //         for( PI i = 0; i < nb_dims; ++i ) {
-//             m.coeffRef( i, nb_dims ) = BigRational::from_value( cuts[ n0 ].dir[ i ] );
-//             m.coeffRef( nb_dims, i ) = BigRational::from_value( cuts[ n0 ].dir[ i ] );
-//             v[ i ] = BigRational::from_value( cuts[ n0 ].off );
+//             m.coeffRef( i, nb_dims ) = BR::from_value( cuts[ n0 ].dir[ i ] );
+//             m.coeffRef( nb_dims, i ) = BR::from_value( cuts[ n0 ].dir[ i ] );
+//             v[ i ] = BR::from_value( cuts[ n0 ].off );
 //         }
 
 //         // sum dist^2
@@ -650,8 +655,8 @@ bool Cell::_became_bounded() {
 //                 continue;
 //             for( PI i = 0; i < nb_dims; ++i ) {
 //                 for( PI j = 0; j < nb_dims; ++j )
-//                     m.coeffRef( i, j ) += BigRational::from_value( cuts[ n1 ].dir[ i ] ) * BigRational::from_value( cuts[ n1 ].dir[ j ] );
-//                 v[ i ] += BigRational::from_value( cuts[ n1 ].dir[ i ] ) * BigRational::from_value( cuts[ n1 ].off );
+//                     m.coeffRef( i, j ) += BR::from_value( cuts[ n1 ].dir[ i ] ) * BR::from_value( cuts[ n1 ].dir[ j ] );
+//                 v[ i ] += BR::from_value( cuts[ n1 ].dir[ i ] ) * BR::from_value( cuts[ n1 ].off );
 //             }
 //         }
 
@@ -669,9 +674,9 @@ bool Cell::_became_bounded() {
 //             for( PI n1 = 0; n1 < cuts.size(); ++n1 ) {
 //                 if ( n1 == n0 )
 //                     continue;
-//                 auto s = - BigRational::from_value( cuts[ n1 ].off );
+//                 auto s = - BR::from_value( cuts[ n1 ].off );
 //                 for( PI d = 0; d < nb_dims; ++d )
-//                     s += BigRational::from_value( cuts[ n1 ].dir[ d ] ) * x[ d ];
+//                     s += BR::from_value( cuts[ n1 ].dir[ d ] ) * x[ d ];
 //                 P( n1, s );
 
 //                 if ( s > 0 )
@@ -711,6 +716,7 @@ void Cell::remove_inactive_cuts() {
 
     //
     _remove_inactive_cuts( vertex_refs, cuts );
+    _may_have_unused_cuts = false;
 }
 
 void Cell::_remove_inactive_cuts( auto &vertex_refs, auto &cuts ) {

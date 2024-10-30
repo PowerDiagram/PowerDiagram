@@ -1,6 +1,17 @@
 from sdot import Cell
 import numpy
 
+def cut_and_check( c, dir, off ):
+    print( "---------------------", dir, off, "---------------------" )
+    c.cut_boundary( dir, off )
+
+    print( "true_dimensionality", c.true_dimensionality )
+    print( "nb_vertices", c.nb_vertices )
+    print( "nb_cuts", c.nb_cuts )
+    print( "bounded", c.bounded )
+    print( "empty", c.empty )
+
+
 def test_Cell_emptyness_bounded():
     c = Cell( ndim = 2 )
     assert c.nb_vertices == 0
@@ -48,29 +59,8 @@ def test_Cell_emptyness_unbounded():
     assert c.bounded == False
     assert c.empty == False
 
-    c.cut_boundary( [ 1, 1, 0 ], 1 )
-    print( "nb_vertices", c.nb_vertices )
-    print( "bounded", c.bounded )
-    print( "empty", c.empty )
-
-    c.cut_boundary( [ -1, 0, 0 ], 0 )
-    print( "nb_vertices", c.nb_vertices )
-    print( "bounded", c.bounded )
-    print( "empty", c.empty )
-
-    c.cut_boundary( [ 0, -1, 0 ], 0 )
-    print( "nb_vertices", c.nb_vertices )
-    print( "bounded", c.bounded )
-    print( "empty", c.empty )
-
-    # assert c.nb_vertices == 0
-    # assert c.bounded == False
-    # assert c.empty == False
-
-    # c.cut_boundary( [ 0, -1 ], 0 )
-    # assert c.nb_vertices == 1
-    # assert c.bounded == False
-    # assert c.empty == True
+    cut_and_check( c, [ 1.0, 1.0, 0 ], 1.0 )
+    cut_and_check( c, [ 1.0, 1.0, 0 ], 1.5 )
 
 # test_Cell_emptyness_bounded()
 test_Cell_emptyness_unbounded()

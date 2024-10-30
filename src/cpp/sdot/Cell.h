@@ -7,7 +7,6 @@
 #include "PrevCutInfo.h"
 #include "BigRational.h"
 #include "SimdTensor.h"
-#include "VertexRefs.h"
 #include "VtkOutput.h"
 #include "Cut.h"
 
@@ -45,8 +44,9 @@ public:
     TF                           for_each_cut_with_measure   ( const std::function<void( const Cut &cut, TF measure )> &f ) const;
     TF                           measure                     () const;
 
+    PI                           true_dimensionality         () const { return _true_dimensionnality; }
     PI                           nb_vertices                 () const { return vertex_refs.size(); }
-    PI                           nb_cuts                     () const { return cuts.size(); }
+    PI                           nb_cuts                     ();
     bool                         bounded                     () const { return _bounded; }
     bool                         empty                       () const;
   
@@ -70,9 +70,11 @@ private:
     template<int d> class        NumCutMapForDim             { public: MapOfUniquePISortedArray<d,PI32,PI> map; };
     using                        NumCutMap                   = RangeOfClasses<NumCutMapForDim,0,nb_dims>;
   
-    template<int d> struct       LowerDimCut                 { Vec<BigRational,d> dir; BigRational off; void display( Displayer &ds ) const { ds << dir << off; } };
+    using                        BR                          = double; // BigRational;
 
-    template<int d> class        LowerDimDataForDim          { public: Vec<Vec<BigRational,nb_dims>,d> base; Vec<Vec<BigRational,d>> vertex_coords; Vec<Vec<PI32,d>> vertex_refs; Vec<LowerDimCut<d>> cuts; };
+    template<int d> struct       LowerDimCut                 { Vec<BR,d> dir; BR off; void display( Displayer &ds ) const { ds << dir << off; } };
+
+    template<int d> class        LowerDimDataForDim          { public: Vec<Vec<BR,nb_dims>,d> base; Vec<Vec<BR,d>> vertex_coords; Vec<Vec<PI32,d>> vertex_refs; Vec<LowerDimCut<d>> cuts; };
     using                        LowerDimData                = RangeOfClasses<LowerDimDataForDim,0,nb_dims>;
   
     void                         add_measure_rec             ( auto &res, auto &M, const auto &num_cuts, PI32 prev_vertex, PI op_id, Vec<TF> &measure_for_each_cut ) const;
@@ -94,6 +96,7 @@ private:
     void                         _unbounded_cut              ( CutType type, const Pt &dir, TF off, const Pt &p1, TF w1, PI i1, PavingItem *ptr, PI32 num_in_ptr );
   
     // intermediate data  
+    bool                         _may_have_unused_cuts;      ///< 
     PI                           _true_dimensionnality;      ///< span of cuts[ ... ].dir
     LowerDimData                 _lower_dim_data;            ///< data used when "true" dimensionnality is not yet nb_dims
     mutable NumCutMap            _num_cut_map;               ///<

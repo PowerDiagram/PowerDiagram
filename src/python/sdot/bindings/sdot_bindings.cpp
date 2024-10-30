@@ -240,6 +240,7 @@ PYBIND11_MODULE( SDOT_CONFIG_module_name, m ) { // py::module_local()
         .def( "__repr__", []( const Cell &cell ) { return to_string( cell ); } )
         
         // properties
+        .def_property_readonly( "true_dimensionality", &Cell::true_dimensionality )
         .def_property_readonly( "nb_vertices", &Cell::nb_vertices )
         .def_property_readonly( "nb_cuts", &Cell::nb_cuts )
         .def_property_readonly( "bounded", &Cell::bounded )
